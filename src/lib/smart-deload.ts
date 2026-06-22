@@ -110,6 +110,19 @@ const FATIGUE_WEIGHTS = {
   sleepQuality: 0.15,
 };
 
+/**
+ * Map an average RPE (0-10) to a fatigue contribution (0-100).
+ *
+ * Exponential: RPE 8 vs 9 is a far bigger fatigue jump than RPE 6 vs 7
+ * (5→0, 7→16, 8→36, 9→64, 10→100). This is the SINGLE source of truth — both
+ * the fatigue-debt score and the protocol classifier must use it, or they
+ * disagree on how hard a week was.
+ */
+function rpeToFatigue(avgRPE: number): number {
+  const normalized = Math.max(0, (avgRPE - 5) / 5);
+  return Math.min(100, Math.max(0, Math.round(Math.pow(normalized, 2) * 100)));
+}
+
 // ─── Deload Protocol Definitions ────────────────────────────────────────────
 
 const DELOAD_PROTOCOLS: DeloadProtocol[] = [
@@ -420,18 +433,28 @@ function classifyFatigueType(
   rpeComponent: number,
   recoveryComponent: number,
   sleepComponent: number,
+  wearableAvailable: boolean,
 ): 'volume' | 'intensity' | 'recovery' | 'sleep' | 'general' {
-  const components = [
-    { type: 'volume' as const, value: volumeComponent },
-    { type: 'intensity' as const, value: rpeComponent },
-    { type: 'recovery' as const, value: recoveryComponent },
-    { type: 'sleep' as const, value: sleepComponent },
+  const components: { type: 'volume' | 'intensity' | 'recovery' | 'sleep'; value: number }[] = [
+    { type: 'volume', value: volumeComponent },
+    { type: 'intensity', value: rpeComponent },
   ];
+
+  // Recovery/sleep fatigue default to a neutral 50 when there's no wearable.
+  // Without this guard that placeholder can outrank real measured volume/RPE and
+  // wrongly steer the recommendation toward an "active recovery" deload citing
+  // data that doesn't exist. Only consider them when we actually have wearable data.
+  if (wearableAvailable) {
+    components.push(
+      { type: 'recovery' as const, value: recoveryComponent },
+      { type: 'sleep' as const, value: sleepComponent },
+    );
+  }
 
   components.sort((a, b) => b.value - a.value);
 
   // If the top contributor is significantly higher than average, it's dominant
-  const avg = (volumeComponent + rpeComponent + recoveryComponent + sleepComponent) / 4;
+  const avg = components.reduce((s, c) => s + c.value, 0) / components.length;
   if (components[0].value > avg * 1.4) {
     return components[0].type;
   }
@@ -507,9 +530,7 @@ export function calculateFatigueDebt(
     // 2. RPE trend component (0-100): higher RPE = exponentially more fatigue
     // RPE 8 vs 9 is a much bigger fatigue difference than RPE 6 vs 7
     const avgRPE = weeklyAvgRPE(weekLogs);
-    // Exponential mapping: RPE 5→0, 7→16, 8→36, 9→64, 10→100
-    const normalizedRPE = Math.max(0, (avgRPE - 5) / 5); // 0-1 range
-    const rpeScore = Math.min(100, Math.max(0, Math.round(Math.pow(normalizedRPE, 2) * 100)));
+    const rpeScore = rpeToFatigue(avgRPE);
 
     // 3. Recovery score component (0-100): lower recovery = more fatigue
     const avgRecovery = avgRecoveryInRange(wearableHistory, weekKey, weekEnd);
@@ -767,12 +788,18 @@ export function getSmartDeloadRecommendation(
     });
   }
 
-  // Trigger 5: 4+ weeks of progressive overload without a deload
+  // Trigger 5: 4+ weeks of accumulating load WITHOUT a deload — but only when
+  // real fatigue is present. countConsecutiveOverloadWeeks measures "weeks
+  // without a fatigue dip", so on its own it fires for ANY consistent trainee
+  // (even a beginner doing light work) and falsely cites "accumulated fatigue".
+  // Gate it on a moderate current debt so it reflects actual accumulation, not
+  // just elapsed time. (Proactive every-N-weeks deloads are the block planner's
+  // job — this engine is the reactive, fatigue-driven one.)
   const overloadWeeks = countConsecutiveOverloadWeeks(fatigueDebt.weeklyFatigueScores);
   triggers.push({
-    met: overloadWeeks >= 4,
+    met: overloadWeeks >= 4 && fatigueDebt.currentDebt >= 45,
     urgency: overloadWeeks >= 6 ? 'recommended' : 'optional',
-    reason: `${overloadWeeks} consecutive weeks of progressive overload without a deload — accumulated fatigue risk`,
+    reason: `${overloadWeeks} consecutive weeks of accumulating load without a deload — fatigue is building`,
   });
 
   // ─── Determine if deload is needed ────────────────────────────────────
@@ -809,8 +836,7 @@ export function getSmartDeloadRecommendation(
     const weekEnd = weekKey + WEEK_MS;
 
     avgVolFatigue += weeklyVolumeScore(weekLogs);
-    const rpe = weeklyAvgRPE(weekLogs);
-    avgRPEFatigue += Math.min(100, Math.max(0, (rpe - 5) * 20));
+    avgRPEFatigue += rpeToFatigue(weeklyAvgRPE(weekLogs));
 
     const rec = avgRecoveryInRange(wearableHistory, weekKey, weekEnd);
     avgRecFatigue += rec != null ? (100 - rec) : 50;
@@ -828,7 +854,8 @@ export function getSmartDeloadRecommendation(
     avgSleepFatigue /= weekCount;
   }
 
-  const fatigueType = classifyFatigueType(avgVolFatigue, avgRPEFatigue, avgRecFatigue, avgSleepFatigue);
+  const hasWearable = wearableHistory.some(w => w.recoveryScore != null);
+  const fatigueType = classifyFatigueType(avgVolFatigue, avgRPEFatigue, avgRecFatigue, avgSleepFatigue, hasWearable);
 
   let selectedProtocol: DeloadProtocol;
   switch (fatigueType) {

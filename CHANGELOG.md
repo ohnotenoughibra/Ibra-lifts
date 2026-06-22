@@ -3,6 +3,18 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.7.2] - 2026-06-22
+
+**Deload engine audit: stop recommending deloads to fresh athletes, and fix two internal inconsistencies.**
+
+### Fixed
+- **No more false deloads.** The smart-deload engine was telling people to deload after any 4 consistent training weeks — even a beginner doing light work at RPE 7 with a recent PR — citing "accumulated fatigue" that wasn't there. It was measuring *consistency*, not fatigue. Now that trigger only fires when real fatigue has actually built up. (Scheduled every-few-weeks deloads still come from your training block; this is the reactive, fatigue-driven layer.)
+- **The engine no longer disagrees with itself on RPE.** Your fatigue score mapped hard sets exponentially (RPE 9 hurts much more than 7), but the part that picks *which* deload to do mapped them linearly — same week, two different fatigue readings. Unified to one formula.
+- **Users without a wearable are no longer mislabeled.** With no Whoop/recovery data, the engine used a neutral placeholder for recovery and sleep — and that placeholder could wrongly become your "main" fatigue driver and push an "active recovery" deload based on data that doesn't exist. It now ignores recovery/sleep unless there's real wearable data.
+
+### For contributors
+- `smart-deload.ts`: Trigger 5 gated on `currentDebt >= 45`; shared `rpeToFatigue()` used by both `calculateFatigueDebt` and the protocol classifier; `classifyFatigueType` takes `wearableAvailable` and drops recovery/sleep candidates without data. Added `smart-deload.test.ts` (7 tests) — the engine had zero coverage before. Known follow-up: `FatigueOverlay` passes `performanceProfiles: undefined`, so the declining-strength trigger is inert there while HomeTab includes it.
+
 ## [2.7.1] - 2026-06-22
 
 **No more cold paywall when your session quietly expires.**

@@ -3,6 +3,16 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.7.1] - 2026-06-22
+
+**No more cold paywall when your session quietly expires.**
+
+### Fixed
+- Pro/owner access is tied to your signed-in account, but the app is local-first — so if your login session lapsed (or you reinstalled), the app kept showing your data while silently treating you as free, and hit you with the upgrade paywall. Now, if you're signed out, the paywall leads with **"Welcome back — sign in"** (restoring Pro/owner access) above the subscribe options, instead of just trying to sell you a plan you may already own. Honest copy — it doesn't promise Pro to a brand-new user.
+
+### For contributors
+- `UpgradePrompt` now reads `useSession()` status + `isOnboarded`; when signed out it renders a sign-in CTA (`/login`) above the billing/checkout in both the modal and inline variants. Root cause: `getEffectiveTier` keys off `session?.user?.email`, which is null on a lapsed session.
+
 ## [2.7.0] - 2026-06-19
 
 **Put your own workouts on your week. Schedule a My Workout to weekdays and it shows on your plan.**

@@ -3,6 +3,13 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.7.3] - 2026-06-22
+
+**Crews: stop the action buttons getting cut off at the bottom on phones.**
+
+### Fixed
+- In a crew you joined, the buttons under the leaderboard (Invite, Leave/Delete, New crew, Join another) could be pushed off the bottom of the screen on a phone and were unreachable. Cause: the crew screen put its content in a fixed full-height box inside a scrolling column, which on mobile (with the home indicator / dynamic toolbar) shoved the footer past the visible edge. Now the content sizes naturally and scrolls, with extra bottom clearance — matching the cardio planner overlay that already worked.
+
 ## [2.7.2] - 2026-06-22
 
 **Deload engine audit: stop recommending deloads to fresh athletes, and fix two internal inconsistencies.**

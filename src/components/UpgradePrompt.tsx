@@ -1,10 +1,12 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, X, Check, Zap, Loader2, CheckCircle2 } from 'lucide-react';
+import { Crown, X, Check, Zap, Loader2, CheckCircle2, LogIn } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import { useFeatureAccess } from '@/lib/useFeatureAccess';
+import { useAppStore } from '@/lib/store';
 import { PRICING } from '@/lib/subscription';
 
 interface UpgradePromptProps {
@@ -30,6 +32,13 @@ const PAYPAL_PLANS = {
 
 export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }: UpgradePromptProps) {
   const { featureName, featureDescription } = useFeatureAccess(feature);
+  // Owner / Pro status is tied to the signed-in account (server session). The app
+  // is local-first, so a returning user whose session has lapsed still sees their
+  // data but silently drops to "free" — and hits this paywall. Detect that case
+  // and offer "sign in to restore access" instead of only selling a subscription.
+  const { status } = useSession();
+  const isSignedIn = status === 'authenticated';
+  const isOnboarded = useAppStore((s) => s.isOnboarded);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [activating, setActivating] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -120,6 +129,25 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
       </div>
     );
   }
+
+  // ── "Welcome back, sign in" — shown to signed-out users so a lapsed session
+  //    doesn't paywall an owner or existing subscriber. Sits ABOVE the subscribe
+  //    options: if they had access, sign-in restores it; if not, they can still
+  //    subscribe below. Honest copy — doesn't promise Pro to a brand-new user.
+  const signInBlock = !isSignedIn ? (
+    <a
+      href="/login"
+      className="block w-full mb-4 rounded-xl border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 transition-colors p-3 text-left"
+    >
+      <p className="text-sm font-semibold text-sky-100 flex items-center gap-1.5">
+        <LogIn className="w-4 h-4 shrink-0" />
+        {isOnboarded ? 'Welcome back — sign in' : 'Already have an account? Sign in'}
+      </p>
+      <p className="text-xs text-sky-300/80 mt-0.5">
+        Pro and owner access live on your account. Sign in to restore it.
+      </p>
+    </a>
+  ) : null;
 
   // ── Billing toggle ──
   const billingToggle = (
@@ -227,6 +255,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
         </div>
         <h3 className="text-lg font-bold text-grappler-50 mb-1">{featureName}</h3>
         <p className="text-sm text-grappler-400 mb-4">{featureDescription}</p>
+        {signInBlock}
         {billingToggle}
         {checkoutSection}
         <p className="text-center text-xs text-grappler-400 mt-3">
@@ -284,6 +313,7 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
             ))}
           </div>
 
+          {signInBlock}
           {billingToggle}
           {checkoutSection}
 

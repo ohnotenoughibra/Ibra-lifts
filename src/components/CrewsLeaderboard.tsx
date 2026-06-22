@@ -116,7 +116,11 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
         </button>
       </div>
 
-      <div className="px-4 py-5 max-w-md w-full mx-auto flex-1">
+      {/* No flex-1 here: in the overflow-y flex column it pinned this box to
+          viewport-minus-header and pushed the footer buttons off the bottom on
+          phones. Let content size naturally and the container scroll (matches
+          the working CardioPlanner overlay). */}
+      <div className="px-4 py-5 pb-24 max-w-md w-full mx-auto">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-grappler-500">
             <Loader2 className="w-7 h-7 animate-spin text-primary-400" />

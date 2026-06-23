@@ -532,88 +532,54 @@ function Step2_ScheduleAndGo({
   const liftDays = data.trainingDays || [];
   const combatDays = data.combatTrainingDays || [];
 
-  // Auto-prefill on mount / when sessions change
-  const prevSessionsRef = useRef(data.sessionsPerWeek);
+  // Prefill a sensible week ONCE on mount. Never re-run on count changes — that
+  // was a feedback loop that clobbered the user's manual day taps.
   const didInitialPrefill = useRef(false);
 
   useEffect(() => {
-    const sessionsChanged = prevSessionsRef.current !== data.sessionsPerWeek;
-    prevSessionsRef.current = data.sessionsPerWeek;
+    if (didInitialPrefill.current) return;
+    didInitialPrefill.current = true;
+    if (liftDays.length > 0) return; // user already has a schedule — leave it
 
-    if (sessionsChanged || (!didInitialPrefill.current && liftDays.length === 0)) {
-      const recommended = getRecommendedLiftingDays(data.sessionsPerWeek, data.trainingIdentity);
-      const updates: Partial<OnboardingData> = { trainingDays: recommended };
-      if (isCombat && combatDays.length === 0) {
-        let recCombat = getRecommendedCombatDays(data.combatSport);
-        // Ensure at least 1 rest day — remove combat days that overlap with lift days
-        const liftSet = new Set(recommended);
-        const usedDays = new Set([...recommended, ...recCombat.map(d => d.day)]);
-        if (usedDays.size >= 7) {
-          // Too many days — trim combat to leave at least 1 rest day
-          recCombat = recCombat.filter(d => !liftSet.has(d.day)).slice(0, 7 - recommended.length - 1);
-        }
-        updates.combatTrainingDays = recCombat;
-      }
-      update(updates);
-      didInitialPrefill.current = true;
+    const recommended = getRecommendedLiftingDays(data.sessionsPerWeek, data.trainingIdentity);
+    const updates: Partial<OnboardingData> = { trainingDays: recommended };
+    if (isCombat && combatDays.length === 0) {
+      // Suggest mat days that DON'T overlap lift days, and keep at least one full
+      // rest day (union of lift+combat capped at 6).
+      const liftSet = new Set(recommended);
+      const room = Math.max(0, 6 - recommended.length);
+      updates.combatTrainingDays = getRecommendedCombatDays(data.combatSport)
+        .filter(d => !liftSet.has(d.day))
+        .slice(0, room);
     }
+    update(updates);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.sessionsPerWeek]);
+  }, []);
 
-  // Day type for the tap-to-cycle grid: 'rest' | 'lift' | 'combat'
-  type DayType = 'rest' | 'lift' | 'combat';
+  // Lift days and mat/combat days are two INDEPENDENT sets. A day can be in both
+  // (lift + roll same day) or neither (rest). No cycling, no clobbering.
+  const liftSet = new Set(liftDays);
+  const combatSet = new Set(combatDays.map((c) => c.day));
+  // Rest = days that are in NEITHER set. Union, so overlaps never double-count.
+  const restCount = Math.max(0, 7 - new Set([...liftDays, ...combatDays.map((c) => c.day)]).size);
 
-  const getDayType = (dayIdx: number): DayType => {
-    if (liftDays.includes(dayIdx)) return 'lift';
-    if (combatDays.some((s) => s.day === dayIdx)) return 'combat';
-    return 'rest';
+  const toggleLift = (dayIdx: number) => {
+    const next = liftSet.has(dayIdx)
+      ? liftDays.filter((d) => d !== dayIdx)
+      : [...liftDays, dayIdx].sort((a, b) => a - b);
+    update({
+      trainingDays: next,
+      // Keep sessionsPerWeek in step with lift days (clamped 1-6) so downstream
+      // planning matches the picker. Empty → leave the prior value.
+      ...(next.length > 0 ? { sessionsPerWeek: Math.max(1, Math.min(6, next.length)) as SessionsPerWeek } : {}),
+    });
   };
 
-  const cycleDayType = (dayIdx: number) => {
-    const current = getDayType(dayIdx);
-    // Cycle order for combat athletes: rest → lift → combat → rest
-    // For non-combat: rest → lift → rest (skip combat)
-    let next: DayType;
-    if (isCombat) {
-      if (current === 'rest') next = 'lift';
-      else if (current === 'lift') next = 'combat';
-      else next = 'rest';
-    } else {
-      next = current === 'lift' ? 'rest' : 'lift';
-    }
-
-    // Apply the change
-    let newLiftDays = [...liftDays];
-    let newCombatDays = [...combatDays];
-
-    // Remove from current
-    if (current === 'lift') {
-      newLiftDays = newLiftDays.filter((d) => d !== dayIdx);
-    } else if (current === 'combat') {
-      newCombatDays = newCombatDays.filter((s) => s.day !== dayIdx);
-    }
-
-    // Add to next
-    if (next === 'lift') {
-      if (!newLiftDays.includes(dayIdx)) {
-        newLiftDays.push(dayIdx);
-        newLiftDays.sort((a, b) => a - b);
-      }
-    } else if (next === 'combat') {
-      if (!newCombatDays.some((s) => s.day === dayIdx)) {
-        newCombatDays.push({ day: dayIdx, intensity: 'moderate', timeOfDay: 'afternoon' });
-      }
-    }
-
-    // Update sessions per week to match lift days count
-    const liftCount = newLiftDays.length;
-    const clampedSessions = Math.max(1, Math.min(6, liftCount)) as SessionsPerWeek;
-
-    update({
-      trainingDays: newLiftDays,
-      combatTrainingDays: newCombatDays,
-      ...(liftCount > 0 && liftCount !== data.sessionsPerWeek ? { sessionsPerWeek: clampedSessions } : {}),
-    });
+  const toggleCombat = (dayIdx: number) => {
+    const next = combatSet.has(dayIdx)
+      ? combatDays.filter((c) => c.day !== dayIdx)
+      : [...combatDays, { day: dayIdx, intensity: 'moderate', timeOfDay: 'afternoon' } as CombatTrainingDay].sort((a, b) => a.day - b.day);
+    update({ combatTrainingDays: next });
   };
 
   const getSplitLabel = () => {
@@ -623,11 +589,35 @@ function Step2_ScheduleAndGo({
     return 'Push/pull/legs split';
   };
 
-  const dayTypeStyles: Record<DayType, { border: string; bg: string; text: string; label: string; icon: string }> = {
-    rest: { border: 'border-transparent', bg: 'bg-grappler-800/50', text: 'text-grappler-500', label: 'Rest', icon: '' },
-    lift: { border: 'border-primary-500/50', bg: 'bg-primary-500/10', text: 'text-primary-300', label: 'Lift', icon: '' },
-    combat: { border: 'border-red-500/50', bg: 'bg-red-500/10', text: 'text-red-300', label: 'Combat', icon: '' },
-  };
+  // One row of 7 tappable day chips for a given set.
+  const dayRow = (
+    activeSet: Set<number>,
+    onToggle: (i: number) => void,
+    accent: { on: string; text: string; dot: string },
+  ) => (
+    <div className="grid grid-cols-7 gap-1.5">
+      {DAY_NAMES.map((name, i) => {
+        const on = activeSet.has(i);
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onToggle(i)}
+            className={cn(
+              'rounded-xl py-2.5 min-h-[52px] flex flex-col items-center justify-center gap-1.5 border-2 transition-all active:scale-95',
+              on ? accent.on : 'border-transparent bg-grappler-800/50',
+            )}
+          >
+            <span className={cn('text-xs font-bold', on ? accent.text : 'text-grappler-500')}>{name}</span>
+            <div className={cn('w-5 h-1.5 rounded-full', on ? accent.dot : 'bg-grappler-700')} />
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const liftAccent = { on: 'border-primary-500/60 bg-primary-500/15', text: 'text-primary-200', dot: 'bg-primary-400' };
+  const combatAccent = { on: 'border-red-500/60 bg-red-500/15', text: 'text-red-200', dot: 'bg-red-400' };
 
   return (
     <div className="space-y-5">
@@ -641,123 +631,50 @@ function Step2_ScheduleAndGo({
         <div className="h-px bg-grappler-700 my-4" />
         <p className="text-grappler-400 text-sm">
           {isCombat
-            ? 'Tap each day to cycle: Rest \u2192 Lift \u2192 Combat'
-            : 'Tap each day to toggle between Lift and Rest'}
+            ? 'Tap the days you lift, and the days you hit the mat. A day can be both.'
+            : 'Tap the days you train.'}
         </p>
       </div>
 
-      {/* Sessions per week — only for non-combat (combat athletes set it via the grid) */}
-      {!isCombat && (
+      {/* Lift days */}
+      <div>
+        <label className="flex items-center gap-1.5 text-xs font-bold text-grappler-400 mb-2 uppercase tracking-wide">
+          <span className="w-3 h-1.5 rounded-full bg-primary-400" /> Lift days
+        </label>
+        {dayRow(liftSet, toggleLift, liftAccent)}
+      </div>
+
+      {/* Mat / combat days — independent set; can overlap lift days */}
+      {isCombat && (
         <div>
-          <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">
-            Lifting days per week
-            <span className="text-grappler-500 ml-1 normal-case">({liftDays.length}/{data.sessionsPerWeek})</span>
+          <label className="flex items-center gap-1.5 text-xs font-bold text-grappler-400 mb-2 uppercase tracking-wide">
+            <span className="w-3 h-1.5 rounded-full bg-red-400" /> Mat / combat days
           </label>
-          <div className="grid grid-cols-6 gap-2">
-            {([1, 2, 3, 4, 5, 6] as SessionsPerWeek[]).map((n) => (
-              <button
-                key={n}
-                onClick={() => update({ sessionsPerWeek: n })}
-                className={cn(
-                  'py-3 min-h-[48px] rounded-lg text-lg font-bold transition-all',
-                  data.sessionsPerWeek === n
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-grappler-700 text-grappler-400'
-                )}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-grappler-400 mt-1.5 text-center">{getSplitLabel()}</p>
+          {dayRow(combatSet, toggleCombat, combatAccent)}
         </div>
       )}
-
-      {/* Week grid — tap to cycle day type */}
-      <div>
-        <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">
-          Your week
-        </label>
-        <div className="grid grid-cols-7 gap-1.5">
-          {DAY_NAMES.map((name, dayIdx) => {
-            const dtype = getDayType(dayIdx);
-            const styles = dayTypeStyles[dtype];
-
-            return (
-              <button
-                key={dayIdx}
-                onClick={() => {
-                  if (!isCombat) {
-                    // For non-combat: respect the sessionsPerWeek cap
-                    if (dtype === 'rest' && liftDays.length >= data.sessionsPerWeek) return;
-                  }
-                  cycleDayType(dayIdx);
-                }}
-                className={cn(
-                  'rounded-xl text-center transition-all py-2.5 min-h-[72px] flex flex-col items-center justify-center gap-1 border-2',
-                  styles.border,
-                  styles.bg,
-                )}
-              >
-                <span className={cn(
-                  'text-xs font-medium',
-                  styles.text,
-                )}>{name}</span>
-                <span className={cn(
-                  'text-[10px] font-bold uppercase tracking-wider mt-0.5',
-                  styles.text,
-                )}>{styles.label}</span>
-                {dtype === 'lift' && (
-                  <div className="w-5 h-1.5 rounded-full bg-primary-400 mt-0.5" />
-                )}
-                {dtype === 'combat' && (
-                  <div className="w-5 h-1.5 rounded-full bg-red-400 mt-0.5" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-4 mt-2.5">
-          <div className="flex items-center gap-1.5">
-            <div className="w-4 h-1.5 rounded-full bg-primary-400" />
-            <span className="text-xs text-grappler-400">Lift</span>
-          </div>
-          {isCombat && (
-            <div className="flex items-center gap-1.5">
-              <div className="w-4 h-1.5 rounded-full bg-red-400" />
-              <span className="text-xs text-grappler-400">Combat</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1.5">
-            <div className="w-4 h-1.5 rounded-full bg-grappler-600" />
-            <span className="text-xs text-grappler-400">Rest</span>
-          </div>
-        </div>
-      </div>
 
       {isCombat && (
         <div className="p-3 rounded-xl bg-grappler-800/50 border border-grappler-700/50">
           <p className="text-xs text-grappler-400 leading-relaxed">
-            <span className="font-semibold text-grappler-300">Tip:</span> Place heavy lifting away from hard sparring days. We will auto-adjust intensity based on your schedule. You can fine-tune in Settings later.
+            <span className="font-semibold text-grappler-300">Tip:</span> Lifting and mat work on the same day is fine — we auto-adjust lifting intensity around hard sparring. You can fine-tune in Settings later.
           </p>
         </div>
       )}
 
-      {/* Week summary — compact counts */}
-      {liftDays.length > 0 && (
-        <div className="flex items-center justify-center gap-4">
+      {/* Week summary — rest counts days in NEITHER set, so it's never negative */}
+      {(liftDays.length > 0 || combatDays.length > 0) && (
+        <div className="flex items-center justify-center gap-4 flex-wrap">
           <span className="text-xs text-grappler-400">
-            <span className="font-bold text-primary-300">{liftDays.length}</span> lift {liftDays.length === 1 ? 'day' : 'days'}
+            <span className="font-bold text-primary-300">{liftDays.length}</span> lift
           </span>
-          {isCombat && combatDays.length > 0 && (
+          {isCombat && (
             <span className="text-xs text-grappler-400">
-              <span className="font-bold text-red-300">{combatDays.length}</span> combat {combatDays.length === 1 ? 'day' : 'days'}
+              <span className="font-bold text-red-300">{combatDays.length}</span> mat
             </span>
           )}
           <span className="text-xs text-grappler-400">
-            <span className="font-bold text-grappler-300">{7 - liftDays.length - combatDays.length}</span> rest
+            <span className="font-bold text-grappler-300">{restCount}</span> rest
           </span>
           {liftDays.length > 0 && (
             <span className="text-xs text-grappler-500 italic">{getSplitLabel()}</span>

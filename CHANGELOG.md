@@ -3,6 +3,19 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.7.4] - 2026-06-23
+
+**Onboarding "When you train" rebuilt: no more buggy day selection, and you can pick lift + mat on the same day.**
+
+### Fixed
+- Tapping one day changed the selection on *other* days, and the rest-day count could go negative (e.g. "-4 rest"). Cause: the picker cycled Rest→Lift→Combat through two day-lists that could overlap (so days got double-counted), and each tap nudged your weekly count, which re-fired an auto-fill that overwrote your manual selection.
+
+### Changed
+- The week picker is now **two simple rows you tap to toggle** — Lift days and Mat/combat days — each independent. A day can be **both lift and mat** (Paul's ask). Rest is whatever's left, so it can never go negative, and your lift count drives weekly volume automatically.
+
+### For contributors
+- `Onboarding` step 2: replaced `cycleDayType` (mutually-exclusive cycle + a `sessionsPerWeek`-coupled prefill loop) with independent `toggleLift`/`toggleCombat` immutable set ops; prefill runs once on mount only; rest = `7 - |lift ∪ combat|`; UI is two `dayRow` toggle strips.
+
 ## [2.7.3] - 2026-06-22
 
 **Crews: stop the action buttons getting cut off at the bottom on phones.**

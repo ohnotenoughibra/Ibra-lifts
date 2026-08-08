@@ -661,8 +661,11 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
           >
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-grappler-400" />
+              {/* "All N tools" read 11 on Train and 10 on Progress because the
+                  list is filtered by context — so "all" was never true. Name
+                  what the count actually describes. */}
               <span className="text-sm font-medium text-grappler-300">
-                All {visibleTools.length} tools
+                {visibleTools.length} tools here
               </span>
               <span className="text-xs text-grappler-500">
                 {tier === 'pro'

@@ -277,12 +277,19 @@ export function getOneThing(ctx: OneThingContext): OneThing {
       color: 'text-blue-400',
     };
   } else if (isTrainingDay) {
-    // Missed the window
+    // Late, but the session is still on the board — the Train tab is still
+    // showing a live "Start Workout" button at this hour, so writing the day
+    // off here put two contradictory answers on the same screen. Offer the
+    // short version instead, and only mention sleep as the fallback.
     result = {
-      message: `${fightPrefix}Missed today? Tomorrow's a new day.`,
-      subtext: 'Focus on sleep and nutrition tonight.',
-      icon: 'Moon',
-      color: 'text-grappler-400',
+      message: `${fightPrefix}Still time — a short session counts.`,
+      subtext: nextWorkoutName
+        ? `${nextWorkoutName} · or call it and sleep by 11.`
+        : 'Twenty minutes, or call it and sleep by 11.',
+      icon: 'Zap',
+      color: 'text-amber-400',
+      action: 'Start workout',
+      actionRoute: 'workout',
     };
   } else {
     result = {

@@ -2622,7 +2622,7 @@ export default function ActiveWorkout() {
                     className={cn(
                       'text-xs px-2.5 py-1 rounded-full transition-colors capitalize',
                       addExerciseFilter === muscle
-                        ? 'bg-primary-500 text-white'
+                        ? 'bg-primary-600 text-white'
                         : 'bg-grappler-700 text-grappler-400 hover:bg-grappler-600'
                     )}
                   >
@@ -4434,7 +4434,7 @@ export default function ActiveWorkout() {
                         className={cn(
                           'flex-1 py-2 rounded-lg font-medium text-sm',
                           feedback.overallRPE === rpe
-                            ? 'bg-primary-500 text-white'
+                            ? 'bg-primary-600 text-white'
                             : 'bg-grappler-700 text-grappler-400'
                         )}
                       >
@@ -4474,7 +4474,7 @@ export default function ActiveWorkout() {
                           feedback.overallPerformance === opt.value
                             ? opt.value === 'worse_than_expected' ? 'bg-red-500 text-white' :
                               opt.value === 'better_than_expected' ? 'bg-green-500 text-white' :
-                              'bg-primary-500 text-white'
+                              'bg-primary-600 text-white'
                             : 'bg-grappler-700 text-grappler-400'
                         )}
                       >
@@ -4535,7 +4535,7 @@ export default function ActiveWorkout() {
                         className={cn(
                           'flex-1 py-2 rounded-lg text-sm font-medium',
                           feedback.mood === v
-                            ? 'bg-primary-500 text-white'
+                            ? 'bg-primary-600 text-white'
                             : 'bg-grappler-700 text-grappler-400'
                         )}
                       >

@@ -407,7 +407,7 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
                       className={cn(
                         'flex-1 py-1.5 text-xs rounded-lg transition-colors',
                         servings === s
-                          ? 'bg-primary-500 text-white'
+                          ? 'bg-primary-600 text-white'
                           : 'bg-grappler-700 text-grappler-400 hover:text-grappler-200',
                       )}
                     >

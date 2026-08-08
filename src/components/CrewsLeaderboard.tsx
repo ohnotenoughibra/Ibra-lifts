@@ -157,7 +157,7 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
                 {crews.map(c => (
                   <button key={c.id} onClick={() => setActiveCrewId(c.id)}
                     className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors',
-                      c.id === activeCrewId ? 'bg-primary-500 text-white' : 'bg-grappler-800 text-grappler-400')}>
+                      c.id === activeCrewId ? 'bg-primary-600 text-white' : 'bg-grappler-800 text-grappler-400')}>
                     {c.name}
                   </button>
                 ))}

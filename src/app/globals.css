@@ -260,6 +260,19 @@
   body.light-mode .text-grappler-600 { color: #64748b; }  /* → slate-500 (dimmer labels) */
   body.light-mode .text-grappler-700 { color: #94a3b8; }  /* → slate-400 (dimmest hint text) */
 
+  /* Text — contrast-safe for the DARK ground (the default mode).
+     Raw slate-500/600 measure 3.75:1 and 2.36:1 on grappler-900, both under
+     the WCAG AA floor of 4.5:1 — and the inactive bottom-nav labels use them,
+     so primary navigation was failing. These lift the two dim tiers above the
+     floor on both grappler-900 (page) and grappler-800 (cards) while keeping
+     400 > 500 > 600 stepping down in lightness.
+       400 #94a3b8  6.96:1 / 5.71:1  (unchanged — already passes)
+       500 #8b98aa  6.09:1 / 4.99:1
+       600 #8493a4  5.69:1 / 4.66:1
+     Text utilities only — backgrounds, borders and light mode are untouched. */
+  body:not(.light-mode) .text-grappler-500 { color: #8b98aa; }
+  body:not(.light-mode) .text-grappler-600 { color: #8493a4; }
+
   /* Borders */
   body.light-mode .border-grappler-700 { border-color: #e2e8f0; }
   body.light-mode .border-grappler-700\/50 { border-color: rgba(226,232,240,0.5); }
@@ -1124,4 +1137,19 @@ body.light-mode .recharts-tooltip-item {
   .animate-shimmer {
     animation: none !important;
   }
+}
+
+/* Onboarding: brief highlight on whatever the CTA scrolled you to, so the eye
+   lands on the right control instead of hunting the section again. */
+.ob-flash {
+  animation: ob-flash 1.4s ease-out;
+  border-radius: 6px;
+}
+@keyframes ob-flash {
+  0%, 100% { color: inherit; box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+  15%      { color: #fcd34d; box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.16); }
+  70%      { color: #fcd34d; box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.10); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ob-flash { animation: none; color: #fcd34d; }
 }

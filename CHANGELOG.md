@@ -3,6 +3,22 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.9.0] - 2026-08-08
+
+**Usability pass: the app now tells you what it wants, what costs money, and what it can actually read.**
+
+Eight findings from a hands-on audit of the live app at phone width. All fixed.
+
+### Fixed
+- **Onboarding's only button was disabled and never said why.** One `canProceed()` boolean gated eight separate conditions — fail any one and the button greyed out with no message, no field marker, no count. Some conditions lived in a section that didn't exist until the ones above it validated, so the button could sit dead for a reason that wasn't on screen yet. The CTA is now always live: tapping it scrolls to the first unmet field and flashes it, and a line underneath names what's outstanding ("Pick your sport · 6 left").
+- **Pro tools looked identical to free ones until the paywall landed.** The Tools grid had no lock icons and no PRO labels — you found out one tap at a time, and 25 of 33 gated features are Pro. Locked tiles now carry a lock + PRO badge with a dimmed icon.
+- **Muted text failed WCAG AA, including the bottom nav.** `text-grappler-500` measured 3.75:1 and `-600` measured 2.36:1 against the dark ground, both under the 4.5:1 floor, across 800+ sites — and the inactive nav labels used them, so primary navigation was below the accessibility line. Lifted to `#8b98aa` and `#8493a4`, keeping the 400 > 500 > 600 step. Separately, 38 selected-state chips moved from `primary-500` to `primary-600` (white text on the lighter blue was 3.68:1). Every tab now measures zero contrast failures.
+- **The paywall's only exit was a 20px-wide target** — half the 44px minimum on its narrow axis. Now 44 × 44.
+- **"All N tools" reported a different N per tab** (11 on Train, 10 on Progress) because the list is context-filtered. Now reads "11 tools here".
+- **The Tools empty state pointed at a "Body tab" that doesn't exist** — the nav is Today / Train / Progress / Tools, and BODY is a heading *inside* Tools. Now names a real gesture: "Long-press any tool below to pin it here."
+- **The paywall greeted a 90-second-old account with "Welcome back — sign in."** Right for a lapsed subscriber, doubt-inducing right before asking for a card. Now gated on profile age rather than `isOnboarded`: under 24 hours it collapses to a quiet sign-in link.
+- **The Today tab wrote the day off while still offering to start it.** At 8pm on an untrained training day the One Thing engine said "Missed today? Tomorrow's a new day" while the Train tab showed a live Start button. It now reads "Still time — a short session counts." and carries the start action, with sleep as the stated fallback.
+
 ## [2.8.0] - 2026-08-08
 
 **One unit everywhere, and weight suggestions that finally respect the rep range you're training in.**

@@ -481,7 +481,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-colors ${
                   activeTab === tab.key
-                    ? 'bg-primary-500 text-white'
+                    ? 'bg-primary-600 text-white'
                     : 'text-grappler-400 hover:text-grappler-200'
                 }`}
               >
@@ -818,7 +818,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
                         onClick={() => setSessionType(st.value)}
                         className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                           sessionType === st.value
-                            ? 'bg-primary-500 text-white'
+                            ? 'bg-primary-600 text-white'
                             : 'bg-grappler-700 text-grappler-300 hover:bg-grappler-600'
                         }`}
                       >

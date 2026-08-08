@@ -39,6 +39,16 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
   const { status } = useSession();
   const isSignedIn = status === 'authenticated';
   const isOnboarded = useAppStore((s) => s.isOnboarded);
+  const profileCreatedAt = useAppStore((s) => s.user?.createdAt);
+  // "Welcome back" is right for a lapsed subscriber and wrong for someone who
+  // finished onboarding ninety seconds ago — it plants doubt right before we
+  // ask for a card. Anyone whose local profile is under a day old is new.
+  const isReturning = isOnboarded && (() => {
+    if (!profileCreatedAt) return true;
+    const created = new Date(profileCreatedAt).getTime();
+    if (!Number.isFinite(created)) return true;
+    return Date.now() - created > 24 * 60 * 60 * 1000;
+  })();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [activating, setActivating] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -135,18 +145,28 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
   //    options: if they had access, sign-in restores it; if not, they can still
   //    subscribe below. Honest copy — doesn't promise Pro to a brand-new user.
   const signInBlock = !isSignedIn ? (
-    <a
-      href="/login"
-      className="block w-full mb-4 rounded-xl border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 transition-colors p-3 text-left"
-    >
-      <p className="text-sm font-semibold text-sky-100 flex items-center gap-1.5">
-        <LogIn className="w-4 h-4 shrink-0" />
-        {isOnboarded ? 'Welcome back — sign in' : 'Already have an account? Sign in'}
-      </p>
-      <p className="text-xs text-sky-300/80 mt-0.5">
-        Pro and owner access live on your account. Sign in to restore it.
-      </p>
-    </a>
+    isReturning ? (
+      <a
+        href="/login"
+        className="block w-full mb-4 rounded-xl border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 transition-colors p-3 text-left"
+      >
+        <p className="text-sm font-semibold text-sky-100 flex items-center gap-1.5">
+          <LogIn className="w-4 h-4 shrink-0" />
+          Welcome back — sign in
+        </p>
+        <p className="text-xs text-sky-300/80 mt-0.5">
+          Pro and owner access live on your account. Sign in to restore it.
+        </p>
+      </a>
+    ) : (
+      // Brand-new profile: keep the route available but out of the way.
+      <a
+        href="/login"
+        className="block w-full mb-4 text-center text-xs text-grappler-400 hover:text-sky-300 transition-colors underline underline-offset-2"
+      >
+        Already have an account? Sign in
+      </a>
+    )
   ) : null;
 
   // ── Billing toggle ──
@@ -290,8 +310,14 @@ export default function UpgradePrompt({ feature, onDismiss, variant = 'inline' }
           exit={{ scale: 0.9, y: 20 }}
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Close was a 20px-wide hit area — under the 44px minimum on its
+              narrow axis, and it's the primary way out of a full-screen wall. */}
           {onDismiss && (
-            <button onClick={onDismiss} aria-label="Close upgrade dialog" className="absolute top-4 right-4 text-grappler-500 hover:text-grappler-300">
+            <button
+              onClick={onDismiss}
+              aria-label="Close upgrade dialog"
+              className="absolute top-2 right-2 w-11 h-11 flex items-center justify-center rounded-lg text-grappler-400 hover:text-grappler-200 hover:bg-grappler-700/40 transition-colors"
+            >
               <X className="w-5 h-5" />
             </button>
           )}

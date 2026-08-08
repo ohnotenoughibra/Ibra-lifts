@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
@@ -66,17 +66,48 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
     }
   };
 
-  const canProceed = () => {
-    // All in one step
-    if (!onboardingData.trainingIdentity) return false;
-    if (onboardingData.trainingIdentity === 'combat' && !onboardingData.combatSport && !(onboardingData.combatSports && onboardingData.combatSports.length > 0)) return false;
-    if (!onboardingData.goalFocus) return false;
-    if (onboardingData.name.length < 2) return false;
-    if (!onboardingData.bodyWeightKg || onboardingData.bodyWeightKg <= 0) return false;
-    if (!onboardingData.sex) return false;
-    if ((onboardingData.trainingDays?.length || 0) < onboardingData.sessionsPerWeek) return false;
-    if (!onboardingData.disclaimerAccepted) return false;
-    return true;
+  // Every gate the CTA depends on, each one named and anchored.
+  //
+  // This used to be a bare `canProceed()` boolean: eight conditions collapsed
+  // into one greyed-out button that never said which one failed. Some of them
+  // live in step 2, which does not exist until step 1 validates — so the button
+  // could sit dead for a reason that was not yet on screen. Now the button
+  // always works, and tapping it takes you to the first thing that's missing.
+  const requirements = useMemo(() => {
+    const d = onboardingData;
+    const hasSport = !!d.combatSport || (d.combatSports?.length || 0) > 0;
+    return [
+      { id: 'ob-identity',   met: !!d.trainingIdentity,                           ask: 'Pick how you train' },
+      { id: 'ob-sport',      met: d.trainingIdentity !== 'combat' || hasSport,    ask: 'Pick your sport' },
+      { id: 'ob-goal',       met: !!d.goalFocus,                                  ask: 'Pick your #1 goal' },
+      { id: 'ob-name',       met: (d.name?.length || 0) >= 2,                     ask: 'Add your name' },
+      { id: 'ob-weight',     met: !!d.bodyWeightKg && d.bodyWeightKg > 0,         ask: 'Add your body weight' },
+      { id: 'ob-sex',        met: !!d.sex,                                        ask: 'Pick your sex' },
+      { id: 'ob-days',       met: (d.trainingDays?.length || 0) >= d.sessionsPerWeek, ask: 'Tap the days you lift' },
+      { id: 'ob-disclaimer', met: !!d.disclaimerAccepted,                         ask: 'Accept the training disclaimer' },
+    ];
+  }, [onboardingData]);
+
+  const firstUnmet = requirements.find(r => !r.met);
+  const canProceed = () => !firstUnmet;
+
+  // Set once the athlete has actually tried to continue — we don't nag before that.
+  const [showMissing, setShowMissing] = useState(false);
+
+  const handleContinue = () => {
+    if (!firstUnmet) {
+      setShowMissing(false);
+      nextStep();
+      return;
+    }
+    setShowMissing(true);
+    const el = document.getElementById(firstUnmet.id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Brief flash so the eye lands on the right control after the scroll.
+      el.classList.add('ob-flash');
+      window.setTimeout(() => el.classList.remove('ob-flash'), 1400);
+    }
   };
 
   return (
@@ -132,16 +163,30 @@ export default function Onboarding({ authUserId }: { authUserId?: string }) {
           </AnimatePresence>
         </motion.div>
 
-        {/* CTA */}
-        <div className="flex justify-center mt-6">
+        {/* CTA — always live. It either continues, or walks you to what's missing. */}
+        <div className="mt-6">
           <button
-            onClick={nextStep}
-            disabled={!canProceed()}
+            onClick={handleContinue}
+            aria-describedby={firstUnmet && showMissing ? 'ob-missing' : undefined}
             className="btn btn-primary btn-lg gap-2 w-full"
           >
             Let&apos;s Go
             <ChevronRight className="w-5 h-5" />
           </button>
+          {firstUnmet && (
+            <p
+              id="ob-missing"
+              role={showMissing ? 'alert' : undefined}
+              className={cn(
+                'text-center text-xs mt-2 transition-colors',
+                showMissing ? 'text-amber-300 font-medium' : 'text-grappler-400'
+              )}
+            >
+              {firstUnmet.ask}
+              {requirements.filter(r => !r.met).length > 1 &&
+                ` · ${requirements.filter(r => !r.met).length} left`}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -225,7 +270,7 @@ function Step1_AboutYou({
 
       {/* Identity selection */}
       <div>
-        <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">I train</label>
+        <label id="ob-identity" className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide scroll-mt-24">I train</label>
         <div className="space-y-1.5">
           {identities.map((id) => (
             <button
@@ -278,7 +323,7 @@ function Step1_AboutYou({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">What do you train?</label>
+            <label id="ob-sport" className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide scroll-mt-24">What do you train?</label>
             <div className="grid grid-cols-2 gap-1.5">
               {combatSports.map((sport) => {
                 const selected = (data.combatSports || []).includes(sport.value) || data.combatSport === sport.value;
@@ -322,7 +367,7 @@ function Step1_AboutYou({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">My #1 goal</label>
+            <label id="ob-goal" className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide scroll-mt-24">My #1 goal</label>
             <div className="grid grid-cols-2 gap-1.5">
               {goals.map((g) => {
                 const colors = colorMap[g.color] || colorMap.primary;
@@ -361,7 +406,7 @@ function Step1_AboutYou({
 
             {/* Name */}
             <div>
-              <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Name</label>
+              <label id="ob-name" className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide scroll-mt-24">Name</label>
               <input
                 type="text"
                 value={data.name}
@@ -375,7 +420,7 @@ function Step1_AboutYou({
             {/* Bodyweight */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-grappler-400 uppercase tracking-wide">
+                <label id="ob-weight" className="block text-xs font-medium text-grappler-400 uppercase tracking-wide scroll-mt-24">
                   Body weight
                 </label>
                 <button
@@ -410,7 +455,7 @@ function Step1_AboutYou({
             {/* Sex + Experience — side by side to save vertical space */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide">Sex</label>
+                <label id="ob-sex" className="block text-xs font-medium text-grappler-400 mb-1.5 uppercase tracking-wide scroll-mt-24">Sex</label>
                 <div className="grid grid-cols-2 gap-1.5">
                   {([
                     { value: 'male' as BiologicalSex, label: 'M' },
@@ -448,7 +493,7 @@ function Step1_AboutYou({
                       className={cn(
                         'py-3 rounded-lg text-center transition-all text-sm font-medium min-h-[44px]',
                         data.experienceLevel === level.value
-                          ? 'bg-primary-500 text-white'
+                          ? 'bg-primary-600 text-white'
                           : 'bg-grappler-700 text-grappler-400'
                       )}
                     >
@@ -638,7 +683,7 @@ function Step2_ScheduleAndGo({
 
       {/* Lift days */}
       <div>
-        <label className="flex items-center gap-1.5 text-xs font-bold text-grappler-400 mb-2 uppercase tracking-wide">
+        <label id="ob-days" className="flex items-center gap-1.5 text-xs font-bold text-grappler-400 mb-2 uppercase tracking-wide scroll-mt-24">
           <span className="w-3 h-1.5 rounded-full bg-primary-400" /> Lift days
         </label>
         {dayRow(liftSet, toggleLift, liftAccent)}
@@ -704,7 +749,7 @@ function Step2_ScheduleAndGo({
             )}
           </div>
           <div>
-            <span className="text-sm text-grappler-200">I train at my own risk</span>
+            <span id="ob-disclaimer" className="text-sm text-grappler-200 scroll-mt-24">I train at my own risk</span>
             <p className="text-xs text-grappler-500 mt-0.5">Not medical advice — consult a physician first</p>
           </div>
         </button>

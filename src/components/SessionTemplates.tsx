@@ -847,7 +847,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                     onClick={() => setProgramFilterSessions(programFilterSessions === n ? null : n)}
                     className={cn(
                       'w-8 py-1 rounded text-xs font-medium transition-all text-center',
-                      programFilterSessions === n ? 'bg-primary-500 text-white' : 'bg-grappler-700/50 text-grappler-400'
+                      programFilterSessions === n ? 'bg-primary-600 text-white' : 'bg-grappler-700/50 text-grappler-400'
                     )}
                   >
                     {n}

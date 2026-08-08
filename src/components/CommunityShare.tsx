@@ -266,7 +266,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
               className={cn(
                 'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all',
                 activeTab === tab.id
-                  ? 'bg-primary-500 text-white'
+                  ? 'bg-primary-600 text-white'
                   : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
               )}
             >

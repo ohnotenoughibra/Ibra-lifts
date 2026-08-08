@@ -471,7 +471,7 @@ function QuickCustomExercise({ onSave, onClose }: {
             {muscles.map(m => (
               <button key={m} onClick={() => setMuscle(m)}
                 className={cn('px-2 py-1 rounded-full text-xs font-medium capitalize',
-                  muscle === m ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                  muscle === m ? 'bg-primary-600 text-white' : 'bg-grappler-700 text-grappler-400'
                 )}>{m.replace('_', ' ')}</button>
             ))}
           </div>
@@ -482,7 +482,7 @@ function QuickCustomExercise({ onSave, onClose }: {
             {patterns.map(p => (
               <button key={p.v} onClick={() => setPattern(p.v)}
                 className={cn('px-2 py-1 rounded-full text-xs font-medium',
-                  pattern === p.v ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                  pattern === p.v ? 'bg-primary-600 text-white' : 'bg-grappler-700 text-grappler-400'
                 )}>{p.l}</button>
             ))}
           </div>
@@ -758,7 +758,7 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
                 view === tab.id
-                  ? 'bg-primary-500 text-white'
+                  ? 'bg-primary-600 text-white'
                   : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
               )}
             >
@@ -804,7 +804,7 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
                     className={cn(
                       'px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex-shrink-0',
                       templateCategory === tab.id
-                        ? 'bg-primary-500 text-white'
+                        ? 'bg-primary-600 text-white'
                         : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
                     )}
                   >
@@ -923,7 +923,7 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
                         onClick={() => setSelectedMuscle('all')}
                         className={cn(
                           'px-2.5 py-1 rounded-full text-xs font-medium',
-                          selectedMuscle === 'all' ? 'bg-primary-500 text-white' : 'bg-grappler-800 text-grappler-400'
+                          selectedMuscle === 'all' ? 'bg-primary-600 text-white' : 'bg-grappler-800 text-grappler-400'
                         )}
                       >
                         All
@@ -934,7 +934,7 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
                           onClick={() => setSelectedMuscle(key as MuscleGroup)}
                           className={cn(
                             'px-2.5 py-1 rounded-full text-xs font-medium',
-                            selectedMuscle === key ? 'bg-primary-500 text-white' : 'bg-grappler-800 text-grappler-400'
+                            selectedMuscle === key ? 'bg-primary-600 text-white' : 'bg-grappler-800 text-grappler-400'
                           )}
                         >
                           {label}
@@ -950,7 +950,7 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
                         onClick={() => setSelectedCategory('all')}
                         className={cn(
                           'px-2.5 py-1 rounded-full text-xs font-medium',
-                          selectedCategory === 'all' ? 'bg-primary-500 text-white' : 'bg-grappler-800 text-grappler-400'
+                          selectedCategory === 'all' ? 'bg-primary-600 text-white' : 'bg-grappler-800 text-grappler-400'
                         )}
                       >
                         All
@@ -961,7 +961,7 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
                           onClick={() => setSelectedCategory(key as ExerciseCategory)}
                           className={cn(
                             'px-2.5 py-1 rounded-full text-xs font-medium',
-                            selectedCategory === key ? 'bg-primary-500 text-white' : 'bg-grappler-800 text-grappler-400'
+                            selectedCategory === key ? 'bg-primary-600 text-white' : 'bg-grappler-800 text-grappler-400'
                           )}
                         >
                           {label}

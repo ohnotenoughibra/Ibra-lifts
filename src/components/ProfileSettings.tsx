@@ -177,7 +177,7 @@ function InlineField({ label, value, type = 'text', suffix, onSave, options, min
               className={cn(
                 'px-3 py-1 rounded-lg text-xs font-medium transition-all active:scale-95',
                 String(value) === opt.value
-                  ? 'bg-primary-500 text-white'
+                  ? 'bg-primary-600 text-white'
                   : 'bg-grappler-700/60 text-grappler-400 hover:text-grappler-200'
               )}
             >
@@ -845,7 +845,7 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
                   className={cn(
                     'flex-1 py-2 rounded-xl text-xs font-bold tabular-nums transition-all active:scale-95',
                     user?.sessionsPerWeek === n
-                      ? 'bg-primary-500 text-white'
+                      ? 'bg-primary-600 text-white'
                       : 'bg-grappler-700/60 text-grappler-400'
                   )}>
                   {n}

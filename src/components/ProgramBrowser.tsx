@@ -650,7 +650,7 @@ export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserPr
                                   className={cn(
                                     'px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize',
                                     block.focus === f
-                                      ? 'bg-primary-500 text-white'
+                                      ? 'bg-primary-600 text-white'
                                       : 'bg-grappler-900 text-grappler-400 border border-grappler-600 hover:border-grappler-500'
                                   )}
                                 >
@@ -694,7 +694,7 @@ export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserPr
                                     className={cn(
                                       'w-8 h-8 rounded-lg text-xs font-medium transition-all',
                                       (block.sessionsPerWeek || user?.sessionsPerWeek) === n
-                                        ? 'bg-primary-500 text-white'
+                                        ? 'bg-primary-600 text-white'
                                         : 'bg-grappler-900 border border-grappler-600 text-grappler-400'
                                     )}
                                   >
@@ -718,7 +718,7 @@ export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserPr
                                   className={cn(
                                     'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
                                     (block.sessionDurationMinutes || user?.sessionDurationMinutes || 60) === mins
-                                      ? 'bg-primary-500 text-white'
+                                      ? 'bg-primary-600 text-white'
                                       : 'bg-grappler-900 border border-grappler-600 text-grappler-400'
                                   )}
                                 >
@@ -743,7 +743,7 @@ export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserPr
                                   className={cn(
                                     'px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex-1',
                                     (block.periodization || 'undulating') === p.value
-                                      ? 'bg-primary-500 text-white'
+                                      ? 'bg-primary-600 text-white'
                                       : 'bg-grappler-900 border border-grappler-600 text-grappler-400'
                                   )}
                                 >

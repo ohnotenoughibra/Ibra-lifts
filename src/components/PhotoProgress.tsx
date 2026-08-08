@@ -430,7 +430,7 @@ function GalleryTab({
             className={cn(
               'px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all',
               poseFilter === f.id
-                ? 'bg-primary-500 text-white'
+                ? 'bg-primary-600 text-white'
                 : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
             )}
           >
@@ -950,7 +950,7 @@ function AddPhotoModal({
                   className={cn(
                     'flex-1 py-2 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all',
                     pose === p
-                      ? 'bg-primary-500 text-white'
+                      ? 'bg-primary-600 text-white'
                       : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
                   )}
                 >

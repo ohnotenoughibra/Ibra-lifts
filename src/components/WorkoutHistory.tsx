@@ -424,7 +424,7 @@ export default function WorkoutHistory() {
               onClick={() => setHistoryView('list')}
               className={cn(
                 'p-1.5 rounded-md transition-colors',
-                historyView === 'list' ? 'bg-primary-500 text-white' : 'text-grappler-400 hover:text-grappler-200'
+                historyView === 'list' ? 'bg-primary-600 text-white' : 'text-grappler-400 hover:text-grappler-200'
               )}
               title="List view"
             >
@@ -434,7 +434,7 @@ export default function WorkoutHistory() {
               onClick={() => setHistoryView('blocks')}
               className={cn(
                 'p-1.5 rounded-md transition-colors',
-                historyView === 'blocks' ? 'bg-primary-500 text-white' : 'text-grappler-400 hover:text-grappler-200'
+                historyView === 'blocks' ? 'bg-primary-600 text-white' : 'text-grappler-400 hover:text-grappler-200'
               )}
               title="Training blocks"
             >
@@ -444,7 +444,7 @@ export default function WorkoutHistory() {
               onClick={() => setHistoryView('calendar')}
               className={cn(
                 'p-1.5 rounded-md transition-colors',
-                historyView === 'calendar' ? 'bg-primary-500 text-white' : 'text-grappler-400 hover:text-grappler-200'
+                historyView === 'calendar' ? 'bg-primary-600 text-white' : 'text-grappler-400 hover:text-grappler-200'
               )}
               title="Calendar view"
             >
@@ -596,7 +596,7 @@ export default function WorkoutHistory() {
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
             className={cn(
               'p-2.5 rounded-lg transition-colors',
-              showAdvancedFilters ? 'bg-primary-500 text-white' : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
+              showAdvancedFilters ? 'bg-primary-600 text-white' : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
             )}
           >
             <Filter className="w-4 h-4" />
@@ -609,7 +609,7 @@ export default function WorkoutHistory() {
               onClick={() => setTypeFilter('all')}
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-medium',
-                typeFilter === 'all' ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                typeFilter === 'all' ? 'bg-primary-600 text-white' : 'bg-grappler-700 text-grappler-400'
               )}
             >
               All
@@ -620,7 +620,7 @@ export default function WorkoutHistory() {
                 onClick={() => setTypeFilter(t)}
                 className={cn(
                   'px-3 py-1.5 rounded-lg text-xs font-medium capitalize',
-                  typeFilter === t ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                  typeFilter === t ? 'bg-primary-600 text-white' : 'bg-grappler-700 text-grappler-400'
                 )}
               >
                 {t}
@@ -640,7 +640,7 @@ export default function WorkoutHistory() {
               onClick={() => setDateFilter(d.value)}
               className={cn(
                 'px-3 py-1.5 rounded-lg text-xs font-medium',
-                dateFilter === d.value ? 'bg-primary-500 text-white' : 'bg-grappler-700 text-grappler-400'
+                dateFilter === d.value ? 'bg-primary-600 text-white' : 'bg-grappler-700 text-grappler-400'
               )}
             >
               {d.label}

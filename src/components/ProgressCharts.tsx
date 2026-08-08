@@ -686,7 +686,7 @@ export default function ProgressCharts({ onViewReport, children }: ProgressChart
             className={cn(
               'flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all',
               activeView === tab.id
-                ? 'bg-primary-500 text-white'
+                ? 'bg-primary-600 text-white'
                 : 'bg-grappler-800 text-grappler-400 hover:text-grappler-200'
             )}
           >

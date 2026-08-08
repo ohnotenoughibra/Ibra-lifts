@@ -1237,7 +1237,7 @@ function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose, weeks, onWe
                   className={cn(
                     'flex-1 py-2 rounded-lg text-sm font-medium transition-all',
                     weeks === w
-                      ? 'bg-primary-500 text-white'
+                      ? 'bg-primary-600 text-white'
                       : 'bg-grappler-700/50 text-grappler-400 hover:text-grappler-200'
                   )}
                 >

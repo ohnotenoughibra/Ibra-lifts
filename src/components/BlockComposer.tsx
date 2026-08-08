@@ -154,7 +154,7 @@ export default function BlockComposer({
                 aria-pressed={weeks === w}
                 className={cn(
                   'flex-1 py-2 rounded-lg text-sm font-bold transition-all border',
-                  weeks === w ? 'bg-primary-500 text-white border-primary-400' : 'bg-grappler-800 text-grappler-300 border-grappler-700 hover:border-grappler-500'
+                  weeks === w ? 'bg-primary-600 text-white border-primary-400' : 'bg-grappler-800 text-grappler-300 border-grappler-700 hover:border-grappler-500'
                 )}
               >
                 {w}w
@@ -172,7 +172,7 @@ export default function BlockComposer({
                 aria-pressed={days === d}
                 className={cn(
                   'flex-1 py-2 rounded-lg text-sm font-bold transition-all border',
-                  days === d ? 'bg-primary-500 text-white border-primary-400' : 'bg-grappler-800 text-grappler-300 border-grappler-700 hover:border-grappler-500'
+                  days === d ? 'bg-primary-600 text-white border-primary-400' : 'bg-grappler-800 text-grappler-300 border-grappler-700 hover:border-grappler-500'
                 )}
               >
                 {d}

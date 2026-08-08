@@ -72,7 +72,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
             onClick={() => setActiveCategory('all')}
             className={cn(
               'px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
-              activeCategory === 'all' ? 'bg-primary-500 text-white' : 'bg-grappler-800 text-grappler-400'
+              activeCategory === 'all' ? 'bg-primary-600 text-white' : 'bg-grappler-800 text-grappler-400'
             )}
           >
             All ({allBadges.length})
@@ -86,7 +86,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
                 onClick={() => setActiveCategory(cat.id)}
                 className={cn(
                   'px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap',
-                  activeCategory === cat.id ? 'bg-primary-500 text-white' : 'bg-grappler-800 text-grappler-400'
+                  activeCategory === cat.id ? 'bg-primary-600 text-white' : 'bg-grappler-800 text-grappler-400'
                 )}
               >
                 {cat.label} ({earned}/{count})

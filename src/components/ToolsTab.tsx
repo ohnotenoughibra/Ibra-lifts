@@ -17,12 +17,13 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Search, Pin, Droplets, Moon, Scale, Zap } from 'lucide-react';
+import { Search, Pin, Droplets, Moon, Scale, Zap, Lock } from 'lucide-react';
 import { ALL_TOOLS, TOOL_MAP, readPins, type Tool } from './ExploreTab';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { hapticMedium } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
+import { useCurrentTier } from '@/lib/useFeatureAccess';
 import type { OverlayView } from './dashboard-types';
 
 interface Props {
@@ -51,6 +52,7 @@ export function trackToolLaunch(id: string) {
 }
 
 export default function ToolsTab({ onNavigate }: Props) {
+  const tier = useCurrentTier();
   const [search, setSearch] = useState('');
   const [recents, setRecents] = useState<Tool[]>([]);
   const [pinned, setPinned] = useState<Tool[]>([]);
@@ -135,7 +137,7 @@ export default function ToolsTab({ onNavigate }: Props) {
             </p>
           ) : (
             <div className="grid grid-cols-3 gap-2">
-              {filtered.map(t => <Tile key={t.id} tool={t} onLaunch={launch} />)}
+              {filtered.map(t => <Tile key={t.id} tool={t} onLaunch={launch} locked={tier !== 'pro' && !!t.isPro} />)}
             </div>
           )}
         </div>
@@ -157,7 +159,7 @@ export default function ToolsTab({ onNavigate }: Props) {
             <div>
               <SectionHeader>Recent</SectionHeader>
               <div className="grid grid-cols-3 gap-2">
-                {recents.slice(0, 6).map(t => <Tile key={t.id} tool={t} onLaunch={launch} />)}
+                {recents.slice(0, 6).map(t => <Tile key={t.id} tool={t} onLaunch={launch} locked={tier !== 'pro' && !!t.isPro} />)}
               </div>
             </div>
           )}
@@ -167,7 +169,7 @@ export default function ToolsTab({ onNavigate }: Props) {
             <div>
               <SectionHeader icon={Pin}>Pinned</SectionHeader>
               <div className="grid grid-cols-3 gap-2">
-                {pinned.map(t => <Tile key={t.id} tool={t} onLaunch={launch} />)}
+                {pinned.map(t => <Tile key={t.id} tool={t} onLaunch={launch} locked={tier !== 'pro' && !!t.isPro} />)}
               </div>
             </div>
           )}
@@ -176,19 +178,19 @@ export default function ToolsTab({ onNavigate }: Props) {
           <div>
             <SectionHeader>Train</SectionHeader>
             <div className="grid grid-cols-3 gap-2">
-              {trainTools.map(t => <Tile key={t.id} tool={t} onLaunch={launch} />)}
+              {trainTools.map(t => <Tile key={t.id} tool={t} onLaunch={launch} locked={tier !== 'pro' && !!t.isPro} />)}
             </div>
           </div>
 
           <div>
             <SectionHeader>Body</SectionHeader>
             <div className="grid grid-cols-3 gap-2">
-              {bodyTools.map(t => <Tile key={t.id} tool={t} onLaunch={launch} />)}
+              {bodyTools.map(t => <Tile key={t.id} tool={t} onLaunch={launch} locked={tier !== 'pro' && !!t.isPro} />)}
             </div>
           </div>
 
           <p className="text-[11px] text-grappler-500 text-center">
-            Pin from Train or Body tab to put tools here.
+            Long-press any tool below to pin it here.
           </p>
         </div>
       )}
@@ -207,17 +209,29 @@ function SectionHeader({ children, icon: Icon }: { children: React.ReactNode; ic
   );
 }
 
-function Tile({ tool, onLaunch }: { tool: Tool; onLaunch: (t: Tool) => void }) {
+function Tile({ tool, onLaunch, locked = false }: { tool: Tool; onLaunch: (t: Tool) => void; locked?: boolean }) {
   const Icon = tool.icon;
   return (
     <button
       onClick={() => onLaunch(tool)}
+      aria-label={locked ? `${tool.label} — Pro` : tool.label}
       className={cn(
-        'flex flex-col items-start gap-1.5 p-2.5 rounded-lg border border-grappler-800 bg-grappler-900/40 hover:border-grappler-700 active:scale-95 transition text-left min-h-[68px]',
+        'relative flex flex-col items-start gap-1.5 p-2.5 rounded-lg border border-grappler-800 bg-grappler-900/40 hover:border-grappler-700 active:scale-95 transition text-left min-h-[68px]',
       )}
     >
-      <Icon className="w-4 h-4 text-grappler-300 flex-shrink-0" />
-      <span className="text-[11px] font-semibold text-white leading-tight line-clamp-2">{tool.label}</span>
+      {/* Locked tools used to look identical to free ones — you only found out
+          by tapping and hitting the paywall. Badge them up front. */}
+      {locked && (
+        <span
+          className="absolute top-1.5 right-1.5 flex items-center gap-0.5 rounded px-1 py-0.5 bg-amber-500/15 text-amber-300"
+          title="Pro feature"
+        >
+          <Lock className="w-2.5 h-2.5" aria-hidden="true" />
+          <span className="text-[8px] font-bold uppercase tracking-wider">Pro</span>
+        </span>
+      )}
+      <Icon className={cn('w-4 h-4 flex-shrink-0', locked ? 'text-grappler-400' : 'text-grappler-300')} />
+      <span className={cn('text-[11px] font-semibold leading-tight line-clamp-2', locked ? 'text-grappler-200 pr-8' : 'text-white')}>{tool.label}</span>
     </button>
   );
 }

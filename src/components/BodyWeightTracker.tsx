@@ -8,6 +8,7 @@ import EmptyState from './EmptyState';
 import { cn } from '@/lib/utils';
 import { calculateAdherence, analyzeWeightTrend, calculateEnergyAvailability, estimateDailyExerciseCost } from '@/lib/diet-coach';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { resolveWeightUnit } from '@/lib/units';
 
 function calculateBMI(weightKg: number, heightCm: number): number {
   const heightM = heightCm / 100;
@@ -445,7 +446,7 @@ export default function BodyWeightTracker() {
   const [useManualBF, setUseManualBF] = useState(false);
   const [useManualBMI, setUseManualBMI] = useState(false);
 
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
   const heightCm = user?.heightCm || 0;
   const sex = user?.sex || 'male';
 

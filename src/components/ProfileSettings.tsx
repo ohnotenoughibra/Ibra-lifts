@@ -56,6 +56,7 @@ import { useToast } from './Toast';
 import NotificationSettings from './NotificationSettings';
 import type { OverlayView } from './dashboard-types';
 import { hapticMedium, hapticHeavy, hapticLight } from '@/lib/haptics';
+import { resolveWeightUnit } from '@/lib/units';
 
 // ─── SVG Circular Progress Ring (redesigned — bold level number) ─────────────
 function LevelRing({ progress, level, size = 128, stroke = 5 }: {
@@ -241,7 +242,7 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
   const computed = useComputedGamification();
   const { data: session } = useSession();
   const isSignedIn = !!session?.user;
-  const weightUnit = user?.weightUnit || 'kg';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
   const { showToast } = useToast();
 
   // ── State ────────────────────────────────────────────────────────────────
@@ -755,7 +756,7 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
           <InlineField label="Sex" value={user?.sex || ''}
             options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }]}
             onSave={v => updateUser({ sex: v as BiologicalSex })} />
-          <InlineField label="Units" value={user?.weightUnit || 'kg'}
+          <InlineField label="Units" value={resolveWeightUnit(user?.weightUnit)}
             options={[{ value: 'kg', label: 'KG' }, { value: 'lbs', label: 'LBS' }]}
             onSave={v => updateUser({ weightUnit: v as WeightUnit })} />
         </motion.div>

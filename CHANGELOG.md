@@ -3,6 +3,25 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.8.0] - 2026-08-08
+
+**One unit everywhere, and weight suggestions that finally respect the rep range you're training in.**
+
+### Fixed
+- Coaching messages showed `lbs` no matter what your settings said. The Corner Coach between-set line was the worst offender — `+2.5 lbs vs last time` for a kg athlete, from a literal `currentWeight > 100 ? 'lbs' : 'lbs'` placeholder. Every weight the app speaks or prints now carries the unit from your profile.
+- Progress photos, grip strength, the hydration tip and the Corner Coach examples were all hardcoded to pounds.
+- A profile with no unit set fell back to `lbs` in ~25 places while Onboarding and Settings defaulted to `kg`, so the same athlete could see both. One default now, shared from `lib/units.ts`.
+
+### Changed
+- **Weight suggestions now go through estimated 1RM instead of nudging last session's load.** Undulating (DUP) blocks were the visible break: after a power day at 3 reps, a hypertrophy day prescribed at 12 reps still suggested near the power load, because the old model subtracted a flat 2.5% per rep. Load vs reps isn't linear, and the error grew with the size of the swing. Suggestions now convert your last set to an e1RM using the validated Helms/Zourdos RPE chart, then re-express it at today's target reps and RPE.
+- The `~% 1RM` label is derived from the prescribed reps and RPE, so it agrees with the weight the app suggests. It used to be drawn at random from the workout-type band — a program could show `~75% 1RM` next to `12 reps @ RPE 7`, which is not a load anyone can lift for those reps.
+- Mid-set corrections ("you hit 11 reps, target 8") size the jump from what the set implies about your e1RM rather than always moving one plate increment.
+- `workingWeightFrom1RM` is clamped past 12 reps, matching `estimate1RM`. A 20-rep strength-endurance target used to walk off the end of the Brzycki curve.
+
+### Added
+- `lib/load-model.ts` — the single source of truth for load ↔ reps ↔ RPE, replacing three competing models that disagreed with each other. Covered by 23 tests.
+- `lib/units.ts` + `useWeightUnit()` — one place to resolve, convert and format weights.
+
 ## [2.7.4] - 2026-06-23
 
 **Onboarding "When you train" rebuilt: no more buggy day selection, and you can pick lift + mat on the same day.**

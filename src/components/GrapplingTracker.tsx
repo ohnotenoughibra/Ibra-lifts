@@ -32,6 +32,7 @@ import {
   PreWorkoutCheckIn,
   ACTIVITY_CATEGORY_MAP,
 } from '@/lib/types';
+import { resolveWeightUnit } from '@/lib/units';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -1485,7 +1486,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                 <div className="text-lg font-bold text-primary-400">
                   {filteredLiftingVolume > 0 ? `${Math.round(filteredLiftingVolume / 1000)}k` : '--'}
                 </div>
-                <div className="text-xs text-grappler-400 mt-0.5">Volume ({user?.weightUnit || 'kg'})</div>
+                <div className="text-xs text-grappler-400 mt-0.5">Volume ({resolveWeightUnit(user?.weightUnit)})</div>
               </div>
               <div className="bg-grappler-800 rounded-xl p-3 text-center">
                 <div className={`text-lg font-bold ${filteredLiftingAvgRPE > 0 ? rpeColor(filteredLiftingAvgRPE) : 'text-grappler-400'}`}>
@@ -1586,7 +1587,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
                             className="h-full bg-primary-500/30 rounded"
                           />
                           <span className="absolute inset-0 flex items-center px-2 text-xs font-semibold text-grappler-200">
-                            {e.volume >= 1000 ? `${(e.volume / 1000).toFixed(1)}k` : e.volume} {user?.weightUnit || 'kg'}
+                            {e.volume >= 1000 ? `${(e.volume / 1000).toFixed(1)}k` : e.volume} {resolveWeightUnit(user?.weightUnit)}
                           </span>
                         </div>
                       </div>

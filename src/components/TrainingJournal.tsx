@@ -12,6 +12,7 @@ import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { cn, formatNumber } from '@/lib/utils';
 import type { WorkoutLog, TrainingSession, MentalCheckIn } from '@/lib/types';
+import { resolveWeightUnit } from '@/lib/units';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -56,7 +57,7 @@ export default function TrainingJournal({ onClose }: { onClose: () => void }) {
     trainingSessions: s.trainingSessions,
     mentalCheckIns: s.mentalCheckIns,
   })));
-  const weightUnit = useAppStore(s => s.user?.weightUnit || 'lbs');
+  const weightUnit = useAppStore(s => resolveWeightUnit(s.user?.weightUnit));
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');

@@ -25,6 +25,7 @@ import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib
 import { detectWeightCutPhase, assessWeightCutSafety, getWaterProtocol, getSodiumProtocol } from '@/lib/weight-cut-engine';
 import { calculateElectrolyteNeeds } from '@/lib/electrolyte-engine';
 import WeightCutDashboard from './WeightCutDashboard';
+import { resolveWeightUnit } from '@/lib/units';
 
 interface CompetitionPrepProps {
   onClose: () => void;
@@ -249,7 +250,7 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
     user, competitions: rawEvents, addCompetition, deleteCompetition,
     weightCutPlans, createWeightCutPlan, bodyWeightLog, combatNutritionProfile,
   } = useAppStore();
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [showWeightCutDashboard, setShowWeightCutDashboard] = useState<string | null>(null);

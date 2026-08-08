@@ -15,6 +15,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { resolveWeightUnit } from '@/lib/units';
 
 interface OneRepMaxCalcProps {
   onClose: () => void;
@@ -108,7 +109,7 @@ function buildProtocolSets(estimated1RM: number): ProtocolSet[] {
 
 export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
   const { workoutLogs, user } = useAppStore();
-  const unit = user?.weightUnit || 'lbs';
+  const unit = resolveWeightUnit(user?.weightUnit);
 
   // Calculator state
   const [weight, setWeight] = useState<number>(135);

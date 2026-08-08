@@ -41,6 +41,7 @@ import {
   getTodayChecklist,
   SUPPLEMENT_DATABASE,
 } from '@/lib/supplement-engine';
+import { resolveWeightUnit } from '@/lib/units';
 
 interface QuickActionsProps {
   onClose: () => void;
@@ -87,7 +88,7 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
   const [waterMl, setWaterMl] = useState(250);
   const latestWeight = bodyWeightLog?.[bodyWeightLog.length - 1]?.weight || (user?.weightUnit === 'kg' ? 80 : 175);
   const [weightValue, setWeightValue] = useState(latestWeight);
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
   const [sleepHours, setSleepHours] = useState(7);
   const [sleepQuality, setSleepQuality] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [energyLevel, setEnergyLevel] = useState<1 | 2 | 3 | 4 | 5>(3);

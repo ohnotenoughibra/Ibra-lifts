@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Dumbbell, Target, Zap, TrendingUp, Trash2, P
 import { cn, formatNumber } from '@/lib/utils';
 import { WorkoutLog, TrainingSession, ExerciseLog, SetLog } from '@/lib/types';
 import { exercises as allExercises } from '@/lib/exercises';
+import { resolveWeightUnit } from '@/lib/units';
 
 export default function TrainingCalendar() {
   const {
@@ -20,7 +21,7 @@ export default function TrainingCalendar() {
   const trainingSessions = useMemo(() => rawTrainingSessions.filter(s => !s._deleted), [rawTrainingSessions]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDeleteType, setConfirmDeleteType] = useState<'workout' | 'session' | null>(null);
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
   const now = new Date();
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [currentYear, setCurrentYear] = useState(now.getFullYear());

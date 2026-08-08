@@ -29,6 +29,7 @@ import { useAppStore } from '@/lib/store';
 import { useComputedGamification } from '@/lib/computed-gamification';
 import { WeeklySummary } from '@/lib/types';
 import { formatNumber, formatDate } from '@/lib/utils';
+import { resolveWeightUnit } from '@/lib/units';
 
 interface WeeklyCoachProps {
   onClose: () => void;
@@ -56,7 +57,7 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
   const [loading, setLoading] = useState(true);
   const [coachMessage, setCoachMessage] = useState('');
 
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
   const hasWorkouts = workoutLogs.length > 0;
 
   // Generate the weekly summary on mount

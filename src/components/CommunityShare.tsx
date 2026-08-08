@@ -28,6 +28,7 @@ import { getLevelTitle } from '@/lib/gamification';
 import { useComputedGamification } from '@/lib/computed-gamification';
 import { detectFightCampPhase, getPhaseConfig } from '@/lib/fight-camp-engine';
 import { Apple } from 'lucide-react';
+import { resolveWeightUnit } from '@/lib/units';
 
 type ShareTab = 'summary' | 'pr' | 'badge' | 'milestone' | 'nutrition';
 
@@ -46,7 +47,7 @@ export default function CommunityShare({ onClose }: CommunityShareProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
 
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
 
   // Build shareable data
   const stats = useMemo(() => {

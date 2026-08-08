@@ -42,6 +42,8 @@ import {
   ArrowLeftRight,
 } from 'lucide-react';
 import { cn, formatTime } from '@/lib/utils';
+import { resolveWeightUnit, weightIncrement as getWeightIncrement, barWeight as getBarWeight } from '@/lib/units';
+import { carryOverLoad, prescribedPercentOf1RM } from '@/lib/load-model';
 import { BufferedNumberInput } from './BufferedNumberInput';
 import { calculate1RM, getVolumeGaps } from '@/lib/workout-generator';
 import { getRandomTip } from '@/lib/knowledge';
@@ -80,7 +82,7 @@ const PLATE_COLORS: Record<number, string> = {
 };
 
 function MiniPlateCalc({ weight, unit, singleSided = false }: { weight: number; unit: WeightUnit; singleSided?: boolean }) {
-  const barWeight = unit === 'kg' ? 20 : 45;
+  const barWeight = getBarWeight(unit);
   const plates = unit === 'kg' ? PLATES_KG : PLATES_LBS;
 
   if (weight <= barWeight) return null;
@@ -288,8 +290,8 @@ export default function ActiveWorkout() {
   const [showSwipeHint, setShowSwipeHint] = useState(false);
   const [confirmZeroReps, setConfirmZeroReps] = useState(false);
 
-  const weightUnit: WeightUnit = user?.weightUnit || 'lbs';
-  const weightIncrement = weightUnit === 'kg' ? 2.5 : 5;
+  const weightUnit: WeightUnit = resolveWeightUnit(user?.weightUnit);
+  const weightIncrement = getWeightIncrement(weightUnit);
 
   // Swipe between exercises
   const swipeHandlers = useSwipe({
@@ -714,6 +716,7 @@ export default function ActiveWorkout() {
         previousLogs: storeWorkoutLogs,
         throttleLevel: (throttleResult?.config.level ?? 'green') as ThrottleLevel,
         preCheckIn: activeWorkout.preCheckIn ?? null,
+        weightUnit,
         recentMessageTriggers: coachTriggerHistory.current,
       };
       const msgs = getCoachMessages(coachCtx);
@@ -771,17 +774,33 @@ export default function ActiveWorkout() {
       const currentWeight = currentSet.weight;
 
       if (currentWeight > 0 && actualReps > 0) {
+        // Size the correction off what this set actually implies about the
+        // athlete's e1RM, not a fixed plate jump — overshooting the target by
+        // 5 reps needs a bigger move than overshooting by 3.
+        const corrected = carryOverLoad({
+          lastWeight: currentWeight,
+          lastReps: actualReps,
+          lastRPE: currentSet.rpe,
+          targetReps,
+          targetRPE: currentExercise.prescription.rpe,
+          unit: weightUnit,
+        });
+        const inc = getWeightIncrement(weightUnit);
+
         if (actualReps >= targetReps + 3) {
-          const bump = weightUnit === 'kg' ? 2.5 : 5;
+          const suggestedWeight = Math.max(currentWeight + inc, corrected?.suggested ?? currentWeight + inc);
           setWeightSuggestion({
             message: `You hit ${actualReps} reps (target ${targetReps}) — consider bumping up`,
-            suggestedWeight: currentWeight + bump,
+            suggestedWeight,
           });
         } else if (actualReps <= targetReps - 3 && currentSet.rpe >= 9) {
-          const drop = weightUnit === 'kg' ? 2.5 : 5;
+          const suggestedWeight = Math.max(
+            inc,
+            Math.min(currentWeight - inc, corrected?.suggested ?? currentWeight - inc)
+          );
           setWeightSuggestion({
             message: `Only ${actualReps} reps at RPE ${currentSet.rpe} — consider dropping weight`,
-            suggestedWeight: Math.max(0, currentWeight - drop),
+            suggestedWeight,
           });
         } else {
           setWeightSuggestion(null);
@@ -1156,33 +1175,47 @@ export default function ActiveWorkout() {
     return results;
   };
 
-  // RPE-based weight suggestion: uses last session's data + target RPE
+  // Weight suggestion for today's prescription, carried over from the last
+  // session through the shared load model.
+  //
+  // Goes via e1RM rather than nudging last session's weight by a flat % per
+  // rep: that's what makes undulating (DUP) blocks work. A power day logged at
+  // 3 reps and a hypertrophy day prescribed at 12 reps sit at very different
+  // points on the load curve, and a linear model badly under-corrects.
   const getRPEWeightSuggestion = () => {
     if (!previousPerformance || previousPerformance.weight === 0) return null;
     const targetRPE = currentExercise.prescription.rpe;
     const targetReps = currentExercise.prescription.targetReps;
-    const lastRPE = previousPerformance.rpe || 7;
+    const lastRPE = previousPerformance.rpe || 9;
     const lastWeight = previousPerformance.weight;
 
-    // RPE difference → approximate % adjustment (each RPE point ≈ 2-3% of load)
-    const rpeDiff = targetRPE - lastRPE;
-    const repsDiff = targetReps - previousPerformance.reps;
-    // Each rep difference ≈ 2.5% change, each RPE point ≈ 2.5% change
-    const pctAdjust = (rpeDiff * 0.025) - (repsDiff * 0.025);
-    let suggested = Math.round(lastWeight * (1 + pctAdjust));
-
-    // Factor in feedback from last time
+    // Last session's subjective feedback nudges the underlying e1RM, not the
+    // final load — so the adjustment survives a rep-range change.
+    let intensityFactor = 1;
     if (previousPerformance.feedback) {
-      if (previousPerformance.feedback.difficulty === 'too_easy') suggested = Math.round(suggested * 1.05);
-      if (previousPerformance.feedback.difficulty === 'too_hard') suggested = Math.round(suggested * 0.90);
+      if (previousPerformance.feedback.difficulty === 'too_easy') intensityFactor = 1.05;
+      if (previousPerformance.feedback.difficulty === 'too_hard') intensityFactor = 0.90;
     }
 
-    // Round to nearest increment
-    const increment = weightUnit === 'kg' ? 2.5 : 5;
-    suggested = Math.round(suggested / increment) * increment;
-    if (suggested <= 0) suggested = increment;
+    const carried = carryOverLoad({
+      lastWeight,
+      lastReps: previousPerformance.reps,
+      lastRPE,
+      targetReps,
+      targetRPE,
+      unit: weightUnit,
+      intensityFactor,
+    });
+    if (!carried) return null;
 
-    return { suggested, lastWeight, lastRPE, targetRPE };
+    return {
+      suggested: carried.suggested,
+      lastWeight,
+      lastRPE,
+      targetRPE,
+      targetPct: Math.round(carried.targetPct * 100),
+      e1RM: Math.round(carried.e1RM),
+    };
   };
 
   const rpeSuggestion = getRPEWeightSuggestion();
@@ -2185,7 +2218,7 @@ export default function ActiveWorkout() {
                             <p className="text-xs text-grappler-400 mt-0.5">
                               {ex.sets} x {ex.prescription.targetReps} reps{ex.exercise.isUnilateral ? ' /side' : ''} @ RPE {ex.prescription.rpe}
                               {ex.prescription.percentageOf1RM && (
-                                <span className="text-primary-400 ml-1">~{ex.prescription.percentageOf1RM}% 1RM</span>
+                                <span className="text-primary-400 ml-1">~{prescribedPercentOf1RM(ex.prescription.targetReps, ex.prescription.rpe)}% 1RM</span>
                               )}
                             </p>
                             <p className="text-xs text-grappler-400 mt-0.5">
@@ -3440,7 +3473,7 @@ export default function ActiveWorkout() {
                 RPE {currentExercise.prescription.rpe}
               </span>
               {currentExercise.prescription.percentageOf1RM && (
-                <span className="text-sm text-primary-400">~{currentExercise.prescription.percentageOf1RM}% 1RM</span>
+                <span className="text-sm text-primary-400">~{prescribedPercentOf1RM(currentExercise.prescription.targetReps, currentExercise.prescription.rpe)}% 1RM</span>
               )}
               {currentExercise.prescription.tempo && (
                 <button

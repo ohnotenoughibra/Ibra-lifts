@@ -29,6 +29,7 @@ import {
 import type { FightCampPhaseConfig } from '@/lib/types';
 import { getSupplementPlan, getPreCompetitionPauses } from '@/lib/supplement-engine';
 import { calculateElectrolyteNeeds, getIntraTrainingFuel, getTournamentDayFuel } from '@/lib/electrolyte-engine';
+import { resolveWeightUnit } from '@/lib/units';
 
 interface FightCampNutritionProps {
   onClose: () => void;
@@ -56,7 +57,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
   const effectiveTier = getEffectiveTier(subscription, session?.user?.email);
   const hasFightCampAccess = hasFeatureAccess('fight-camp-nutrition', effectiveTier);
 
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
   const sex = (user?.sex || 'male') as 'male' | 'female';
 
   // Get current weight in kg

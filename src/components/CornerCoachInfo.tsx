@@ -1,6 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useWeightUnit } from '@/hooks/useWeightUnit';
+import type { WeightUnit } from '@/lib/units';
 import {
   X, Brain, AlertTriangle, Zap, Trophy, Lightbulb, ArrowDown,
   TrendingUp, Clock, Dumbbell, Target, Flame,
@@ -27,7 +29,7 @@ const ANALYZERS = [
     icon: TrendingUp,
     color: 'emerald',
     desc: 'Compares your current weight to the last time you did this exercise. Celebrates increases.',
-    example: '"+10 lbs vs last time. Stronger. Keep this energy."',
+    example: (u: WeightUnit) => `"+${u === 'kg' ? 5 : 10} ${u} vs last time. Stronger. Keep this energy."`,
   },
   {
     title: 'Session Pacing',
@@ -55,7 +57,7 @@ const ANALYZERS = [
     icon: Trophy,
     color: 'yellow',
     desc: 'Celebrates weight PRs and the last set of the session.',
-    example: '"New weight PR on Squat! 315 lbs — that\'s never been done before."',
+    example: (u: WeightUnit) => `"New weight PR on Squat! ${u === 'kg' ? 140 : 315} ${u} — that's never been done before."`,
   },
   {
     title: 'Form Cues',
@@ -86,6 +88,7 @@ const toneColorMap: Record<string, string> = {
 };
 
 export default function CornerCoachInfo({ onClose }: { onClose: () => void }) {
+  const weightUnit = useWeightUnit();
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -151,7 +154,7 @@ export default function CornerCoachInfo({ onClose }: { onClose: () => void }) {
                   <span className="text-sm font-bold">{a.title}</span>
                 </div>
                 <p className="text-xs text-grappler-300 mb-2">{a.desc}</p>
-                <p className="text-xs italic text-grappler-400">{a.example}</p>
+                <p className="text-xs italic text-grappler-400">{typeof a.example === 'function' ? a.example(weightUnit) : a.example}</p>
               </div>
             );
           })}

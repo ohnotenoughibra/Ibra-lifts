@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 import { ExercisePrescription, Equipment } from '@/lib/types';
 import { getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
+import { resolveWeightUnit } from '@/lib/units';
+import { prescribedPercentOf1RM } from '@/lib/load-model';
 
 interface ProgramExerciseCardProps {
   exercise: ExercisePrescription;
@@ -26,7 +28,7 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
   const [showFormVideo, setShowFormVideo] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const workoutLogs = useAppStore((s) => s.workoutLogs);
-  const weightUnit = useAppStore((s) => s.user?.weightUnit || 'lbs');
+  const weightUnit = useAppStore((s) => resolveWeightUnit(s.user?.weightUnit));
   const updatePrescription = useAppStore((s) => s.updateExercisePrescription);
   const removeExercise = useAppStore((s) => s.removeExerciseFromSession);
 
@@ -98,7 +100,7 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
               </p>
               {ex.prescription?.percentageOf1RM && (
                 <p className="text-xs text-grappler-400">
-                  ~{ex.prescription.percentageOf1RM}% 1RM
+                  ~{prescribedPercentOf1RM(ex.prescription.targetReps, ex.prescription.rpe)}% 1RM
                 </p>
               )}
             </div>

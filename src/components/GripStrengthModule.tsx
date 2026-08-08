@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
+import { useWeightUnit } from '@/hooks/useWeightUnit';
+import { weightIncrement as getWeightIncrement } from '@/lib/units';
 import {
   X,
   Grip,
@@ -128,6 +130,11 @@ const GRIP_BENCHMARKS = {
 };
 
 export default function GripStrengthModule({ onClose }: GripStrengthModuleProps) {
+  const weightUnit = useWeightUnit();
+  const wInc = getWeightIncrement(weightUnit);
+  // Exercise metadata stores its tracking format with 'lbs' as the weight
+  // token; swap in whatever unit the athlete actually uses.
+  const unitLabel = (u: string) => u.replace('lbs', weightUnit);
   const { gripTests = [], gripExerciseLogs = [], addGripTest, addGripExerciseLog } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<'exercises' | 'tests' | 'progress'>('exercises');
@@ -272,7 +279,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
       date: new Date(),
     });
 
-    setSuccessMessage(`Grip test recorded: ${testValue}${testType === 'hang_time' ? 's' : ' lbs'}`);
+    setSuccessMessage(`Grip test recorded: ${testValue}${testType === 'hang_time' ? 's' : ` ${weightUnit}`}`);
     setShowSuccess(true);
     setShowAddTest(false);
     setTimeout(() => setShowSuccess(false), 2000);
@@ -382,7 +389,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                         <p className="text-xs text-grappler-400 mt-0.5 line-clamp-1">{ex.description}</p>
                         {pb && (
                           <p className="text-xs text-blue-400 mt-1">
-                            PR: {pb} {ex.unit.split(' ')[0]}
+                            PR: {pb} {unitLabel(ex.unit).split(' ')[0]}
                           </p>
                         )}
                       </div>
@@ -502,10 +509,10 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
               {(exercise.trackingType === 'weight_reps' || exercise.trackingType === 'weight_distance') && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-sm text-grappler-400">Weight (lbs)</label>
+                    <label className="text-sm text-grappler-400">Weight ({weightUnit})</label>
                     <div className="flex items-center gap-4">
                       <button
-                        onClick={() => setLogWeight(Math.max(5, logWeight - 5))}
+                        onClick={() => setLogWeight(Math.max(wInc, logWeight - wInc))}
                         className="btn btn-circle btn-ghost"
                       >
                         <Minus className="w-5 h-5" />
@@ -517,7 +524,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                         className="input input-bordered w-24 text-center text-xl font-bold"
                       />
                       <button
-                        onClick={() => setLogWeight(logWeight + 5)}
+                        onClick={() => setLogWeight(logWeight + wInc)}
                         className="btn btn-circle btn-ghost"
                       >
                         <Plus className="w-5 h-5" />
@@ -610,8 +617,8 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                         {new Date(log.date).toLocaleDateString()}
                       </span>
                       <span className="font-medium text-white">
-                        {exercise.trackingType === 'weight_reps' && `${log.weight}lbs x ${log.reps}`}
-                        {exercise.trackingType === 'weight_distance' && `${log.weight}lbs x ${log.distance}ft`}
+                        {exercise.trackingType === 'weight_reps' && `${log.weight}${weightUnit} x ${log.reps}`}
+                        {exercise.trackingType === 'weight_distance' && `${log.weight}${weightUnit} x ${log.distance}ft`}
                         {exercise.trackingType === 'time' && `${log.value}s`}
                         {exercise.trackingType === 'reps' && `${log.value} reps`}
                       </span>
@@ -668,7 +675,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                             : "bg-grappler-800 text-grappler-400"
                         )}
                       >
-                        Grip Strength (lbs)
+                        Grip Strength ({weightUnit})
                       </button>
                     </div>
                   </div>
@@ -697,7 +704,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
 
                   <div className="space-y-2">
                     <label className="text-sm text-grappler-400">
-                      {testType === 'hang_time' ? 'Time (seconds)' : 'Force (lbs)'}
+                      {testType === 'hang_time' ? 'Time (seconds)' : `Force (${weightUnit})`}
                     </label>
                     <div className="flex items-center gap-4">
                       <button
@@ -763,7 +770,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                           </span>
                         </div>
                         <span className="font-medium text-white">
-                          {test.value}{test.type === 'hang_time' ? 's' : ' lbs'}
+                          {test.value}{test.type === 'hang_time' ? 's' : ` ${weightUnit}`}
                         </span>
                       </div>
                     ))}
@@ -854,7 +861,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
                       {pb ? (
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-white">
-                            {pb} {ex.unit.split(' ')[0]}
+                            {pb} {unitLabel(ex.unit).split(' ')[0]}
                           </span>
                           {level && (
                             <span className={cn(

@@ -34,6 +34,8 @@ import { getActivePhaseContext } from './periodization-planner';
 import { getIllnessTrainingRecommendation } from './illness-engine';
 import { INTENSITY_LABELS, type TrainingIntensity } from './types';
 import { localDayKey, asLocalDate } from './utils';
+import { carryOverLoad } from './load-model';
+import { resolveWeightUnit, type WeightUnit } from './units';
 
 /** Filter out soft-deleted items */
 function active<T>(arr: T[]): T[] {
@@ -586,7 +588,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
 
   // ─── Progressive overload teaser (lift days) ───
   const overloadTeaser = (todayType === 'lift' || todayType === 'both') && nextSession
-    ? buildOverloadTeaser(nextSession, workoutLogs)
+    ? buildOverloadTeaser(nextSession, workoutLogs, resolveWeightUnit(user?.weightUnit))
     : null;
 
   // ─── Training modification for low readiness or illness ───
@@ -885,7 +887,7 @@ function buildForwardLook(opts: {
 
 // ─── Progressive Overload Teaser ────────────────────────────────────────────
 
-function buildOverloadTeaser(nextSession: WorkoutSession, workoutLogs: WorkoutLog[]): string | null {
+function buildOverloadTeaser(nextSession: WorkoutSession, workoutLogs: WorkoutLog[], weightUnit: WeightUnit): string | null {
   // Find the first compound exercise in the session and compare to last performance
   const compoundKeywords = ['squat', 'bench', 'deadlift', 'press', 'row', 'pull'];
 
@@ -904,9 +906,19 @@ function buildOverloadTeaser(nextSession: WorkoutSession, workoutLogs: WorkoutLo
         , matchedEx.sets[0]);
 
         if (lastBestSet.weight && lastBestSet.weight > 0) {
-          const targetWeight = ex.prescription.percentageOf1RM
-            ? Math.round(lastBestSet.weight * 1.025) // ~2.5% increase
-            : lastBestSet.weight;
+          // Re-express last session's best set at the reps/RPE prescribed for
+          // the NEXT session before adding overload. A flat +2.5% carried a
+          // 3-rep power load straight onto a 12-rep hypertrophy day.
+          const carried = carryOverLoad({
+            lastWeight: lastBestSet.weight,
+            lastReps: lastBestSet.reps || ex.prescription.targetReps,
+            lastRPE: lastBestSet.rpe,
+            targetReps: ex.prescription.targetReps,
+            targetRPE: ex.prescription.rpe,
+            unit: weightUnit,
+            intensityFactor: 1.025, // ~2.5% progressive overload
+          });
+          const targetWeight = carried ? carried.suggested : lastBestSet.weight;
 
           if (targetWeight > lastBestSet.weight) {
             return `↑ ${ex.exercise.name}: last ${lastBestSet.weight}×${lastBestSet.reps || '?'} → target ${targetWeight}`;

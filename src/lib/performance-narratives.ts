@@ -7,6 +7,7 @@
 
 import type { WorkoutLog, UserProfile, TrainingSession, WeightUnit } from './types';
 import { calculate1RM } from './workout-generator';
+import { resolveWeightUnit } from './units';
 
 export interface PerformanceNarrative {
   /** Main narrative paragraph (2-3 sentences) */
@@ -36,7 +37,7 @@ export function generatePerformanceNarrative(opts: {
   user: UserProfile | null;
 }): PerformanceNarrative {
   const { workoutLogs, trainingSessions, user } = opts;
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
   const now = Date.now();
   const ninetyDaysAgo = now - 90 * 24 * 60 * 60 * 1000;
   const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;

@@ -33,6 +33,7 @@ import { exportWorkoutHistoryPdf } from '@/lib/pdf-export';
 import TrainingCalendar from './TrainingCalendar';
 import { useShallow } from 'zustand/react/shallow';
 import { Layers } from 'lucide-react';
+import { resolveWeightUnit } from '@/lib/units';
 
 export default function WorkoutHistory() {
   const { rawWorkoutLogs, user, updateWorkoutLog, deleteWorkoutLog, rawMesocycleHistory } = useAppStore(
@@ -75,7 +76,7 @@ export default function WorkoutHistory() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [sortBy, setSortBy] = useState<'date' | 'volume' | 'rpe'>('date');
   const [showEditTooltip, setShowEditTooltip] = useState(false);
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
 
   // First-visit tooltip for edit discoverability
   useEffect(() => {
@@ -452,7 +453,7 @@ export default function WorkoutHistory() {
           </div>
           {historyView === 'list' && (
             <button
-              onClick={() => exportWorkoutHistoryPdf(workoutLogs, user?.weightUnit || 'lbs')}
+              onClick={() => exportWorkoutHistoryPdf(workoutLogs, resolveWeightUnit(user?.weightUnit))}
               className="flex items-center gap-1 text-sm text-grappler-400 hover:text-grappler-200 transition-colors"
               title="Export as PDF"
             >

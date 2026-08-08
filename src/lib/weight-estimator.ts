@@ -22,7 +22,10 @@ import type { Exercise, ExperienceLevel, BiologicalSex, BaselineLifts, WorkoutLo
 export function workingWeightFrom1RM(oneRM: number, targetReps: number): number {
   if (oneRM <= 0) return 0;
   if (targetReps <= 1) return oneRM;
-  return oneRM * (1.0278 - 0.0278 * targetReps);
+  // Mirror the cap in estimate1RM: past ~12 reps Brzycki stops being
+  // predictive, and beyond ~37 reps the coefficient goes negative, which
+  // would hand a strength-endurance set a zero or negative target.
+  return oneRM * (1.0278 - 0.0278 * Math.min(targetReps, 12));
 }
 
 /**

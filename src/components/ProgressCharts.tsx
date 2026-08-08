@@ -42,6 +42,7 @@ import { calculate1RM } from '@/lib/workout-generator';
 import { getExerciseById } from '@/lib/exercises';
 import { calculateVO2MaxEstimate } from '@/lib/fatigue-metrics';
 import { useComputedGamification } from '@/lib/computed-gamification';
+import { resolveWeightUnit } from '@/lib/units';
 
 type ChartView = 'strength' | 'volume' | 'distribution' | 'frequency' | 'recovery';
 
@@ -54,7 +55,7 @@ export default function ProgressCharts({ onViewReport, children }: ProgressChart
   const { workoutLogs, mesocycleHistory: _rawMesoHistory, gamificationStats, currentMesocycle, user, wearableHistory, bodyWeightLog } = useAppStore();
   const mesocycleHistory = _rawMesoHistory.filter(m => !m._deleted);
   const computed = useComputedGamification();
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
   const [activeView, setActiveView] = useState<ChartView>('strength');
 
   // Calculate strength progress data

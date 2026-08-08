@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
 import { WearableData, WearableProvider, WhoopWorkout, WhoopBodyMeasurement, ActivityType, ActivityCategory, TrainingIntensity } from '@/lib/types';
 import HealthImport from './HealthImport';
+import { resolveWeightUnit } from '@/lib/units';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -909,7 +910,7 @@ function autoImportCombatWorkouts(whoopWorkouts: WhoopWorkout[]): AutoImportResu
 
 export default function WearableIntegration({ onClose }: WearableIntegrationProps) {
   const user = useAppStore(s => s.user);
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
   const [wearableData, setWearableData] = useState<WearableData[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

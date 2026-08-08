@@ -112,6 +112,7 @@ import { getExerciseById, getAlternativesForExercise, exercises as allExercises,
 import { calculateCompositeWellnessScore } from './wellness-score';
 import { calculateEnhancedACWR } from './fatigue-metrics';
 import { v4 as uuidv4 } from 'uuid';
+import { resolveWeightUnit } from './units';
 
 // Block-level undo: snapshot of everything a block action can touch.
 // Object references only (store state is immutable) — cheap to hold, never persisted.
@@ -2998,12 +2999,12 @@ export const useAppStore = create<AppState>()(
 
       getWeightUnit: () => {
         const { user } = get();
-        return user?.weightUnit || 'lbs';
+        return resolveWeightUnit(user?.weightUnit);
       },
 
       convertWeight: (weight, to) => {
         const { user } = get();
-        const from = user?.weightUnit || 'lbs';
+        const from = resolveWeightUnit(user?.weightUnit);
         if (from === to) return weight;
         if (to === 'kg') return Math.round(weight * 0.453592 * 10) / 10;
         return Math.round(weight / 0.453592 * 10) / 10;
@@ -3671,7 +3672,7 @@ export const useAppStore = create<AppState>()(
         const { logs, changed } = backfillBodyweightInLogs(
           workoutLogs,
           user?.bodyWeightKg,
-          user?.weightUnit || 'lbs',
+          resolveWeightUnit(user?.weightUnit),
           new Date().toISOString(),
         );
         if (changed) {
@@ -3720,7 +3721,7 @@ export const useAppStore = create<AppState>()(
           id: uuidv4(),
           date: new Date(),
           weight,
-          unit: user?.weightUnit || 'lbs',
+          unit: resolveWeightUnit(user?.weightUnit),
           notes
         };
         set({ bodyWeightLog: [...bodyWeightLog, entry], _syncUrgent: true });

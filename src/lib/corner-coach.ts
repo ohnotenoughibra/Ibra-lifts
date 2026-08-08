@@ -22,6 +22,7 @@ import type {
   Exercise,
 } from './types';
 import type { ThrottleLevel } from './readiness-throttle';
+import { DEFAULT_WEIGHT_UNIT, formatWeight, incrementRange, type WeightUnit } from './units';
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -58,6 +59,9 @@ export interface CoachContext {
   // Readiness context
   throttleLevel: ThrottleLevel;
   preCheckIn: PreWorkoutCheckIn | null;
+
+  // Unit the logged weights are in, from the user's settings
+  weightUnit?: WeightUnit;
 
   // What we've already said (to avoid repeating)
   recentMessageTriggers: Set<string>;
@@ -127,7 +131,7 @@ function analyzeRPE(ctx: CoachContext): CoachMessage[] {
   if (diff <= -2 && actualRpe <= 5 && ctx.currentSetIndex >= 1) {
     return [{
       id: makeId(),
-      text: `RPE ${actualRpe} — you've got more in the tank. Bump weight ${ctx.currentExercise.exercise.equipmentTypes.includes('barbell') ? '5-10 lbs' : '2.5-5 lbs'} next set.`,
+      text: `RPE ${actualRpe} — you've got more in the tank. Bump weight ${incrementRange(ctx.weightUnit ?? DEFAULT_WEIGHT_UNIT, ctx.currentExercise.exercise.equipmentTypes.includes('barbell') ? 'barbell' : 'small')} next set.`,
       tone: 'hype',
       priority: 4,
       icon: 'TrendingUp',
@@ -208,11 +212,12 @@ function analyzeWeightVsHistory(ctx: CoachContext): CoachMessage[] {
   const lastWeight = Math.max(...completedWeights);
   const currentWeight = justCompletedSet.weight;
   const weightDiff = currentWeight - lastWeight;
+  const unit = ctx.weightUnit ?? DEFAULT_WEIGHT_UNIT;
 
   if (weightDiff > 0) {
     return [{
       id: makeId(),
-      text: `+${weightDiff} ${currentWeight > 100 ? 'lbs' : 'lbs'} vs last time. Stronger. Keep this energy.`,
+      text: `+${formatWeight(weightDiff, unit)} vs last time. Stronger. Keep this energy.`,
       tone: 'hype',
       priority: 5,
       icon: 'TrendingUp',
@@ -224,7 +229,7 @@ function analyzeWeightVsHistory(ctx: CoachContext): CoachMessage[] {
   if (weightDiff < 0 && ctx.throttleLevel !== 'yellow' && ctx.throttleLevel !== 'orange' && ctx.throttleLevel !== 'red') {
     return [{
       id: makeId(),
-      text: `${Math.abs(weightDiff)} less than last session. Bad day or strategic deload? Either way — own the reps.`,
+      text: `${formatWeight(Math.abs(weightDiff), unit)} less than last session. Bad day or strategic deload? Either way — own the reps.`,
       tone: 'calm',
       priority: 6,
       icon: 'Info',
@@ -364,7 +369,7 @@ function analyzeMilestones(ctx: CoachContext): CoachMessage[] {
     if (justCompletedSet.weight > allTimeBest && justCompletedSet.weight > 0) {
       return [{
         id: makeId(),
-        text: `New weight PR on ${currentExercise.exercise.name}! ${justCompletedSet.weight} — that\'s never been done before.`,
+        text: `New weight PR on ${currentExercise.exercise.name}! ${formatWeight(justCompletedSet.weight, ctx.weightUnit ?? DEFAULT_WEIGHT_UNIT)} — that\'s never been done before.`,
         tone: 'celebrate',
         priority: 0,
         icon: 'Trophy',
@@ -455,6 +460,7 @@ export function getSessionVerdict(
   prescriptions: ExercisePrescription[],
   throttleLevel: ThrottleLevel,
   durationMinutes: number,
+  weightUnit: WeightUnit = DEFAULT_WEIGHT_UNIT,
 ): SessionVerdict {
   const highlights: string[] = [];
 
@@ -475,7 +481,7 @@ export function getSessionVerdict(
 
   // Total volume
   const totalVolume = allSets.reduce((s, set) => s + set.weight * set.reps, 0);
-  if (totalVolume > 0) highlights.push(`${Math.round(totalVolume).toLocaleString()} total volume`);
+  if (totalVolume > 0) highlights.push(`${Math.round(totalVolume).toLocaleString()} ${weightUnit} total volume`);
 
   // Duration
   highlights.push(`${durationMinutes} min`);

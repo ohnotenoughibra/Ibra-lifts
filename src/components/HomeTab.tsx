@@ -49,6 +49,8 @@ import {
   Battery,
 } from 'lucide-react';
 import { cn, formatNumber, localDayKey } from '@/lib/utils';
+import { useWeightUnit } from '@/hooks/useWeightUnit';
+import { resolveWeightUnit, type WeightUnit } from '@/lib/units';
 import { estimate1RM } from '@/lib/weight-estimator';
 import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
 import type { MealEntry, SkipReason } from '@/lib/types';
@@ -128,7 +130,7 @@ const factorExplainers: Record<string, { icon: string; what: string; action: str
   hydration: {
     icon: '💧',
     what: 'Daily water intake. Dehydration cuts strength 2-3% per 1% body mass lost.',
-    action: 'Drink at least half your bodyweight (lbs) in ounces of water.',
+    action: '', // Dynamic — unit-aware, set in rendering
   },
   age: {
     icon: '⏳',
@@ -147,7 +149,18 @@ const factorExplainers: Record<string, { icon: string; what: string; action: str
   },
 };
 
+/**
+ * Baseline daily water target, phrased in the athlete's own unit.
+ * ~33 ml/kg is the same rule as "half your bodyweight in ounces".
+ */
+function hydrationTip(unit: WeightUnit): string {
+  return unit === 'kg'
+    ? 'Drink about 35 ml of water per kg of bodyweight each day.'
+    : 'Drink at least half your bodyweight (lbs) in ounces of water.';
+}
+
 function ReadinessCard() {
+  const cardWeightUnit = useWeightUnit();
   const user = useAppStore(s => s.user);
   const workoutLogs = useAppStore(s => s.workoutLogs);
   const trainingSessions = useAppStore(s => s.trainingSessions);
@@ -201,6 +214,7 @@ function ReadinessCard() {
             const explainer = factorExplainers[f.source];
             // Dynamic action text based on actual score
             let actionText = explainer?.action || '';
+            if (f.source === 'hydration') actionText = hydrationTip(cardWeightUnit);
             if (f.source === 'training_load') {
               if (f.score < 30) actionText = 'Take a full rest day — your body needs recovery before more volume.';
               else if (f.score < 50) actionText = 'Elevated load. Consider a rest day or deload session.';
@@ -272,7 +286,7 @@ function ReadinessCard() {
   );
 }
 
-function getRestDayTip(identity?: string, sport?: string): { tip: string; category: string } {
+function getRestDayTip(identity: string | undefined, sport: string | undefined, tipWeightUnit: WeightUnit): { tip: string; category: string } {
   const combatTips = [
     { tip: 'Do 10 min of light flow rolling or shadow work to keep your movement patterns sharp.', category: 'Active Recovery' },
     { tip: 'Spend 15 min on hip openers and thoracic spine mobility — your guard game will thank you.', category: 'Mobility' },
@@ -290,7 +304,7 @@ function getRestDayTip(identity?: string, sport?: string): { tip: string; catego
     { tip: 'A 20-min walk keeps blood flowing to recovering muscles without adding stress.', category: 'Active Recovery' },
     { tip: 'Stretch your hip flexors and chest — sitting all day tightens what lifting already loads.', category: 'Mobility' },
     { tip: 'Prioritize 7-9 hours of sleep tonight. Growth hormone peaks during deep sleep.', category: 'Recovery' },
-    { tip: 'Hydrate well — aim for at least half your bodyweight (lbs) in ounces of water.', category: 'Nutrition' },
+    { tip: `Hydrate well — ${hydrationTip(tipWeightUnit).replace(/^Drink /, 'aim for ').replace(/\.$/, '')}.`, category: 'Nutrition' },
     { tip: 'Foam roll major muscle groups for 10 min — it reduces next-day soreness significantly.', category: 'Soft Tissue' },
   ];
 
@@ -454,7 +468,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const [weeklyCoachingExpanded, setWeeklyCoachingExpanded] = useState<boolean | null>(null);
   const [sorenessCheckDismissed, setSorenessCheckDismissed] = useState(false);
   const [profileHintDismissed, setProfileHintDismissed] = useState(() => typeof window !== 'undefined' && localStorage.getItem('profile-hint-dismissed') === '1');
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
   const hour = new Date().getHours();
 
   // Pull-to-refresh
@@ -1238,7 +1252,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     () => !workoutLogs.some(log => new Date(log.date).toDateString() === todayStr) && !nextWorkoutInfo,
     [workoutLogs, todayStr, nextWorkoutInfo]
   );
-  const restDayTip = isRestDay ? getRestDayTip(user?.trainingIdentity, user?.combatSport) : null;
+  const restDayTip = isRestDay ? getRestDayTip(user?.trainingIdentity, user?.combatSport, weightUnit) : null;
 
   const mesocycleComparison = useMemo(() => {
     if (!currentMesocycle || mesocycleHistory.length === 0) return null;

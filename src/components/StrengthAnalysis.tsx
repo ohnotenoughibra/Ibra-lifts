@@ -37,6 +37,7 @@ import { analyzeStickingPoints } from '@/lib/ai-coach';
 import { StickingPointAnalysis } from '@/lib/types';
 import { getAccessoryPrescription, type StickingPointPrescription } from '@/lib/sticking-point-data';
 import { estimateForceVelocityProfile, type FVProfileResult } from '@/lib/force-velocity';
+import { resolveWeightUnit } from '@/lib/units';
 
 interface StrengthAnalysisProps {
   onClose: () => void;
@@ -74,7 +75,7 @@ const stickingPointConfig: Record<
 
 export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
   const { workoutLogs, user, baselineLifts } = useAppStore();
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
   const [analyses, setAnalyses] = useState<StickingPointAnalysis[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<StickingPointAnalysis | null>(null);
   const [loading, setLoading] = useState(true);

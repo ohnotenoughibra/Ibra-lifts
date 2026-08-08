@@ -55,6 +55,7 @@ import type { OverlayView } from './dashboard-types';
 import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import EmptyState from './EmptyState';
 import WorkoutHistory from './WorkoutHistory';
+import { resolveWeightUnit } from '@/lib/units';
 
 // Stable fallback for store selectors — an inline `?? []` returns a fresh
 // reference every evaluation and defeats useShallow equality.
@@ -793,7 +794,7 @@ function HardMetricsCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
 
 function SessionRecapCard() {
   const lastCompleted = useAppStore(s => s.lastCompletedWorkout);
-  const weightUnit = useAppStore(s => s.user?.weightUnit || 'lbs');
+  const weightUnit = useAppStore(s => resolveWeightUnit(s.user?.weightUnit));
   const [sharing, setSharing] = useState(false);
 
   if (!lastCompleted) return null;
@@ -918,7 +919,7 @@ function BlockPerformanceCard() {
   const { currentMesocycle, workoutLogs, rawMesocycleHistory } = useAppStore(
     useShallow(s => ({ currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, rawMesocycleHistory: s.mesocycleHistory }))
   );
-  const weightUnit = useAppStore((s) => s.user?.weightUnit || 'lbs');
+  const weightUnit = useAppStore((s) => resolveWeightUnit(s.user?.weightUnit));
   // Raw stable ref in the selector; derive the filtered view here (a .filter()
   // in the selector returns a fresh array and defeats useShallow).
   const mesocycleHistory = useMemo(
@@ -1070,7 +1071,7 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
   // Lazy-mount on expand.
   const [weightOpen, setWeightOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
 
   const narrative = useMemo(() => generatePerformanceNarrative({
     workoutLogs,

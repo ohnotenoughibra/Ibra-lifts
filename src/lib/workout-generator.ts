@@ -24,6 +24,7 @@ import {
 import { exercises, getExercisesByEquipment, getExerciseById } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
 import { estimate1RM } from './weight-estimator';
+import { prescribedPercentOf1RM } from './load-model';
 
 // Volume landmarks per muscle group (weekly direct sets)
 // Updated to Israetel / RP 2023 values ("Scientific Principles of Hypertrophy Training")
@@ -603,14 +604,20 @@ function createSetPrescription(type: WorkoutType, sex?: BiologicalSex): SetPresc
   // Round rest to nearest 15s — clean values like 60, 90, 120, 180 instead of 3:32, 4:43
   const rawRest = randomBetween(config.restSeconds[0], config.restSeconds[1]);
   const restSeconds = Math.round(rawRest / 15) * 15;
+  const targetReps = randomBetween(config.reps[0], config.reps[1]);
+  const rpe = Math.round(randomBetween(config.rpe[0] * 2, config.rpe[1] * 2)) / 2;
   return {
-    targetReps: randomBetween(config.reps[0], config.reps[1]),
+    targetReps,
     minReps: config.reps[0],
     maxReps: config.reps[1],
-    rpe: Math.round(randomBetween(config.rpe[0] * 2, config.rpe[1] * 2)) / 2,
+    rpe,
     restSeconds,
     tempo: config.tempo,
-    percentageOf1RM: randomBetween(config.percentageOf1RM[0], config.percentageOf1RM[1])
+    // Derived from the reps/RPE pair rather than drawn independently from the
+    // band — a random 75% next to "12 reps @ RPE 7" is not a load anyone can
+    // actually lift for those reps, and it disagreed with the weight the app
+    // suggested. The band stays as the design intent for the rep/RPE ranges.
+    percentageOf1RM: prescribedPercentOf1RM(targetReps, rpe),
   };
 }
 

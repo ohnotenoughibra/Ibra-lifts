@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useWeightUnit } from '@/hooks/useWeightUnit';
 import {
   ArrowLeft,
   Camera,
@@ -409,6 +410,7 @@ function GalleryTab({
   onViewPhoto: (p: ProgressPhoto) => void;
   onAddPhoto: () => void;
 }) {
+  const weightUnit = useWeightUnit();
   const filters: { id: PoseFilter; label: string }[] = [
     { id: 'all', label: 'All' },
     { id: 'front', label: 'Front' },
@@ -484,7 +486,7 @@ function GalleryTab({
                 {photo.bodyweight != null && (
                   <p className="text-xs text-grappler-500 mt-0.5 flex items-center gap-1">
                     <Scale className="w-3 h-3" />
-                    {photo.bodyweight} lbs
+                    {photo.bodyweight} {weightUnit}
                   </p>
                 )}
               </div>
@@ -513,6 +515,7 @@ function CompareTab({
   onPickSlot: (slot: 'left' | 'right') => void;
   onNavigate: (slot: 'left' | 'right', dir: -1 | 1) => void;
 }) {
+  const weightUnit = useWeightUnit();
   if (photos.length < 2) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -576,7 +579,7 @@ function CompareTab({
             <div className="flex items-center justify-between text-sm pt-1 border-t border-grappler-800">
               <span className="text-grappler-300">
                 <Scale className="w-3.5 h-3.5 inline mr-1" />
-                {left.bodyweight} lbs
+                {left.bodyweight} {weightUnit}
               </span>
               <span
                 className={cn(
@@ -589,10 +592,10 @@ function CompareTab({
                 )}
               >
                 {weightDiff > 0 ? '+' : ''}
-                {weightDiff.toFixed(1)} lbs
+                {weightDiff.toFixed(1)} {weightUnit}
               </span>
               <span className="text-grappler-300">
-                {right.bodyweight} lbs
+                {right.bodyweight} {weightUnit}
                 <Scale className="w-3.5 h-3.5 inline ml-1" />
               </span>
             </div>
@@ -616,6 +619,7 @@ function CompareSlot({
   onPrev: () => void;
   onNext: () => void;
 }) {
+  const weightUnit = useWeightUnit();
   return (
     <div className="flex flex-col">
       <span className="text-xs text-grappler-500 uppercase tracking-wider font-semibold mb-1.5 text-center">
@@ -652,7 +656,7 @@ function CompareSlot({
           <div className="p-2 text-center">
             <p className="text-xs text-grappler-300">{formatShortDate(photo.date)}</p>
             {photo.bodyweight != null && (
-              <p className="text-xs text-grappler-500">{photo.bodyweight} lbs</p>
+              <p className="text-xs text-grappler-500">{photo.bodyweight} {weightUnit}</p>
             )}
           </div>
           <button
@@ -686,6 +690,7 @@ function TimelineTab({
   photos: ProgressPhoto[]; // oldest first
   onViewPhoto: (p: ProgressPhoto) => void;
 }) {
+  const weightUnit = useWeightUnit();
   // Display newest at top
   const reversed = useMemo(() => [...photos].reverse(), [photos]);
 
@@ -755,7 +760,7 @@ function TimelineTab({
                   {photo.bodyweight != null && (
                     <p className="text-xs text-grappler-400 flex items-center gap-1">
                       <Scale className="w-3 h-3" />
-                      {photo.bodyweight} lbs
+                      {photo.bodyweight} {weightUnit}
                     </p>
                   )}
                   {photo.notes && (
@@ -795,6 +800,7 @@ function AddPhotoModal({
   onSave: (photo: Omit<ProgressPhoto, 'id'>) => void;
   onClose: () => void;
 }) {
+  const weightUnit = useWeightUnit();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [pose, setPose] = useState<ProgressPhoto['pose']>('front');
@@ -971,7 +977,7 @@ function AddPhotoModal({
                 className="w-full bg-grappler-800 border border-grappler-700 rounded-lg pl-9 pr-12 py-2 text-sm text-grappler-100 placeholder:text-grappler-600 focus:outline-none focus:border-primary-500 transition-colors"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-grappler-500">
-                lbs
+                {weightUnit}
               </span>
             </div>
           </div>
@@ -1035,6 +1041,7 @@ function ViewPhotoModal({
   deleteConfirmId: string | null;
   setDeleteConfirmId: (id: string | null) => void;
 }) {
+  const weightUnit = useWeightUnit();
   const isConfirming = deleteConfirmId === photo.id;
 
   return (
@@ -1112,7 +1119,7 @@ function ViewPhotoModal({
         {photo.bodyweight != null && (
           <p className="text-xs text-gray-300 flex items-center gap-1 mb-1">
             <Scale className="w-3.5 h-3.5" />
-            {photo.bodyweight} lbs
+            {photo.bodyweight} {weightUnit}
           </p>
         )}
         {photo.notes && (

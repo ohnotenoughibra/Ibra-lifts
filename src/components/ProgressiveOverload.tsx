@@ -23,6 +23,7 @@ import {
 } from 'recharts';
 import { useAppStore } from '@/lib/store';
 import { estimate1RM } from '@/lib/weight-estimator';
+import { resolveWeightUnit } from '@/lib/units';
 
 interface ProgressiveOverloadProps {
   onClose: () => void;
@@ -65,7 +66,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const weightUnit = user?.weightUnit || 'lbs';
+  const weightUnit = resolveWeightUnit(user?.weightUnit);
 
   // Build per-exercise data from all workout logs
   const exerciseMap = useMemo(() => {

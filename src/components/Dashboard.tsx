@@ -42,6 +42,7 @@ import type { TabType } from './dashboard-types';
 import type { ContentCategory } from '@/lib/types';
 import type { SyncStatus } from '@/lib/useDbSync';
 import { useComputedGamification } from '@/lib/computed-gamification';
+import { resolveWeightUnit } from '@/lib/units';
 
 // Core tabs — lazy loaded for smaller initial bundle
 const HomeTab = dynamic(() => import('./HomeTab'), { loading: () => <HomeTabSkeleton /> });
@@ -767,7 +768,7 @@ export default function Dashboard({
             mesocycle={targetMeso}
             workoutLogs={workoutLogs}
             previousMesocycle={prevMeso}
-            weightUnit={user?.weightUnit || 'lbs'}
+            weightUnit={resolveWeightUnit(user?.weightUnit)}
             onClose={() => setReportMesocycleId(null)}
             onDelete={(id) => { deleteMesocycle(id); setReportMesocycleId(null); }}
           />

@@ -3,6 +3,20 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.9.2] - 2026-08-09
+
+**Rehab audit: the app could tell you to back off, but never let you.**
+
+### Fixed
+- **A flare-up couldn't move you back a phase.** With pain at 8/10 during exercise and 7/10 at 24 hours, the engine raised "consider stepping back a phase" — and then nothing could act on it. `advanceRehabPhase` was the only writer of the phase, and it only ever moved forward; no decrement path existed in the engine, the store or the UI. Because the phase override is sticky, the plan kept serving Phase 4 Integration work (45 min, pain cap 3) to someone who should have been on Phase 3 (35 min, pain cap 4). The only escape was resolving the injury outright.
+
+  The engine now proposes a step-back, and the warning carries a button that takes it. It requires a *pattern* — more than half of recent check-ins showing elevated pain — so one honest bad day doesn't demote you. Demoting people for bad days teaches them to stop logging bad days. The store action is renamed `setRehabPhase`, since it now moves both directions.
+
+- **"Gates Met" showed green ticks for gates never assessed.** `recent.every(...)` returns true on an empty array, so an athlete who had logged nothing was shown "Pain during exercise ≤3/10 ✓" and "ROM ≥90% of uninjured side ✓" under a green heading. Advancement was correctly blocked, so nobody was hurt by it — but telling an injured athlete they've cleared pain and range-of-motion gates they've never been measured against is the wrong direction to be wrong in. Gates now require the minimum check-in count before they can report as met.
+
+### Verified clean
+Barcode/OpenFoodFacts parsing (NaN trust boundary, serving-vs-100g presence check, transient errors not cached) and the illness neck check (fever short-circuits to rest for myocarditis risk, GI to rest, correct precedence).
+
 ## [2.9.1] - 2026-08-09
 
 **Math & science audit: the formulas were right, two of them were wired up wrong.**

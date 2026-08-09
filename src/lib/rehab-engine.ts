@@ -78,6 +78,16 @@ export interface PhaseAdvancementResult {
   unmetCriteria: string[];
   recommendation: string;
   warning?: string;              // e.g. progressing too fast
+  /**
+   * Set when recent check-ins show a flare-up bad enough that the current phase
+   * is likely too much. The engine used to raise the warning text and stop
+   * there — nothing in the engine, store or UI could actually move a phase
+   * DOWN, so an athlete at 8/10 pain kept being served the harder phase's
+   * exercises. Surfaced as an opt-in action; we never regress silently, because
+   * an athlete who gets demoted for one honest bad day learns to stop logging
+   * honest bad days.
+   */
+  suggestedStepBackPhase?: RehabPhaseNumber;
 }
 
 export interface RehabState {
@@ -460,7 +470,14 @@ export function evaluatePhaseAdvancement(
   const met: string[] = [];
   const unmet: string[] = [];
 
-  if (recent.length < MIN_RECENT_CHECKINS) {
+  // Below the minimum, we have nothing to judge on. Every gate below uses
+  // `recent.every(...)`, which is vacuously TRUE on an empty array — so an
+  // athlete who had logged nothing was shown "Pain during exercise ≤3/10 ✓"
+  // and "ROM ≥90% ✓" under a green "Gates Met" heading, for gates they had
+  // never been measured against. Report the gates as outstanding instead.
+  const hasEnoughData = recent.length >= MIN_RECENT_CHECKINS;
+
+  if (!hasEnoughData) {
     unmet.push(`Need at least ${MIN_RECENT_CHECKINS} check-ins in the last ${recentCheckInDays} days (have ${recent.length})`);
   } else {
     met.push(`${recent.length} check-ins logged`);
@@ -469,23 +486,23 @@ export function evaluatePhaseAdvancement(
   // Apply data-driven gate checks
   const gate = PHASE_GATES[currentPhase];
   if (gate.painAtRestMax !== undefined) {
-    if (recent.every(c => c.painAtRest <= gate.painAtRestMax!)) met.push(gate.metMessages.painAtRest);
+    if (hasEnoughData && recent.every(c => c.painAtRest <= gate.painAtRestMax!)) met.push(gate.metMessages.painAtRest);
     else unmet.push(gate.unmetMessages.painAtRest);
   }
   if (gate.painDuringExerciseMax !== undefined) {
-    if (recent.every(c => c.painDuringExercise <= gate.painDuringExerciseMax!)) met.push(gate.metMessages.painExercise);
+    if (hasEnoughData && recent.every(c => c.painDuringExercise <= gate.painDuringExerciseMax!)) met.push(gate.metMessages.painExercise);
     else unmet.push(gate.unmetMessages.painExercise);
   }
   if (gate.painAfter24hMax !== undefined) {
-    if (recent.every(c => c.painAfter24h <= gate.painAfter24hMax!)) met.push(gate.metMessages.pain24h);
+    if (hasEnoughData && recent.every(c => c.painAfter24h <= gate.painAfter24hMax!)) met.push(gate.metMessages.pain24h);
     else unmet.push(gate.unmetMessages.pain24h);
   }
   if (gate.romPercentMin !== undefined) {
-    if (recent.every(c => c.romPercent >= gate.romPercentMin!)) met.push(gate.metMessages.rom);
+    if (hasEnoughData && recent.every(c => c.romPercent >= gate.romPercentMin!)) met.push(gate.metMessages.rom);
     else unmet.push(gate.unmetMessages.rom);
   }
   if (gate.swellingMaxLevel) {
-    if (recent.every(c => gate.swellingMaxLevel!.includes(c.swellingLevel as 'none' | 'mild'))) met.push(gate.metMessages.swelling);
+    if (hasEnoughData && recent.every(c => gate.swellingMaxLevel!.includes(c.swellingLevel as 'none' | 'mild'))) met.push(gate.metMessages.swelling);
     else unmet.push(gate.unmetMessages.swelling);
   }
   if (gate.minCompletedSessions !== undefined) {
@@ -493,24 +510,47 @@ export function evaluatePhaseAdvancement(
     else unmet.push(gate.unmetMessages.sessions);
   }
 
-  const canAdvance = unmet.length === 0 && recent.length >= MIN_RECENT_CHECKINS;
+  const canAdvance = unmet.length === 0 && hasEnoughData;
   const proposedPhase = canAdvance ? ((currentPhase + 1) as RehabPhaseNumber) : currentPhase;
 
   let recommendation: string;
   if (canAdvance) {
     recommendation = `You\'ve hit every gate for ${PHASE_META[currentPhase].name}. Advance to ${PHASE_META[proposedPhase].name}.`;
-  } else if (recent.length < 3) {
+  } else if (!hasEnoughData) {
     recommendation = `Log more check-ins to evaluate readiness. We need a multi-day pattern, not a snapshot.`;
   } else {
     recommendation = `Stay in ${PHASE_META[currentPhase].name}. The unmet gates protect you from re-injury — they\'re not arbitrary.`;
   }
 
+  // A flare-up needs a pattern, not one rough session — require the majority of
+  // recent check-ins to be bad before proposing a step back.
+  const FLARE_PAIN_DURING = 6;
+  const FLARE_PAIN_24H = 5;
+  const flareCount = recent.filter(
+    c => c.painDuringExercise >= FLARE_PAIN_DURING || c.painAfter24h >= FLARE_PAIN_24H
+  ).length;
+  const isFlaring = hasEnoughData && flareCount > recent.length / 2;
+
   let warning: string | undefined;
-  if (recent.some(c => c.painDuringExercise >= 6) || recent.some(c => c.painAfter24h >= 5)) {
-    warning = 'High pain values detected in recent check-ins — consider stepping back a phase or seeing a clinician.';
+  if (recent.some(c => c.painDuringExercise >= FLARE_PAIN_DURING) || recent.some(c => c.painAfter24h >= FLARE_PAIN_24H)) {
+    warning = isFlaring && currentPhase > 1
+      ? 'Pain is elevated across most of your recent check-ins. This phase is asking too much right now — step back one phase, or see a clinician.'
+      : 'High pain values detected in recent check-ins — keep an eye on it, and see a clinician if it persists.';
   }
 
-  return { canAdvance, currentPhase, proposedPhase, metCriteria: met, unmetCriteria: unmet, recommendation, warning };
+  const suggestedStepBackPhase =
+    isFlaring && currentPhase > 1 ? ((currentPhase - 1) as RehabPhaseNumber) : undefined;
+
+  return {
+    canAdvance,
+    currentPhase,
+    proposedPhase,
+    metCriteria: met,
+    unmetCriteria: unmet,
+    recommendation,
+    warning,
+    suggestedStepBackPhase,
+  };
 }
 
 /**

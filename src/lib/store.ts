@@ -458,7 +458,8 @@ interface AppState {
   // Rehab actions
   startRehab: (injuryId: string) => void;
   addRehabCheckIn: (injuryId: string, checkIn: import('./rehab-engine').RehabCheckIn) => void;
-  advanceRehabPhase: (injuryId: string, phase: import('./rehab-engine').RehabPhaseNumber) => void;
+  /** Move rehab to a phase — forward on met gates, or back when a flare-up warrants it. */
+  setRehabPhase: (injuryId: string, phase: import('./rehab-engine').RehabPhaseNumber) => void;
   endRehab: (injuryId: string) => void;
 
   // Benchmark actions
@@ -3888,7 +3889,7 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      advanceRehabPhase: (injuryId, phase) => {
+      setRehabPhase: (injuryId, phase) => {
         const { rehabStates } = get();
         const existing = rehabStates[injuryId];
         if (!existing) return;

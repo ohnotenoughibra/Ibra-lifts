@@ -62,7 +62,7 @@ export default function RehabPlan({ onClose, preselectedInjuryId }: RehabPlanPro
   const rehabStates = useAppStore(s => s.rehabStates ?? {});
   const startRehab = useAppStore(s => s.startRehab);
   const addRehabCheckIn = useAppStore(s => s.addRehabCheckIn);
-  const advanceRehabPhase = useAppStore(s => s.advanceRehabPhase);
+  const setRehabPhase = useAppStore(s => s.setRehabPhase);
   const endRehab = useAppStore(s => s.endRehab);
   const resolveInjury = useAppStore(s => s.resolveInjury);
 
@@ -154,8 +154,13 @@ export default function RehabPlan({ onClose, preselectedInjuryId }: RehabPlanPro
       switcher={switcher}
       onBack={() => setView('plan')}
       onAdvance={(phase) => {
-        advanceRehabPhase(selected.id, phase);
+        setRehabPhase(selected.id, phase);
         showToast(`Advanced to phase ${phase}`, 'success');
+        setView('plan');
+      }}
+      onStepBack={(phase) => {
+        setRehabPhase(selected.id, phase);
+        showToast(`Stepped back to phase ${phase} — load reduced`, 'success');
         setView('plan');
       }}
       onResolveInjury={() => {
@@ -584,11 +589,12 @@ function Slider({ label, value, onChange, description }: { label: string; value:
 
 // ─── Advance View ────────────────────────────────────────────────────────
 
-function AdvanceView({ injury, switcher, onBack, onAdvance, onResolveInjury, onShowRTS }: {
+function AdvanceView({ injury, switcher, onBack, onAdvance, onStepBack, onResolveInjury, onShowRTS }: {
   injury: InjuryEntry;
   switcher: React.ReactNode;
   onBack: () => void;
   onAdvance: (phase: RehabPhaseNumber) => void;
+  onStepBack: (phase: RehabPhaseNumber) => void;
   onResolveInjury: () => void;
   onShowRTS: () => void;
 }) {
@@ -619,6 +625,17 @@ function AdvanceView({ injury, switcher, onBack, onAdvance, onResolveInjury, onS
             <AlertTriangle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-rose-200">{result.warning}</p>
           </div>
+          {/* The engine can now propose going DOWN a phase. Without this the
+              advice was unactionable: it said "step back" while the only
+              control on screen moved you forward. */}
+          {result.suggestedStepBackPhase !== undefined && (
+            <button
+              onClick={() => onStepBack(result.suggestedStepBackPhase!)}
+              className="mt-3 w-full min-h-[44px] rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 text-sm font-semibold text-rose-200 hover:bg-rose-500/20 active:scale-[0.99] transition"
+            >
+              Step back to Phase {result.suggestedStepBackPhase}
+            </button>
+          )}
         </Section>
       )}
 

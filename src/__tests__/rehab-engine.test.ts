@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { evaluatePhaseAdvancement, type RehabState } from '@/lib/rehab-engine';
+import { evaluatePhaseAdvancement, createInitialRehabState, type RehabState } from '@/lib/rehab-engine';
 import type { InjuryEntry } from '@/lib/types';
 
 const mkInjury = (overrides: Partial<InjuryEntry> = {}): InjuryEntry => ({
@@ -89,5 +89,77 @@ describe('evaluatePhaseAdvancement', () => {
     const result = evaluatePhaseAdvancement(mkInjury(), state);
     expect(result.canAdvance).toBe(false);
     expect(result.unmetCriteria.some(c => /completed sessions/.test(c))).toBe(true);
+  });
+});
+
+// ── Audit findings R-01 / R-02 ────────────────────────────────────────────────
+
+describe('R-02 — gates are not vacuously "met" with no data', () => {
+  it('reports nothing as met when zero check-ins have been logged', () => {
+    const state = createInitialRehabState('i1');
+    const r = evaluatePhaseAdvancement(mkInjury(), state);
+    // `recent.every(...)` is true on an empty array — these used to render
+    // under a green "Gates Met" heading for an athlete measured on nothing.
+    expect(r.metCriteria).toEqual([]);
+    expect(r.canAdvance).toBe(false);
+    expect(r.unmetCriteria.some(c => /check-ins/i.test(c))).toBe(true);
+  });
+
+  it('still lists gates as met once there is real data behind them', () => {
+    const state = createInitialRehabState('i1');
+    state.checkIns = [1, 2, 3].map(() => mkCheckIn({
+      painAtRest: 0, painDuringExercise: 0, painAfter24h: 0,
+      romPercent: 100, swellingLevel: 'none', completedSession: true,
+    })) as never;
+    const r = evaluatePhaseAdvancement(mkInjury(), state);
+    expect(r.metCriteria.length).toBeGreaterThan(0);
+  });
+});
+
+describe('R-01 — a flare-up can actually move the phase down', () => {
+  const flaring = () => [1, 2, 3].map(() => mkCheckIn({
+    painAtRest: 6, painDuringExercise: 8, painAfter24h: 7,
+    romPercent: 40, swellingLevel: 'moderate', completedSession: true,
+  })) as never;
+
+  it('proposes stepping back from an advanced phase', () => {
+    const state = createInitialRehabState('i1');
+    state.phaseOverride = 4;
+    state.checkIns = flaring();
+    const r = evaluatePhaseAdvancement(mkInjury(), state);
+    expect(r.suggestedStepBackPhase).toBe(3);
+    expect(r.canAdvance).toBe(false);
+    expect(r.warning).toMatch(/step back/i);
+  });
+
+  it('never proposes stepping below phase 1', () => {
+    const state = createInitialRehabState('i1');
+    state.phaseOverride = 1;
+    state.checkIns = flaring();
+    const r = evaluatePhaseAdvancement(mkInjury(), state);
+    expect(r.suggestedStepBackPhase).toBeUndefined();
+  });
+
+  it('does not regress on a single bad day among good ones', () => {
+    const state = createInitialRehabState('i1');
+    state.phaseOverride = 3;
+    state.checkIns = [
+      mkCheckIn({ painAtRest: 0, painDuringExercise: 1, painAfter24h: 0, romPercent: 95, swellingLevel: 'none' }),
+      mkCheckIn({ painAtRest: 6, painDuringExercise: 8, painAfter24h: 7, romPercent: 60, swellingLevel: 'mild' }),
+      mkCheckIn({ painAtRest: 0, painDuringExercise: 2, painAfter24h: 1, romPercent: 95, swellingLevel: 'none' }),
+    ] as never;
+    const r = evaluatePhaseAdvancement(mkInjury(), state);
+    // One rough session out of three is not a flare-up. Demoting people for
+    // honest bad days teaches them to stop logging honest bad days.
+    expect(r.suggestedStepBackPhase).toBeUndefined();
+    expect(r.warning).toBeTruthy(); // still flagged, just not actioned
+  });
+
+  it('does not propose a step back without enough data', () => {
+    const state = createInitialRehabState('i1');
+    state.phaseOverride = 4;
+    state.checkIns = [mkCheckIn({ painDuringExercise: 9, painAfter24h: 8 })] as never;
+    const r = evaluatePhaseAdvancement(mkInjury(), state);
+    expect(r.suggestedStepBackPhase).toBeUndefined();
   });
 });

@@ -477,7 +477,7 @@ export const workoutTips: KnowledgeTip[] = [
   // BODYWEIGHT & WEIGHT FLUCTUATIONS
   {
     id: 'tip-weight-1',
-    content: 'Daily weight can fluctuate 2-4 lbs from water, sodium, and food volume. Weekly averages matter more than daily numbers.',
+    content: 'Daily weight can fluctuate 1-2 kg (2-4 lbs) from water, sodium, and food volume. Weekly averages matter more than daily numbers.',
     category: 'nutrition'
   },
   {
@@ -637,7 +637,7 @@ export const workoutTips: KnowledgeTip[] = [
   },
   {
     id: 'tip-diet-weight-fluctuation',
-    content: 'Daily weight can fluctuate 1-3 lbs from water, sodium, and food volume. Use a 7-day moving average to track real trends. Don\'t panic over a single weigh-in — look at the weekly direction.',
+    content: 'Daily weight can fluctuate 1-2 kg (2-4 lbs) from water, sodium, and food volume. Use a 7-day moving average to track real trends. Don\'t panic over a single weigh-in — look at the weekly direction.',
     category: 'dieting'
   },
   {

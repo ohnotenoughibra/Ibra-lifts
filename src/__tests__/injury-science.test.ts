@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   classifyInjury,
   getActiveInjuryAdaptations,
+  applyInjuryAdaptationsToExercises,
   getInjuryTimeline,
 } from '@/lib/injury-science';
 import type { InjuryEntry, BodyRegion, PainType, PainSeverity } from '@/lib/types';
@@ -336,5 +337,84 @@ describe('getInjuryTimeline', () => {
       const timeline = getInjuryTimeline(injury);
       expect(timeline.tissueLabel).toBe(cfg.expected);
     }
+  });
+});
+
+// ── applyInjuryAdaptationsToExercises ────────────────────────────────────────
+
+describe('applyInjuryAdaptationsToExercises', () => {
+  const mkEx = (id: string) => ({
+    exerciseId: id,
+    sets: 4,
+    prescription: { rpe: 8, percentageOf1RM: 85 },
+  });
+  const kneeInjury = [{
+    id: 'i1', date: new Date(), bodyRegion: 'left_knee',
+    severity: 4, painType: 'sharp', resolved: false,
+  }] as unknown as Parameters<typeof getActiveInjuryAdaptations>[0];
+
+  it('caps RPE instead of scaling it', () => {
+    const ad = getActiveInjuryAdaptations(kneeInjury);
+    const [squat] = applyInjuryAdaptationsToExercises([mkEx('back-squat')], ad);
+    // Previously this multiplied RPE by the %1RM intensity limit and produced
+    // RPE 1.6 — a category error on a 0-10 effort scale.
+    expect(squat.prescription.rpe).toBeLessThanOrEqual(6);
+    expect(squat.prescription.rpe).toBeGreaterThanOrEqual(4);
+  });
+
+  it('throttles intensity on percentageOf1RM, where it belongs', () => {
+    const ad = getActiveInjuryAdaptations(kneeInjury);
+    const [squat] = applyInjuryAdaptationsToExercises([mkEx('back-squat')], ad);
+    expect(squat.prescription.percentageOf1RM!).toBeLessThan(85);
+    expect(squat.prescription.percentageOf1RM!).toBeGreaterThan(0);
+    expect(squat.sets).toBeLessThan(4);
+  });
+
+  it('is idempotent — re-running never compounds the reduction', () => {
+    const ad = getActiveInjuryAdaptations(kneeInjury);
+    let list = applyInjuryAdaptationsToExercises([mkEx('back-squat')], ad);
+    const once = { ...list[0].prescription, sets: list[0].sets };
+    for (let i = 0; i < 4; i++) list = applyInjuryAdaptationsToExercises(list, ad);
+    expect(list[0].prescription.percentageOf1RM).toBe(once.percentageOf1RM);
+    expect(list[0].prescription.rpe).toBe(once.rpe);
+    expect(list[0].sets).toBe(once.sets);
+  });
+
+  it('leaves an uninjured exercise untouched', () => {
+    const ad = getActiveInjuryAdaptations(kneeInjury);
+    const [bench] = applyInjuryAdaptationsToExercises([mkEx('bench-press')], ad);
+    expect(bench.sets).toBe(4);
+    expect(bench.prescription.rpe).toBe(8);
+    expect(bench.prescription.percentageOf1RM).toBe(85);
+    expect(bench.notes).toBeUndefined();
+  });
+
+  it('fully restores a throttled exercise once the injury resolves', () => {
+    const ad = getActiveInjuryAdaptations(kneeInjury);
+    const throttled = applyInjuryAdaptationsToExercises([mkEx('back-squat')], ad);
+    expect(throttled[0].notes).toBeTruthy();
+
+    const cleared = applyInjuryAdaptationsToExercises(throttled, getActiveInjuryAdaptations([]));
+    expect(cleared[0].sets).toBe(4);
+    expect(cleared[0].prescription.rpe).toBe(8);
+    expect(cleared[0].prescription.percentageOf1RM).toBe(85);
+    expect(cleared[0].notes).toBeUndefined();
+  });
+
+  it('does not stack the caution note across runs', () => {
+    const ad = getActiveInjuryAdaptations(kneeInjury);
+    let list = applyInjuryAdaptationsToExercises([mkEx('back-squat')], ad);
+    for (let i = 0; i < 3; i++) list = applyInjuryAdaptationsToExercises(list, ad);
+    const occurrences = (list[0].notes ?? '').split('Caution: active injury').length - 1;
+    expect(occurrences).toBe(1);
+  });
+
+  it('preserves an unrelated note while adding and removing its own', () => {
+    const ad = getActiveInjuryAdaptations(kneeInjury);
+    const withNote = [{ ...mkEx('back-squat'), notes: 'Use safety bars' }];
+    const throttled = applyInjuryAdaptationsToExercises(withNote, ad);
+    expect(throttled[0].notes).toContain('Use safety bars');
+    const cleared = applyInjuryAdaptationsToExercises(throttled, getActiveInjuryAdaptations([]));
+    expect(cleared[0].notes).toBe('Use safety bars');
   });
 });

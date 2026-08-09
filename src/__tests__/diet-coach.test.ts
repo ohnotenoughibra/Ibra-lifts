@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { getContextualNutrition } from '@/lib/contextual-nutrition';
 import {
   calculateMacros,
   getTargetRate,
@@ -383,5 +384,20 @@ describe('calculateAdherence', () => {
     const meals = [{ date: d }, { date: d }]; // Only today
     const adherence = calculateAdherence(meals, 7);
     expect(adherence).toBeCloseTo(14, 0); // 1/7 ≈ 14%
+  });
+});
+
+describe('contextual targets reconcile to their own macros', () => {
+  it('ring total always equals protein×4 + carbs×4 + fat×9', () => {
+    // The base engine reconciles; this path derived fat by rounding and left
+    // the headline number 2 kcal adrift (2375 shown vs 2373 in the macros).
+    for (const bw of [60, 75, 85, 100, 120]) {
+      const t = getContextualNutrition(
+        { calories: 2500, protein: 190, carbs: 260, fat: 70 },
+        bw * 2.2046226218,
+        null, [], null, null,
+      ).adjustedTargets;
+      expect(t.calories).toBe(t.protein * 4 + t.carbs * 4 + t.fat * 9);
+    }
   });
 });

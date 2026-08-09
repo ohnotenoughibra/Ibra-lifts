@@ -577,8 +577,12 @@
     --tw-ring-offset-color: #f8fafc;
   }
 
+  /* White on primary-500 measures 3.68:1 — under the 4.5:1 AA floor. This is
+     the app's main CTA style (66 call sites), so it failed everywhere at once;
+     the v2.9.0 contrast pass fixed 38 inline literals and missed the shared
+     class. primary-600 measures 5.17:1. */
   .btn-primary {
-    @apply btn bg-primary-500 text-white hover:bg-primary-600 focus-visible:ring-primary-500;
+    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500;
   }
 
   .btn-secondary {

@@ -21,11 +21,19 @@ describe('estimateMaxHR (Tanaka)', () => {
 });
 
 describe('calculateHRZones', () => {
-  it('Karvonen zone2 = restingHR + reserve*0.6 to 0.7', () => {
+  it('Karvonen zone2 = restingHR + reserve*0.45 to 0.60', () => {
     const z = calculateHRZones(190, 60);
-    // reserve = 130; zone2.min = 60 + 0.6*130 = 138; zone2.max = 60 + 0.7*130 = 151
-    expect(z.zones.zone2.min).toBe(138);
-    expect(z.zones.zone2.max).toBe(151);
+    // reserve = 130; zone2.min = 60 + 0.45*130 = 119; zone2.max = 60 + 0.60*130 = 138
+    //
+    // This test previously asserted 0.6-0.7 of reserve (138-151 bpm), which is
+    // 73-80% of max HR — tempo, not aerobic base. It was locking in the bug: the
+    // %HRmax boundaries had been fed through the Karvonen formula. Re-anchored so
+    // "Aerobic Base" actually sits below the aerobic threshold.
+    expect(z.zones.zone2.min).toBe(119);
+    expect(z.zones.zone2.max).toBe(138);
+    // Sanity: conversational band as a fraction of max HR.
+    expect(z.zones.zone2.min / 190).toBeGreaterThanOrEqual(0.58);
+    expect(z.zones.zone2.max / 190).toBeLessThanOrEqual(0.75);
   });
 
   it('zone5 caps at maxHR', () => {

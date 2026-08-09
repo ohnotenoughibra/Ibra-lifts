@@ -94,9 +94,15 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
 
   const safetyStyle = SAFETY_COLORS[safety.level];
 
-  // Daily protocols
-  const waterProtocol = getWaterProtocol(Math.max(0, daysToWeighIn), currentWeightKg);
-  const sodiumProtocol = getSodiumProtocol(Math.max(0, daysToWeighIn));
+  // Daily protocols.
+  //
+  // Water and sodium are NOT clamped to zero: once the weigh-in has passed, the
+  // athlete is in the rehydration window and clamping a past event to day 0 made
+  // the card read "nothing until after weigh-in / 0 ml" indefinitely. The other
+  // protocols (carbs, checklist, projection) are weigh-in-relative and stay clamped.
+  const isPostWeighIn = daysToWeighIn < 0;
+  const waterProtocol = getWaterProtocol(daysToWeighIn, currentWeightKg);
+  const sodiumProtocol = getSodiumProtocol(daysToWeighIn);
   const carbProtocol = getCarbProtocol(Math.max(0, daysToWeighIn), currentWeightKg);
   const checklist = generateDailyChecklist(Math.max(0, daysToWeighIn), currentWeightKg);
 
@@ -115,6 +121,18 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
   }, [bodyWeightLog]);
 
   const projection = projectWeighInWeight(currentWeightKg, targetWeightKg, Math.max(0, daysToWeighIn), recentWeeklyChange);
+
+  // The timed post-weigh-in plan (Sawka et al. 2007, 150% replacement). This was
+  // imported but never invoked, so it never reached an athlete.
+  const rehydrationPhases = useMemo(() => {
+    if (!isPostWeighIn) return null;
+    const waterCutKg = Math.max(0, currentWeightKg - targetWeightKg);
+    return getRehydrationProtocol(
+      waterCutKg > 0 ? waterCutKg : currentWeightKg * 0.03,
+      plan?.rehydrationTimeHours ?? 24,
+      currentWeightKg,
+    );
+  }, [isPostWeighIn, currentWeightKg, targetWeightKg, plan?.rehydrationTimeHours]);
 
   return (
     <motion.div
@@ -199,6 +217,36 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
                       'Rehydration and recovery'}
             </p>
           </div>
+
+          {/* Rehydration — the post-weigh-in window. Sawka et al. 2007. */}
+          {rehydrationPhases && rehydrationPhases.length > 0 && (
+            <div className="rounded-xl bg-green-500/10 border border-green-500/30 p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Activity className="w-4 h-4 text-green-400" />
+                <span className="text-sm font-semibold text-green-300">Rehydration protocol</span>
+              </div>
+              <p className="text-xs text-zinc-400 mb-3">
+                Weigh-in is done. Replace 150% of the fluid you cut — steadily, not all at once.
+              </p>
+              <div className="space-y-2">
+                {rehydrationPhases.map((ph) => (
+                  <div key={ph.name} className="rounded-lg bg-zinc-900/50 border border-zinc-700/40 p-3">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-xs font-semibold text-zinc-200">{ph.name}</span>
+                      <span className="text-xs font-bold text-green-300 tabular-nums">
+                        {Math.round(ph.fluidMl)} ml
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 mt-1 tabular-nums">
+                      {ph.sodiumMg} mg sodium · {ph.potassiumMg} mg potassium · {ph.carbsG} g carbs
+                      {ph.proteinG > 0 ? ` · ${ph.proteinG} g protein` : ''}
+                    </p>
+                    {ph.notes && <p className="text-[11px] text-zinc-500 mt-1">{ph.notes}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Projection */}
           <div className="rounded-xl bg-zinc-800/50 border border-zinc-700/50 p-4">

@@ -77,8 +77,11 @@ export function calculateElectrolyteNeeds(
   const baseSweatRate = BASE_SWEAT_RATES[temperature];
   const intensityMult = SWEAT_INTENSITY_MULTIPLIERS[sessionType] ?? 1.0;
 
-  // Scale sweat rate by body mass (normalized to 70kg reference)
-  const sweatRateLPerHr = baseSweatRate * intensityMult * (bodyWeightKg / 70);
+  // Scale sweat rate by body SURFACE AREA, not mass. Sweat rate tracks heat
+  // dissipation, which scales ~BW^0.67 — a linear model over-predicts fluid and
+  // sodium by ~19% at 120kg, and heavyweights are a core user here. The 70kg
+  // reference stays exact either way.
+  const sweatRateLPerHr = baseSweatRate * intensityMult * Math.pow(bodyWeightKg / 70, 0.67);
   const totalSweatL = sweatRateLPerHr * (durationMinutes / 60);
 
   return {

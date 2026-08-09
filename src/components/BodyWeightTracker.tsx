@@ -428,7 +428,7 @@ const SUGGESTION_STYLES = {
 };
 
 export default function BodyWeightTracker() {
-  const { bodyWeightLog: rawBodyWeightLog, bodyComposition: rawBodyComposition, addBodyWeight, deleteBodyWeight, addBodyComposition, deleteBodyComposition, user, activeDietPhase, meals: rawMeals, macroTargets } = useAppStore();
+  const { bodyWeightLog: rawBodyWeightLog, bodyComposition: rawBodyComposition, addBodyWeight, deleteBodyWeight, addBodyComposition, deleteBodyComposition, user, activeDietPhase, meals: rawMeals, macroTargets, trainingSessions } = useAppStore();
   const bodyWeightLog = rawBodyWeightLog.filter(e => !e._deleted);
   const meals = rawMeals.filter(m => !m._deleted);
   const bodyComposition = rawBodyComposition || [];
@@ -756,9 +756,18 @@ export default function BodyWeightTracker() {
             const wKg = weightUnit === 'lbs' ? latestWeight * 0.453592 : latestWeight;
             const leanMass = wKg * (1 - latestBF / 100);
             if (!leanMass || leanMass <= 0 || isNaN(leanMass)) return null;
+            // EA = (intake − exercise cost) / FFM. Passing 0 for the exercise
+            // term inflated EA by exactly the training cost — the dominant term
+            // for a combat athlete — so this tile read "caution" while the Diet
+            // Coach, which does pass it, read "RED-S risk" for the same athlete.
+            const exerciseCost = estimateDailyExerciseCost(
+              trainingSessions?.slice(-7) || [],
+              [],
+              wKg,
+            );
             const ea = calculateEnergyAvailability(
               macroTargets?.calories || 0,
-              0, // simplified — no exercise cost here
+              exerciseCost,
               leanMass,
             );
             if (isNaN(ea.ea) || !isFinite(ea.ea)) return null;

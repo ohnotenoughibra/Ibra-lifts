@@ -3,6 +3,21 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.9.1] - 2026-08-09
+
+**Math & science audit: the formulas were right, two of them were wired up wrong.**
+
+Checked the physiology engines against the papers they cite. Nine formulas verified correct — Mifflin-St Jeor, Cunningham, Tanaka, the Karvonen algebra, EWMA-ACWR, all three electrolyte molar conversions, the IOC energy-availability thresholds, protein/fat targets, and the readiness weighting (which sums to exactly 1.00). Four findings, fixed here.
+
+### Fixed
+- **The Zone 2 base protocol was prescribing tempo intensity.** The zone table carried the %HRmax boundaries (50/60/70/80/90) but ran them through the Karvonen heart-rate-reserve formula — a different scale. "Aerobic Base" came out at 60-70% of reserve, or roughly 73-80% of max HR: for a 30-year-old that's 136-149 bpm where it should be ~117-136. A Zone 2 session exists to sit below the aerobic threshold, and running it 24 bpm hot turns easy aerobic volume into accumulated fatigue — the exact error the protocol is designed to prevent. Zones re-anchored to the %HRR equivalents of the standard physiological bands, and the protocol copy now matches the table instead of contradicting it.
+- **After the weigh-in, the app told a dehydrated fighter to drink nothing.** `getWaterProtocol` matched days 7 down to 1 explicitly and fell through to a zero branch, and the dashboard clamped a past event to day 0 — so the water card read "0 ml / nothing until after weigh-in" indefinitely, right through the rehydration window. Sodium had the same gap, restricting exactly when it should be restoring. Both now branch into a rehydration phase, and the timed four-phase protocol (Sawka et al. 2007, 150% replacement) that was already written — and imported into the dashboard but never called — now actually renders.
+- **Energy Availability was computed two different ways.** EA = (intake − exercise cost) / fat-free mass. The Diet Coach passed a real exercise cost; the body-weight tracker hardcoded zero. Same 80 kg athlete at 12% body fat on 2400 kcal read 34.1 ("caution") on one screen and 25.6 ("RED-S risk") on the other — a safety metric disagreeing with itself and erring toward reassurance. The tracker now passes the training cost it was already importing.
+- **Sweat rate scaled with body mass instead of surface area.** Heat dissipation scales ~BW^0.67, so the linear model over-predicted fluid *and* sodium by 19% at 120 kg — and heavyweights are a core user of a combat-sports app.
+
+### Tests
+16 new tests covering all four, including one that previously locked in the Zone 2 bug by asserting the wrong coefficients.
+
 ## [2.9.0] - 2026-08-08
 
 **Usability pass: the app now tells you what it wants, what costs money, and what it can actually read.**

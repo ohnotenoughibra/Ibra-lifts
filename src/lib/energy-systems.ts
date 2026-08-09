@@ -4,11 +4,11 @@
  * Three protocols, each targeting a different energy system:
  *
  *   1. Zone 2 Base       — aerobic capacity (mitochondrial density, fat ox)
- *      45-90 min @ HR Zone 2 (60-70% maxHR), conversational pace
+ *      45-90 min @ HR Zone 2 (~60-70% max HR / 45-60% HR reserve), conversational pace
  *      San Millán & Brooks 2017 — lactate dynamics
  *
  *   2. Threshold (Norwegian 4×4)  — VO2max
- *      4 × 4 min @ 90-95% maxHR with 3 min active recovery
+ *      4 × 4 min @ ~90-95% max HR (Zone 5) with 3 min active recovery
  *      Helgerud et al. 2007 — superior VO2max gains vs steady-state
  *
  *   3. Repeated Sprint Ability (RSA) — anaerobic capacity / combat-specific
@@ -75,9 +75,36 @@ export function estimateMaxHR(age: number): number {
   return Math.round(208 - 0.7 * age);  // Tanaka formula — more accurate than 220-age
 }
 
+/**
+ * Zone boundaries as a fraction of heart-rate RESERVE (Karvonen), not of max HR.
+ *
+ * These used to carry the %HRmax boundaries (50/60/70/80/90) while being fed
+ * through the Karvonen formula, which is a different scale — so "Aerobic Base"
+ * came out at 60-70% HRR, or roughly 73-80% of max HR. That is tempo work. A
+ * Zone 2 session exists to sit below the aerobic threshold, and running it ~24
+ * bpm hot turns easy aerobic volume into accumulated fatigue.
+ *
+ * Re-anchored to the %HRR equivalents of the standard physiological zones:
+ *   Recovery      ≈ 50-60% HRmax
+ *   Aerobic Base  ≈ 60-70% HRmax   (conversational, below LT1)
+ *   Tempo         ≈ 70-80% HRmax
+ *   Threshold     ≈ 80-90% HRmax
+ *   VO2max        ≈ 90-100% HRmax
+ *
+ * Karvonen is kept because it accounts for resting HR, so a well-trained athlete
+ * with a low resting rate gets correctly lower targets than the %HRmax shortcut.
+ */
+const HRR_ZONE_BOUNDS = {
+  zone1: [0.30, 0.45],
+  zone2: [0.45, 0.60],
+  zone3: [0.60, 0.75],
+  zone4: [0.75, 0.88],
+  zone5: [0.88, 1.00],
+} as const;
+
 export function calculateHRZones(maxHR: number, restingHR: number = 60): HRZoneCalculation {
   const reserve = maxHR - restingHR;
-  const z = (lo: number, hi: number) => ({
+  const z = ([lo, hi]: readonly [number, number]) => ({
     min: Math.round(restingHR + reserve * lo),
     max: Math.round(restingHR + reserve * hi),
   });
@@ -86,11 +113,11 @@ export function calculateHRZones(maxHR: number, restingHR: number = 60): HRZoneC
     maxHR,
     restingHR,
     zones: {
-      zone1: { ...z(0.50, 0.60), label: 'Recovery' },
-      zone2: { ...z(0.60, 0.70), label: 'Aerobic Base' },
-      zone3: { ...z(0.70, 0.80), label: 'Tempo' },
-      zone4: { ...z(0.80, 0.90), label: 'Threshold' },
-      zone5: { ...z(0.90, 1.00), label: 'VO2max' },
+      zone1: { ...z(HRR_ZONE_BOUNDS.zone1), label: 'Recovery' },
+      zone2: { ...z(HRR_ZONE_BOUNDS.zone2), label: 'Aerobic Base' },
+      zone3: { ...z(HRR_ZONE_BOUNDS.zone3), label: 'Tempo' },
+      zone4: { ...z(HRR_ZONE_BOUNDS.zone4), label: 'Threshold' },
+      zone5: { ...z(HRR_ZONE_BOUNDS.zone5), label: 'VO2max' },
     },
   };
 }
@@ -141,7 +168,7 @@ export const ENERGY_SYSTEM_PROTOCOLS: EnergySystemProtocol[] = [
     durationMinutes: 35,
     intervals: [
       {
-        description: '4 min @ 90-95% maxHR (hard but sustainable — last 30s should burn)',
+        description: '4 min @ HR Zone 5 (hard but sustainable — last 30s should burn)',
         workSeconds: 4 * 60,
         restSeconds: 3 * 60,
         rounds: 4,

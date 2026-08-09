@@ -74,7 +74,7 @@ export interface WaterProtocol {
   targetMl: number;
   targetMlPerKg: number;
   note: string;
-  phase: 'normal' | 'loading' | 'taper' | 'restriction' | 'zero';
+  phase: 'normal' | 'loading' | 'taper' | 'restriction' | 'zero' | 'rehydration';
 }
 
 /**
@@ -85,6 +85,19 @@ export interface WaterProtocol {
  * Reference: Barley et al. 2018 — water loading protocols in combat sports.
  */
 export function getWaterProtocol(daysToWeighIn: number, bodyWeightKg: number): WaterProtocol {
+  // Past the weigh-in. This branch used to be missing entirely: every day from
+  // weigh-in onward fell through to the "zero" case and told a dehydrated
+  // fighter to drink nothing, through the single most safety-critical window of
+  // the whole cut. Aggressive replacement instead (Sawka et al. 2007 — 150% of
+  // fluid lost); see getRehydrationProtocol for the timed hour-by-hour plan.
+  if (daysToWeighIn < 0) {
+    return {
+      targetMl: Math.round(bodyWeightKg * 60),
+      targetMlPerKg: 60,
+      note: 'Rehydrate aggressively — sip steadily with electrolytes, do not chug',
+      phase: 'rehydration',
+    };
+  }
   if (daysToWeighIn > 7) {
     return { targetMl: Math.round(bodyWeightKg * 35), targetMlPerKg: 35, note: 'Normal hydration — not in water load phase', phase: 'normal' };
   }
@@ -118,7 +131,7 @@ export function getWaterProtocol(daysToWeighIn: number, bodyWeightKg: number): W
 export interface SodiumProtocol {
   targetMg: number;
   note: string;
-  phase: 'normal' | 'loading' | 'taper' | 'restriction' | 'zero';
+  phase: 'normal' | 'loading' | 'taper' | 'restriction' | 'zero' | 'rehydration';
 }
 
 /**
@@ -126,6 +139,11 @@ export interface SodiumProtocol {
  * drives additional excretion upregulation, then restriction causes net loss.
  */
 export function getSodiumProtocol(daysToWeighIn: number): SodiumProtocol {
+  // Post weigh-in: sodium drives fluid retention, so restriction is exactly
+  // wrong here. Same missing-branch bug as the water protocol.
+  if (daysToWeighIn < 0) {
+    return { targetMg: 3500, note: 'Sodium with fluids — drives rehydration and plasma volume recovery', phase: 'rehydration' };
+  }
   if (daysToWeighIn > 7) {
     return { targetMg: 2500, note: 'Normal sodium intake', phase: 'normal' };
   }

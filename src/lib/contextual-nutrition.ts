@@ -398,8 +398,14 @@ export function getContextualNutrition(
   const minFat = Math.round(bodyWeightKg * 0.7);
   const derivedFat = Math.max(minFat, Math.round(remainingCalsForFat / 9));
 
+  // Reconcile the headline number to the macros, the same way calculateMacros
+  // does. Rounding fat to whole grams (and the hormonal fat floor clamping it
+  // upward) leaves the ring showing a total its own macros don't add up to —
+  // 2375 kcal displayed against P200/C238/F69, which sums to 2373.
+  const reconciledCalories = adjustedProtein * 4 + adjustedCarbs * 4 + derivedFat * 9;
+
   const adjustedTargets: MacroTargets = {
-    calories: adjustedCalories,
+    calories: reconciledCalories,
     protein: adjustedProtein,
     carbs: adjustedCarbs,
     fat: derivedFat,

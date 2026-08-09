@@ -3,6 +3,20 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.10.0] - 2026-08-09
+
+**Cross-system injury audit, plus the Knowledge and nutrition passes.**
+
+### Fixed
+- **Injury throttling was scaling RPE by a %1RM limit.** `intensityLimit` is a cap on percentage-of-1RM; the code multiplied it into RPE, a 0-10 subjective effort scale. An RPE 8 squat under a 20% limit came out as **RPE 1.6** — not a number anyone can act on, and the load itself was never reduced so the cue was impossible to follow anyway. Intensity is now throttled on `percentageOf1RM` where it belongs, and RPE is capped at a genuinely submaximal 6 rather than scaled. Same category error as the %HRR/%HRmax bug in v2.9.1.
+- **Editing a session mid-workout escaped the injury filter.** Adaptations were applied once inside `startWorkout` and baked into the session. `swapExercise` spread the replaced exercise's prescription, so swapping *away* from a flagged movement carried its reduced sets, capped RPE and "Caution: active injury" note onto the safe replacement — and swapping *into* a contraindicated movement got no throttle at all. `addBonusExercise` was never checked either. All three now share one function, so the session stays in adaptation as the athlete edits it, and clearing an injury fully restores the original prescription.
+- **`.btn-primary` failed WCAG AA — 66 call sites.** White on `primary-500` measures 3.68:1. The v2.9.0 contrast pass fixed 38 inline literals and missed the shared class, which is the app's main CTA style, so every primary button in the product was under the floor. Now `primary-600` at 5.17:1. Every tab plus the nutrition tracker measures zero contrast failures.
+- **Two Knowledge articles disagreed about the same fact**, and both were imperial-only in a kg-default app: daily weight fluctuation was given as "2-4 lbs" in one and "1-3 lbs" in another. Both now read "1-2 kg (2-4 lbs)".
+- **Contextual nutrition targets didn't add up to their own macros.** Deriving fat by rounding (and the hormonal fat floor clamping it) left the ring showing 2375 kcal against P200/C238/F69, which sums to 2373. Reconciled the same way `calculateMacros` already does.
+
+### Verified clean
+The main block generator is injury-blind by design — blocks are plans, and the filter runs at session start (`startWorkout`, `smart-pick`, `ActiveWorkout`), so the rehab plan and the training plan don't contradict each other. Knowledge base structure: 252 ids, no duplicates, zero dangling cross-references.
+
 ## [2.9.2] - 2026-08-09
 
 **Rehab audit: the app could tell you to back off, but never let you.**

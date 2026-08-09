@@ -519,3 +519,107 @@ export function getInjuryTimeline(injury: InjuryEntry): {
     tissueLabel: tissueLabels[classification.tissueType],
   };
 }
+
+// ── Applying adaptations to a live session ───────────────────────────────────
+
+/** Marker appended to an exercise the injury filter has throttled. */
+export const INJURY_CAUTION_NOTE = 'Caution: active injury — consider swapping or skipping';
+
+/**
+ * RPE ceiling for a contraindicated movement. RPE is a 0-10 subjective effort
+ * scale, NOT a percentage — the previous code multiplied it by the protocol's
+ * intensityLimit (a %1RM cap), so an RPE 8 prescription under a 20% limit came
+ * out as "RPE 1.6". That is not a number an athlete can act on, and the load
+ * itself was never reduced, so the cue was impossible to follow anyway.
+ *
+ * Intensity is throttled where it belongs — percentageOf1RM — and RPE is capped
+ * at a genuinely submaximal effort instead of scaled.
+ */
+const INJURED_RPE_CAP = 6;
+
+/** Untouched prescription values, kept so re-running never compounds. */
+export interface InjuryBaseline {
+  sets: number;
+  rpe: number;
+  percentageOf1RM?: number;
+}
+
+type Adaptable = {
+  exerciseId: string;
+  sets: number;
+  notes?: string;
+  injuryBaseline?: InjuryBaseline;
+  prescription: { rpe: number; percentageOf1RM?: number };
+};
+
+/**
+ * Apply active-injury throttling to a session's exercises.
+ *
+ * Genuinely idempotent: it restores each exercise to its pre-injury baseline
+ * first, then re-applies. Without that, re-running compounds the reduction —
+ * percentageOf1RM went 85 → 17 → 3 → 1 across three passes in testing.
+ *
+ * This used to live inline in `startWorkout`, so adaptations were baked in once
+ * at session start: swapping a flagged exercise for a safe one carried the old
+ * reduction and caution note across, and swapping INTO a contraindicated
+ * movement got no throttle at all. Sharing it with swapExercise and
+ * addBonusExercise keeps the session in adaptation as the athlete edits it.
+ */
+export function applyInjuryAdaptationsToExercises<T extends Adaptable>(
+  exercises: T[],
+  adaptations: ReturnType<typeof getActiveInjuryAdaptations>
+): T[] {
+  const hasInjuries = adaptations.classifications.length > 0;
+  const volLimit = adaptations.overallVolumeLimit / 100;
+  const intLimit = adaptations.overallIntensityLimit / 100;
+
+  return exercises.map(ex => {
+    const base = restoreBaseline(ex);
+    if (!hasInjuries) return base;
+
+    const shouldAvoid = adaptations.allAvoidExercises.some(
+      avoidId => base.exerciseId.toLowerCase().includes(avoidId.toLowerCase())
+    );
+    if (!shouldAvoid) return base;
+
+    const basePct = base.prescription.percentageOf1RM;
+    return {
+      ...base,
+      injuryBaseline: {
+        sets: base.sets,
+        rpe: base.prescription.rpe,
+        percentageOf1RM: basePct,
+      },
+      sets: Math.max(1, Math.round(base.sets * volLimit)),
+      prescription: {
+        ...base.prescription,
+        rpe: Math.min(base.prescription.rpe, INJURED_RPE_CAP),
+        ...(basePct !== undefined
+          ? { percentageOf1RM: Math.max(1, Math.round(basePct * intLimit)) }
+          : {}),
+      },
+      notes: base.notes ? `${base.notes} | ${INJURY_CAUTION_NOTE}` : INJURY_CAUTION_NOTE,
+    };
+  });
+}
+
+/** Undo a previous throttle: restore the baseline values and drop the note. */
+function restoreBaseline<T extends Adaptable>(ex: T): T {
+  const notes = ex.notes
+    ? ex.notes.split(' | ').filter(p => p.trim() !== INJURY_CAUTION_NOTE).join(' | ') || undefined
+    : undefined;
+  if (!ex.injuryBaseline) return { ...ex, notes };
+  const { sets, rpe, percentageOf1RM } = ex.injuryBaseline;
+  const restored = {
+    ...ex,
+    sets,
+    prescription: {
+      ...ex.prescription,
+      rpe,
+      ...(percentageOf1RM !== undefined ? { percentageOf1RM } : {}),
+    },
+    notes,
+  };
+  delete (restored as { injuryBaseline?: InjuryBaseline }).injuryBaseline;
+  return restored;
+}

@@ -106,7 +106,7 @@ function resolveInitialSetWeight(
   return suggested ?? 0;
 }
 import { detectFightCampPhase, generateFightCampTimeline } from './fight-camp-engine';
-import { getActiveInjuryAdaptations } from './injury-science';
+import { getActiveInjuryAdaptations, applyInjuryAdaptationsToExercises } from './injury-science';
 import { getCompletedSessionIds } from './session-matching';
 import { getExerciseById, getAlternativesForExercise, exercises as allExercises, registerCustomExercises, getAllExercises } from './exercises';
 import { calculateCompositeWellnessScore } from './wellness-score';
@@ -2048,34 +2048,14 @@ export const useAppStore = create<AppState>()(
           activeSession = adjusted;
         }
 
-        // Injury-aware adaptation: reduce volume/intensity for injured areas
+        // Injury-aware adaptation: throttle volume/intensity for injured areas.
+        // Shared with swapExercise and addBonusExercise so the session can't
+        // drift out of adaptation after the athlete changes it mid-workout.
         const injuryAdaptations = getActiveInjuryAdaptations(injuryLog);
-        if (injuryAdaptations.classifications.length > 0) {
-          const volLimit = injuryAdaptations.overallVolumeLimit / 100;
-          const intLimit = injuryAdaptations.overallIntensityLimit / 100;
-          activeSession = {
-            ...activeSession,
-            exercises: activeSession.exercises.map(ex => {
-              // Check if this exercise should be avoided entirely
-              const shouldAvoid = injuryAdaptations.allAvoidExercises.some(
-                avoidId => ex.exerciseId.includes(avoidId)
-              );
-              if (shouldAvoid) {
-                // Don't remove — just reduce to minimum so user sees it with a note
-                return {
-                  ...ex,
-                  sets: Math.max(1, Math.round(ex.sets * volLimit)),
-                  prescription: {
-                    ...ex.prescription,
-                    rpe: Math.min(ex.prescription.rpe, +(ex.prescription.rpe * intLimit).toFixed(1)),
-                  },
-                  notes: (ex.notes ? ex.notes + ' | ' : '') + 'Caution: active injury — consider swapping or skipping',
-                };
-              }
-              return ex;
-            }),
-          };
-        }
+        activeSession = {
+          ...activeSession,
+          exercises: applyInjuryAdaptationsToExercises(activeSession.exercises, injuryAdaptations),
+        };
 
         // Pre-fill weights from previous session using auto-adjust
         const exerciseLogs = activeSession.exercises.map((ex) => {
@@ -2232,7 +2212,14 @@ export const useAppStore = create<AppState>()(
           exerciseId: newExerciseId,
           exercise: newExercise
         };
-        updatedSession.exercises = updatedExercises;
+        // Re-run injury throttling over the new list. Spreading oldPrescription
+        // carried the replaced exercise's reduced sets, capped RPE and caution
+        // note onto whatever you swapped in — so swapping AWAY from a flagged
+        // movement kept the punishment, and swapping INTO one got no throttle.
+        updatedSession.exercises = applyInjuryAdaptationsToExercises(
+          updatedExercises,
+          getActiveInjuryAdaptations(get().injuryLog)
+        );
 
         set({
           activeWorkout: {
@@ -2279,7 +2266,12 @@ export const useAppStore = create<AppState>()(
             ...activeWorkout,
             session: {
               ...activeWorkout.session,
-              exercises: [...activeWorkout.session.exercises, prescription],
+              // Throttle the bonus exercise too — an athlete adding work on top
+              // of a session is exactly who needs the injury flag applied.
+              exercises: applyInjuryAdaptationsToExercises(
+                [...activeWorkout.session.exercises, prescription],
+                getActiveInjuryAdaptations(get().injuryLog)
+              ),
             },
             exerciseLogs: [...activeWorkout.exerciseLogs, newLog],
           },

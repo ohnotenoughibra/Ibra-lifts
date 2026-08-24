@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { detectCarryover, buildE1RMTimeline, areRelated, logWeightUnit } from '@/lib/carryover';
 import { getExerciseById } from '@/lib/exercises';
+import { backfillLogWeightUnits } from '@/lib/store';
 import type { WorkoutLog, WeightUnit } from '@/lib/types';
 
 const DAY = 86400000;
@@ -80,9 +81,31 @@ describe('detectCarryover — the trap bar story', () => {
     const out = detectCarryover(logs, getExerciseById, 'kg');
     const hit = out.find(i => i.dormantExerciseId === TRAP && i.relatedExerciseId === CONV);
     expect(hit).toBeTruthy();
-    expect(hit!.relatedGain).toBeGreaterThan(20);
     expect(hit!.daysDormant).toBeGreaterThanOrEqual(150);
     expect(hit!.headline).toMatch(/up [\d.]+ kg/);
+  });
+
+  it('headlines the weight on the bar, not the e1RM', () => {
+    const [hit] = detectCarryover(logs, getExerciseById, 'kg');
+    // Deadlift went 130 → 180 on the bar across the dormancy window.
+    expect(hit.relatedGain).toBe(50);
+    expect(hit.relatedCurrent).toBe(180);
+    // e1RM is kept alongside and is the larger number.
+    expect(hit.relatedGainE1RM).toBeGreaterThan(hit.relatedGain);
+    expect(hit.detail).toContain('estimated 1RM');
+  });
+
+  it('needs both working weight AND e1RM to have moved', () => {
+    // A single heavy low-rep set lifts e1RM without the working weight trend
+    // backing it up — not a carryover story.
+    const spike: WorkoutLog[] = [
+      mkLog(ago(200), [{ id: TRAP, weight: 140 }, { id: CONV, weight: 150 }]),
+      mkLog(ago(180), [{ id: TRAP, weight: 145 }, { id: CONV, weight: 150 }]),
+      mkLog(ago(160), [{ id: TRAP, weight: 150 }, { id: CONV, weight: 150 }]),
+      mkLog(ago(20),  [{ id: CONV, weight: 150, reps: 1, rpe: 10 }]),
+      mkLog(ago(5),   [{ id: CONV, weight: 150, reps: 1, rpe: 10 }]),
+    ];
+    expect(detectCarryover(spike, getExerciseById, 'kg')).toHaveLength(0);
   });
 
   it('names the shared muscles and the movement pattern', () => {
@@ -140,5 +163,45 @@ describe('detectCarryover — the trap bar story', () => {
 
   it('handles an empty history without throwing', () => {
     expect(detectCarryover([], getExerciseById, 'kg')).toEqual([]);
+  });
+});
+
+describe('v4 → v5 migration: backfilling log weight units', () => {
+  it('stamps the assumed unit onto logs that have none', () => {
+    const logs = [{ id: 'a' }, { id: 'b' }] as Array<Record<string, unknown>>;
+    const { stamped } = backfillLogWeightUnits(logs, 'kg');
+    expect(stamped).toBe(2);
+    expect(logs.every(l => l.weightUnit === 'kg')).toBe(true);
+  });
+
+  it('never overwrites a log that already knows its unit', () => {
+    const logs = [{ id: 'a', weightUnit: 'lbs' }, { id: 'b' }] as Array<Record<string, unknown>>;
+    const { stamped } = backfillLogWeightUnits(logs, 'kg');
+    expect(stamped).toBe(1);
+    expect(logs[0].weightUnit).toBe('lbs');  // pre-existing value preserved
+    expect(logs[1].weightUnit).toBe('kg');
+  });
+
+  it('is idempotent — a second run changes nothing', () => {
+    const logs = [{ id: 'a' }, { id: 'b' }] as Array<Record<string, unknown>>;
+    backfillLogWeightUnits(logs, 'kg');
+    const { stamped } = backfillLogWeightUnits(logs, 'lbs');
+    expect(stamped).toBe(0);
+    expect(logs.every(l => l.weightUnit === 'kg')).toBe(true);
+  });
+
+  it('handles an empty history and malformed entries without throwing', () => {
+    expect(backfillLogWeightUnits([], 'kg').stamped).toBe(0);
+    const messy = [null, undefined, { id: 'ok' }] as unknown as Array<Record<string, unknown>>;
+    expect(() => backfillLogWeightUnits(messy, 'kg')).not.toThrow();
+    expect(messy[2]!.weightUnit).toBe('kg');
+  });
+
+  it('backfilled logs then read back as the stamped unit', () => {
+    const logs = [{ id: 'a' }] as Array<Record<string, unknown>>;
+    backfillLogWeightUnits(logs, 'lbs');
+    // A backfilled log is now self-describing: the read-time fallback is
+    // ignored because the field is present.
+    expect(logWeightUnit(logs[0] as never, 'kg')).toBe('lbs');
   });
 });

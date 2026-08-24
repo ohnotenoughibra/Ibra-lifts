@@ -726,6 +726,31 @@ function withBlockUndo<T>(
   }
 }
 
+
+/**
+ * v4 → v5 backfill: stamp a weight unit onto historical workout logs.
+ *
+ * Extracted from the inline `migrate` hook so it can actually be tested — a
+ * data migration that silently mangles a training history is exactly the kind
+ * of thing that needs a test.
+ *
+ * Idempotent: only writes where the field is absent, so a log that already
+ * knows its unit is never overwritten. Returns how many it stamped.
+ */
+export function backfillLogWeightUnits(
+  logs: Array<Record<string, unknown>>,
+  assumedUnit: WeightUnit
+): { logs: Array<Record<string, unknown>>; stamped: number } {
+  let stamped = 0;
+  for (const log of logs) {
+    if (log && typeof log === 'object' && log.weightUnit === undefined) {
+      log.weightUnit = assumedUnit;
+      stamped++;
+    }
+  }
+  return { logs, stamped };
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -4909,7 +4934,7 @@ export const useAppStore = create<AppState>()(
       },
       // ── Schema version: bump this when you add/rename/remove persisted fields.
       // Zustand calls `migrate` BEFORE hydrating the store, so the data is safe.
-      version: 4,
+      version: 5,
       migrate: (persisted: unknown, fromVersion: number) => {
         const state = (persisted ?? {}) as Record<string, unknown>;
 
@@ -4988,7 +5013,34 @@ export const useAppStore = create<AppState>()(
           if (notifPrefs.nutritionNudges === undefined) notifPrefs.nutritionNudges = true;
           state.notificationPreferences = notifPrefs;
         }
-        // Future: if (fromVersion < 5) { ... }
+        if (fromVersion < 5) {
+          // v4 → v5: Stamp a weight unit on historical workout logs.
+          //
+          // Logs never recorded which unit their weights were in, so a kg→lbs
+          // switch made the whole history ambiguous — a 100 from March and a
+          // 100 from June are indistinguishable, and every trend, PR and e1RM
+          // silently mixed them. New logs are stamped at completion; this fills
+          // in the back catalogue with the athlete's current setting, which is
+          // correct for everyone who never switched and no worse than the
+          // status quo for anyone who did.
+          //
+          // Idempotent: only writes where the field is absent, so a log that
+          // already knows its unit is never overwritten.
+          try {
+            const user = (state.user || {}) as { weightUnit?: string };
+            const assumed: WeightUnit = user.weightUnit === 'lbs' ? 'lbs' : 'kg';
+            const { logs, stamped } = backfillLogWeightUnits(
+              (state.workoutLogs || []) as Array<Record<string, unknown>>,
+              assumed
+            );
+            if (stamped > 0) state.workoutLogs = logs;
+          } catch {
+            // A malformed log must not block hydration — the fallback in
+            // logWeightUnit() still resolves a unit at read time.
+          }
+        }
+
+        // Future: if (fromVersion < 6) { ... }
 
         return state;
       },

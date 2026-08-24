@@ -39,6 +39,8 @@ const MIN_MEANINGFUL_GAIN_KG = 2.5;
 export interface ExerciseE1RMPoint {
   date: Date;
   e1RMKg: number;
+  /** Heaviest weight actually loaded that session, in kg. */
+  bestWeightKg: number;
 }
 
 export interface CarryoverInsight {
@@ -49,9 +51,16 @@ export interface CarryoverInsight {
   dormantLastBest: number;
   relatedExerciseId: string;
   relatedExerciseName: string;
-  /** Change in the related lift's e1RM since the dormant one was dropped. */
+  /**
+   * Change in the heaviest weight actually loaded, since the dormant lift was
+   * dropped. This is the headline number because it's the one an athlete
+   * recognises — it's the change they'd notice on the bar.
+   */
   relatedGain: number;
   relatedCurrent: number;
+  /** Same comparison on estimated 1RM — fairer across differing rep schemes. */
+  relatedGainE1RM: number;
+  relatedCurrentE1RM: number;
   sharedMuscles: MuscleGroup[];
   movementPattern: string;
   unit: WeightUnit;
@@ -89,12 +98,15 @@ export function buildE1RMTimeline(
 
     const unit = logWeightUnit(log, fallbackUnit);
     let best = 0;
+    let bestWeight = 0;
     for (const set of entry.sets) {
       if (!set.completed) continue;
-      const e1rm = estimateE1RM(toKg(set.weight, unit), set.reps, set.rpe);
+      const weightKg = toKg(set.weight, unit);
+      const e1rm = estimateE1RM(weightKg, set.reps, set.rpe);
       if (e1rm > best) best = e1rm;
+      if (weightKg > bestWeight) bestWeight = weightKg;
     }
-    if (best > 0) points.push({ date: new Date(log.date), e1RMKg: best });
+    if (best > 0) points.push({ date: new Date(log.date), e1RMKg: best, bestWeightKg: bestWeight });
   }
 
   return points.sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -166,15 +178,24 @@ export function detectCarryover(
       const relatedDaysIdle = Math.floor((now.getTime() - relatedLast.getTime()) / 86400000);
       if (relatedDaysIdle >= DORMANT_AFTER_DAYS) continue;
 
+      // Headline on working weight (what you'd notice on the bar); e1RM kept
+      // alongside because it's the fairer comparison across rep schemes.
+      const baselineWeightKg = Math.max(...atDrop.map(p => p.bestWeightKg));
+      const currentWeightKg = Math.max(...since.map(p => p.bestWeightKg));
+      const gainWeightKg = currentWeightKg - baselineWeightKg;
+
       const baselineKg = Math.max(...atDrop.map(p => p.e1RMKg));
       const currentKg = Math.max(...since.map(p => p.e1RMKg));
       const gainKg = currentKg - baselineKg;
-      if (gainKg < MIN_MEANINGFUL_GAIN_KG) continue;
+
+      // Require both to agree that something real happened, so a single heavy
+      // low-rep single can't manufacture a carryover story on its own.
+      if (gainWeightKg < MIN_MEANINGFUL_GAIN_KG || gainKg < MIN_MEANINGFUL_GAIN_KG) continue;
 
       const shared = sharedPrimaryMuscles(dormantEx, relatedEx);
       const round = (kg: number) => Math.round(fromKg(kg, displayUnit) * 10) / 10;
-      const gain = round(gainKg);
-      const current = round(currentKg);
+      const gain = round(gainWeightKg);
+      const current = round(currentWeightKg);
 
       insights.push({
         dormantExerciseId: dormantId,
@@ -185,6 +206,8 @@ export function detectCarryover(
         relatedExerciseName: relatedEx.name,
         relatedGain: gain,
         relatedCurrent: current,
+        relatedGainE1RM: round(gainKg),
+        relatedCurrentE1RM: round(currentKg),
         sharedMuscles: shared,
         movementPattern: dormantEx.movementPattern,
         unit: displayUnit,
@@ -192,7 +215,8 @@ export function detectCarryover(
         headline: `You dropped ${dormantEx.name}, but ${relatedEx.name} is up ${gain} ${displayUnit}`,
         detail:
           `No ${dormantEx.name} in ${monthsLabel(daysDormant)}. Over the same stretch ` +
-          `${relatedEx.name} went from ${round(baselineKg)} to ${current} ${displayUnit} estimated 1RM. ` +
+          `${relatedEx.name} went from ${round(baselineWeightKg)} to ${current} ${displayUnit} ` +
+          `(estimated 1RM ${round(baselineKg)} → ${round(currentKg)}). ` +
           `Both are ${dormantEx.movementPattern} patterns sharing ${listMuscles(shared)} — ` +
           `that strength didn't go anywhere, it moved.`,
       });

@@ -3,6 +3,16 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.11.1] - 2026-08-24
+
+**Carryover headlines the weight on the bar, and old logs get their units back.**
+
+### Changed
+- **Carryover now leads with working weight rather than estimated 1RM.** The trap bar example read "+63.1 kg" when what you'd actually noticed was +50 kg on the bar. e1RM is the fairer comparison across differing rep schemes, so it's kept in the detail line — but the headline is now the number you'd recognise. A carryover also has to clear the threshold on *both* measures now, so a single heavy low-rep set can't manufacture a story on its own.
+
+### Fixed
+- **Historical workout logs are backfilled with a weight unit** (schema v4 → v5). v2.11.0 stamped new logs but left the back catalogue ambiguous. The migration fills them in with the athlete's current setting — correct for everyone who never switched, and no worse than the status quo for anyone who did. Idempotent, and never overwrites a log that already knows its unit. Extracted from the inline migrate hook so it could be tested: a migration that silently mangles a training history is exactly the kind of thing that needs one.
+
 ## [2.11.0] - 2026-08-24
 
 **Carryover: what your dropped lifts did for the ones you kept.**

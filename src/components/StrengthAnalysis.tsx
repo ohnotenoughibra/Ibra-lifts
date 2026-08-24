@@ -38,6 +38,8 @@ import { StickingPointAnalysis } from '@/lib/types';
 import { getAccessoryPrescription, type StickingPointPrescription } from '@/lib/sticking-point-data';
 import { estimateForceVelocityProfile, type FVProfileResult } from '@/lib/force-velocity';
 import { resolveWeightUnit } from '@/lib/units';
+import { detectCarryover } from '@/lib/carryover';
+import { getExerciseById } from '@/lib/exercises';
 
 interface StrengthAnalysisProps {
   onClose: () => void;
@@ -80,6 +82,14 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
   const [selectedExercise, setSelectedExercise] = useState<StickingPointAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
+
+  // Carryover: lifts you dropped whose related lifts kept climbing. Per-exercise
+  // stats can't tell "you got weaker" apart from "you stopped doing this and the
+  // strength moved" — a dormant lift even reads as a plateau.
+  const carryover = useMemo(
+    () => detectCarryover(workoutLogs, getExerciseById, weightUnit).slice(0, 3),
+    [workoutLogs, weightUnit]
+  );
 
   // Force-Velocity Profile
   const fvProfile: FVProfileResult | null = useMemo(() => {
@@ -634,7 +644,43 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
             {/* 2. POWER PROFILE — Force-Velocity */}
             {fvProfile && <PowerProfileSection fvProfile={fvProfile} />}
 
-            {/* 3. PLATEAUS / STICKING POINTS (actionable) */}
+            {/* 3. CARRYOVER — dropped lifts whose cousins kept climbing */}
+            {carryover.length > 0 && (
+              <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  <h3 className="text-sm font-semibold text-emerald-200">Carryover</h3>
+                </div>
+                <p className="text-xs text-grappler-400 mb-3">
+                  Lifts you stopped doing — and what happened to the ones that share the pattern.
+                </p>
+                <div className="space-y-3">
+                  {carryover.map((c) => (
+                    <div
+                      key={`${c.dormantExerciseId}-${c.relatedExerciseId}`}
+                      className="rounded-lg bg-grappler-900/50 border border-grappler-800 p-3"
+                    >
+                      <div className="flex items-baseline justify-between gap-2 mb-1">
+                        <span className="text-sm font-semibold text-grappler-100">
+                          {c.dormantExerciseName} → {c.relatedExerciseName}
+                        </span>
+                        <span className="text-sm font-bold text-emerald-300 tabular-nums whitespace-nowrap">
+                          +{c.relatedGain} {c.unit}
+                        </span>
+                      </div>
+                      <p className="text-xs text-grappler-400 leading-relaxed">{c.detail}</p>
+                      {c.confidence === 'moderate' && (
+                        <p className="text-[10px] text-grappler-500 mt-1.5">
+                          Related through one muscle group — weaker signal than a full pattern match.
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 4. PLATEAUS / STICKING POINTS (actionable) */}
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />

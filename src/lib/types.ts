@@ -290,6 +290,14 @@ export interface WorkoutLog {
   dayNumber?: number;   // Position-based tracking (survives mesocycle regeneration)
   date: Date;
   exercises: ExerciseLog[];
+  /**
+   * Unit the weights in this log were entered in. Logs written before this
+   * field existed have no unit and are assumed to be in the athlete's current
+   * setting — see `logWeightUnit()`. Without it, a kg→lbs switch silently makes
+   * the whole history ambiguous: a 100 logged in March and a 100 logged in June
+   * are indistinguishable, and every trend, PR and e1RM mixes them.
+   */
+  weightUnit?: WeightUnit;
   totalVolume: number; // weight x reps
   duration: number; // minutes
   preCheckIn?: PreWorkoutCheckIn;

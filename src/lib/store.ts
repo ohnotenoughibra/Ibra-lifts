@@ -2702,6 +2702,7 @@ export const useAppStore = create<AppState>()(
           dayNumber: activeWorkout.dayNumber,
           date: new Date(),
           exercises: activeWorkout.exerciseLogs,
+          weightUnit: resolveWeightUnit(user.weightUnit),
           totalVolume,
           duration,
           preCheckIn: activeWorkout.preCheckIn,

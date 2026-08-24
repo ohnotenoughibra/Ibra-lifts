@@ -3,6 +3,21 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.11.0] - 2026-08-24
+
+**Carryover: what your dropped lifts did for the ones you kept.**
+
+### Added
+- **Carryover analysis** in Strength Analysis. Every strength stat in the app was per-exercise, which meant it couldn't tell two very different stories apart: "you got weaker at this" and "you stopped doing this and the strength moved somewhere else." A dormant lift even read as a plateau. Now, when a lift goes quiet for 6+ weeks and a lift sharing its movement pattern keeps climbing, the app says so:
+
+  > **Trap Bar Deadlift → Conventional Deadlift · +63.1 kg**
+  > No Trap Bar Deadlift in 5 months. Over the same stretch Conventional Deadlift went from 163.9 to 227 kg estimated 1RM. Both are hinge patterns sharing glutes and back — that strength didn't go anywhere, it moved.
+
+  Two lifts count as related only when they share a movement pattern *and* at least one primary muscle — conservative enough to link the two deadlifts without claiming a bench press carries over to a squat. Comparisons run on RPE-aware estimated 1RM, normalized to kilograms. It stays silent when the related lift didn't actually move, when both lifts were dropped, or when there isn't enough history — a manufactured insight is worse than none.
+
+### Fixed
+- **Workout logs never recorded which unit their weights were in.** Body-weight entries have always carried a `unit`; workout logs never did. For anyone who switched kg↔lbs, a 100 logged in March and a 100 logged in June were indistinguishable, and every trend, PR and estimated 1RM silently mixed them. New logs are stamped with the unit; older ones fall back to the athlete's current setting, which is correct for everyone who never switched.
+
 ## [2.10.0] - 2026-08-09
 
 **Cross-system injury audit, plus the Knowledge and nutrition passes.**

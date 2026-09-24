@@ -270,6 +270,17 @@ function weeklyVolumeScore(weekLogs: WorkoutLog[]): number {
 /**
  * Calculate average RPE for a week of workout logs.
  */
+/**
+ * RPE the athlete actually rated. Sets whose RPE was only prefilled from the
+ * prescription (rpeSource 'prefill') or pre-date rating tracking (no
+ * rpeSource) are NOT evidence of effort — counting them made "average RPE >
+ * 9 with no PRs" fire for anyone on a high-RPE block who never rated a set,
+ * so "Deload Recommended" never went away.
+ */
+function ratedRpe(set: { rpe: number; rpeSource?: 'user' | 'prefill' }): number | null {
+  return set.rpeSource === 'user' && set.rpe > 0 ? set.rpe : null;
+}
+
 function weeklyAvgRPE(weekLogs: WorkoutLog[]): number {
   if (weekLogs.length === 0) return 0;
 
@@ -281,8 +292,9 @@ function weeklyAvgRPE(weekLogs: WorkoutLog[]): number {
     // Use per-set RPE when available for accuracy
     log.exercises.forEach(ex => {
       ex.sets.forEach(set => {
-        if (set.completed && set.rpe > 0) {
-          totalRPE += set.rpe;
+        const r = ratedRpe(set);
+        if (set.completed && r != null) {
+          totalRPE += r;
           count++;
           logSetCount++;
         }
@@ -749,7 +761,8 @@ export function getSmartDeloadRecommendation(
     recentLogs.forEach(log => {
       log.exercises.forEach(ex => {
         ex.sets.forEach(set => {
-          if (set.completed && set.rpe > 0) recentRPEs.push(set.rpe);
+          const r = ratedRpe(set);
+          if (set.completed && r != null) recentRPEs.push(r);
         });
       });
       // Fallback to overall RPE

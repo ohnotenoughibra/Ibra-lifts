@@ -61,6 +61,7 @@ import CardErrorBoundary from './CardErrorBoundary';
 import { useToast } from './Toast';
 import WorkoutStartChooser from './WorkoutStartChooser';
 import WhoopFreshness from './WhoopFreshness';
+import { usePersistentState } from '@/lib/use-persistent-state';
 import { fireConfetti } from '@/lib/confetti';
 import { generateQuickWorkout, getVolumeGaps } from '@/lib/workout-generator';
 import { levelProgress, pointsToNextLevel, pointRewards } from '@/lib/gamification';
@@ -843,6 +844,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     return calculateFatigueDebt(workoutLogs, wearableHistory);
   }, [workoutLogs, wearableHistory]);
 
+  // "Not now" on the deload card — it used to have no way to go away.
+  const [deloadSnoozeUntil, setDeloadSnoozeUntil] = usePersistentState<number>('ui:deload-snooze', 0);
+
   const deloadRec = useMemo(() => {
     return getSmartDeloadRecommendation(workoutLogs, wearableHistory, performanceProfiles, currentMesocycle ?? undefined);
   }, [workoutLogs, wearableHistory, performanceProfiles, currentMesocycle]);
@@ -1477,7 +1481,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       : deloadRec.urgency
     : deloadRec.urgency;
 
-  if (deloadRec.needed) {
+  const deloadSnoozed = deloadSnoozeUntil > Date.now() && effectiveDeloadUrgency !== 'critical';
+  if (deloadRec.needed && !deloadSnoozed) {
     const urgencyColors = {
       optional: 'from-yellow-500/15 to-sky-500/10 border-yellow-500/30',
       recommended: 'from-blue-500/20 to-red-500/10 border-blue-500/30',
@@ -1504,6 +1509,14 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               <p className="text-xs font-bold text-grappler-300 uppercase tracking-wide">{deloadRec.protocol.name}</p>
               <p className="text-xs text-grappler-400 mt-0.5">{deloadRec.protocol.description}</p>
             </div>
+            {effectiveDeloadUrgency !== 'critical' && (
+              <button
+                onClick={() => setDeloadSnoozeUntil(Date.now() + 7 * 864e5)}
+                className="mt-2 text-xs text-grappler-400 hover:text-grappler-200 underline underline-offset-2 min-h-[32px]"
+              >
+                Not now — remind me in a week
+              </button>
+            )}
           </div>
         </div>
       </div>

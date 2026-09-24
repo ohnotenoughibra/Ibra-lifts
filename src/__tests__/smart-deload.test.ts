@@ -116,3 +116,22 @@ describe('smart-deload engine — first-principles behavior', () => {
     expect(debt.weeklyFatigueScores.length).toBeGreaterThan(0);
   });
 });
+
+describe('deload is driven by RATED effort (was: always "Deload Recommended")', () => {
+  const mark = (logs: WorkoutLog[], src: 'user' | 'prefill', overall: number) => logs.map(l => ({
+    ...l, overallRPE: overall,
+    exercises: l.exercises.map(e => ({ ...e, sets: e.sets.map(st => ({ ...st, rpeSource: src })) })),
+  })) as WorkoutLog[];
+
+  it('prefilled (never rated) RPE 9.5 does not trigger a deload', () => {
+    const logs = mark([...week(1, { rpe: 9.5 }), ...week(0, { rpe: 9.5 })], 'prefill', 7);
+    const rec = getSmartDeloadRecommendation(logs, []);
+    expect(rec.reason).not.toMatch(/Average RPE/);
+  });
+
+  it('athlete-rated RPE 9.5 with no PRs still does', () => {
+    const logs = mark([...week(3, { rpe: 8 }), ...week(2, { rpe: 8 }), ...week(1, { rpe: 9.5 }), ...week(0, { rpe: 9.5 })], 'user', 9.5);
+    const rec = getSmartDeloadRecommendation(logs, []);
+    expect(rec.needed).toBe(true);
+  });
+});

@@ -81,10 +81,10 @@ describe.each(Object.entries(PROFILES))('invariants: %s', (_name, opts) => {
   });
 });
 
-describe('known bugs (audit 2026-09-24) — flip to `it` when fixed', () => {
+describe('fixed in v2.13 (audit 2026-09-24 C1, C2)', () => {
   // C1: exercises are re-randomised every week, so week-over-week overload
   // can't be tracked. Fix (plan PR 4): select once per block.
-  it.fails('C1: each session slot keeps the same exercises across training weeks', () => {
+  it('C1: each session slot keeps the same exercises across training weeks', () => {
     for (const seed of SEEDS) {
       const m = seeded(seed, () => generateMesocycle(base));
       const weeks = trainingWeeks(m);
@@ -99,7 +99,7 @@ describe('known bugs (audit 2026-09-24) — flip to `it` when fixed', () => {
 
   // C2: fitSessionToTimeLimit drops ALL isolation in one step at 60 min.
   // Fix (plan PR 4): trim one item at a time, keep ≥1 isolation.
-  it.fails('C2: 60-min hypertrophy week includes isolation work', () => {
+  it('C2: 60-min hypertrophy week includes isolation work', () => {
     for (const seed of SEEDS) {
       const m = seeded(seed, () => generateMesocycle({ ...base, sessionDurationMinutes: 60 }));
       const week1 = trainingWeeks(m)[0];
@@ -107,5 +107,37 @@ describe('known bugs (audit 2026-09-24) — flip to `it` when fixed', () => {
         .filter(e => byId.get(e.exerciseId)?.category === 'isolation');
       expect(iso.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('template overrides reach the generator (audit C3)', () => {
+  it('PPL at 3 days generates push / pull / legs days, not full body', () => {
+    const m = seeded(7, () => generateMesocycle({ ...base, sessionsPerWeek: 3, splitType: 'push_pull_legs' }));
+    expect(m.splitType).toBe('push_pull_legs');
+    const names = trainingWeeks(m)[0].sessions.map(s => s.name).join(' ');
+    expect(names).toMatch(/Push/);
+    expect(names).toMatch(/Pull/);
+    expect(names).toMatch(/Legs/);
+  });
+
+  it('bodyweight + pull-up bar programs contain no barbell/machine/cable work', () => {
+    for (const seed of SEEDS) {
+      const m = seeded(seed, () => generateMesocycle({
+        ...base, equipment: 'minimal', availableEquipment: ['bodyweight', 'pull_up_bar'],
+      }));
+      const bad = m.weeks.flatMap(w => w.sessions.flatMap(s => s.exercises))
+        .filter(e => (e.exercise.equipmentTypes ?? []).some(t => !['bodyweight', 'pull_up_bar'].includes(t)))
+        .map(e => e.exerciseId);
+      expect(bad).toEqual([]);
+    }
+  });
+
+  it('excluded exercises are never selected', () => {
+    const first = seeded(3, () => generateMesocycle(base));
+    const picked = Array.from(new Set(first.weeks.flatMap(w => w.sessions.flatMap(s => s.exercises.map(e => e.exerciseId)))));
+    const again = seeded(3, () => generateMesocycle({ ...base, excludeExerciseIds: picked }));
+    const repicked = again.weeks.flatMap(w => w.sessions.flatMap(s => s.exercises.map(e => e.exerciseId)))
+      .filter(id => picked.includes(id));
+    expect(repicked).toEqual([]);
   });
 });

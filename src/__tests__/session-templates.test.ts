@@ -92,3 +92,16 @@ describe('My Workouts — session template actions', () => {
     expect(useAppStore.getState().sessionTemplates.find(t => t.id === id)!.timesUsed).toBe(1);
   });
 });
+
+describe('program templates are block-scoped', () => {
+  beforeEach(reset);
+  it('generateNewMesocycle overrides shape the block without rewriting the profile goal', () => {
+    useAppStore.setState({ user: { ...testUser, goalFocus: 'strength', sessionsPerWeek: 3 } as UserProfile });
+    useAppStore.getState().generateNewMesocycle(4, undefined, 'block', { goalFocus: 'hypertrophy', sessionsPerWeek: 4, splitType: 'upper_lower' });
+    const { user, currentMesocycle } = useAppStore.getState();
+    expect(user?.goalFocus).toBe('strength');
+    expect(currentMesocycle?.goalFocus).toBe('hypertrophy');
+    expect(currentMesocycle?.splitType).toBe('upper_lower');
+    expect(currentMesocycle?.weeks[0].sessions).toHaveLength(4);
+  });
+});

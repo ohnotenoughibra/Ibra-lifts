@@ -487,7 +487,12 @@ interface GeneratorOptions {
   sportSessionsPerWeek?: number;           // Number of sport training sessions per week
   avgSportIntensity?: 'light' | 'moderate' | 'hard';  // Average intensity of sport sessions
   includeDeload?: boolean;  // Default true. Set false when fatigue is low (autoregulated deload)
+  splitType?: SplitType;    // Template override (e.g. PPL at 3 days); default derives from days/identity
+  excludeExerciseIds?: string[]; // Athlete's "never recommend" list — never selected
 }
+
+/** An exercise picked for a session slot, with its base (pre-wave) set count. */
+interface LockedPick { exercise: Exercise; sets: number }
 
 // Experience-level modifiers for volume and intensity
 const EXPERIENCE_MODIFIERS: Record<ExperienceLevel, { volumeScale: number; rpeOffset: number; maxSets: number }> = {
@@ -659,10 +664,13 @@ function selectExercisesForType(
   trainingIdentity?: TrainingIdentity,
   combatSport?: CombatSport,
   sessionsPerWeek: number = 3,
-  splitDayRole: SplitDayRole = 'full_body'
+  splitDayRole: SplitDayRole = 'full_body',
+  splitOverride?: SplitType,
+  exclude?: Set<string>,
 ): Exercise[] {
   // Use granular equipment filtering when available, fallback to tier-only
-  const allAvailable = getExercisesByGranularEquipment(equipment, availableEquipment);
+  const allAvailable = getExercisesByGranularEquipment(equipment, availableEquipment)
+    .filter(e => !exclude?.has(e.id));
   // Filter to exercises that match the split day's target muscles
   const allowedMuscles = SPLIT_DAY_MUSCLES[splitDayRole];
   const availableExercises = splitDayRole === 'full_body'
@@ -745,7 +753,7 @@ function selectExercisesForType(
 
   // Pick movement pattern template based on split day role
   // For structured splits (PPL/UL), use the day role directly; for combat splits, use the split type
-  const splitType = determineSplitType(sessionsPerWeek, trainingIdentity, combatSport);
+  const splitType = splitOverride ?? determineSplitType(sessionsPerWeek, trainingIdentity, combatSport);
   const patternKey = splitDayRole !== 'full_body' ? splitDayRole : splitType;
   const patternSource = MOVEMENT_PATTERNS_PER_SESSION[patternKey] ?? MOVEMENT_PATTERNS_PER_SESSION.full_body;
   const targetPatterns: string[] = type in patternSource
@@ -831,17 +839,26 @@ function generateWorkoutSession(
   sex?: BiologicalSex,
   dietGoal?: DietGoal,
   sessionsPerWeek: number = 3,
-  splitDayRole: SplitDayRole = 'full_body'
+  splitDayRole: SplitDayRole = 'full_body',
+  splitOverride?: SplitType,
+  locked?: LockedPick[],
+  exclude?: Set<string>,
 ): WorkoutSession {
-  const selectedExercises = selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport, sessionsPerWeek, splitDayRole);
+  // Locked picks (weeks 2..N of a block) keep week 1's exercises AND base set
+  // counts, so week-over-week progression compares like with like.
+  const selectedExercises = locked
+    ? locked.map(l => l.exercise)
+    : selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport, sessionsPerWeek, splitDayRole, splitOverride, exclude);
   const config = getSexAdjustedPrescription(type, sex);
   const expMod = EXPERIENCE_MODIFIERS[experienceLevel || 'intermediate'];
   const sexMod = SEX_MODIFIERS[sex || 'male'];
   const dietMod = DIET_PHASE_MODIFIERS[dietGoal || 'none'];
 
-  let exercisePrescriptions: ExercisePrescription[] = selectedExercises.map(exercise => {
+  let exercisePrescriptions: ExercisePrescription[] = selectedExercises.map((exercise, idx) => {
+    const lockedSets = locked?.[idx]?.sets;
     // Adjust sets based on exercise category, experience level, and diet phase
-    let sets = randomBetween(config.sets[0], config.sets[1]);
+    let sets = lockedSets ?? randomBetween(config.sets[0], config.sets[1]);
+    if (lockedSets === undefined) {
     sets = Math.round(sets * expMod.volumeScale * sexMod.volumeScale * dietMod.volumeScale);
     sets = Math.max(2, Math.min(expMod.maxSets, sets));
 
@@ -861,6 +878,7 @@ function generateWorkoutSession(
     if (exercise.category === 'compound' && type === 'strength') {
       sets = Math.max(sets, experienceLevel === 'beginner' ? 3 : 4);
     }
+    }
 
     const prescription = createSetPrescription(type, sex);
     // Adjust RPE based on experience level and diet phase
@@ -879,7 +897,8 @@ function generateWorkoutSession(
   });
 
   // Smart time-fitting: trim session to fit within the user's time cap
-  if (maxDurationMinutes && maxDurationMinutes > 0) {
+  // Locked sessions were already fitted in week 1 — never drop exercises from them.
+  if (maxDurationMinutes && maxDurationMinutes > 0 && !locked) {
     exercisePrescriptions = fitSessionToTimeLimit(exercisePrescriptions, maxDurationMinutes);
   }
 
@@ -904,16 +923,20 @@ function generateWorkoutSession(
 
 /**
  * Smart time-fitting algorithm.
- * Trims a session to fit within a time budget without losing workout quality.
+ * Trims a session to fit its time budget one decision at a time, then refills.
  *
- * Strategy (in order):
- * 1. Drop grip/isolation exercises (lowest priority for time-crunched users)
- * 2. Reduce sets on remaining exercises (minimum 2 sets each)
- * 3. Drop accessories/grappling-specific exercises
- * 4. Reduce sets further on compounds (minimum 2)
+ * Order (lowest value first):
+ *   1. drop grip work, one exercise at a time
+ *   2. drop isolation work one at a time — but KEEP one isolation
+ *   3. take a set off every exercise (min 2)
+ *   4. drop power / grappling-specific extras one at a time
+ *   5. all exercises to 2 sets
+ *   6. only now drop the last isolation, then cap at 4 exercises
+ * Finally, anything dropped is added back (in original order) if it fits.
  *
- * Compounds are always preserved because they give the most bang-for-buck —
- * one exercise hits multiple muscles instead of isolating one.
+ * The old version removed ALL isolation in a single filter the moment a
+ * session ran over — at the 60-minute default a 4-day hypertrophy block got
+ * zero arm and calf work (0% of 3,200 simulated sessions).
  */
 function fitSessionToTimeLimit(
   prescriptions: ExercisePrescription[],
@@ -923,9 +946,6 @@ function fitSessionToTimeLimit(
   const targetWorkMinutes = maxMinutes - WARMUP_COOLDOWN;
   if (targetWorkMinutes <= 0) return prescriptions.slice(0, 2);
 
-  let current = [...prescriptions];
-
-  // Helper: estimate work minutes for a set of prescriptions
   const estMinutes = (ps: ExercisePrescription[]) => {
     let mins = 0;
     for (const p of ps) {
@@ -934,47 +954,39 @@ function fitSessionToTimeLimit(
     }
     return mins;
   };
+  const over = (ps: ExercisePrescription[]) => estMinutes(ps) > targetWorkMinutes;
 
-  // Step 1: Drop grip exercises if over budget
-  if (estMinutes(current) > targetWorkMinutes) {
-    current = current.filter(p => p.exercise.category !== 'grip');
-  }
+  let current = [...prescriptions];
+  const dropped: ExercisePrescription[] = [];
+  const dropLast = (pred: (p: ExercisePrescription) => boolean, keep = 0) => {
+    while (over(current)) {
+      const matches = current.filter(pred);
+      if (matches.length <= keep) return;
+      const victim = matches[matches.length - 1];
+      current = current.filter(p => p !== victim);
+      dropped.push(victim);
+    }
+  };
 
-  // Step 2: Drop isolation exercises if still over
-  if (estMinutes(current) > targetWorkMinutes) {
-    current = current.filter(p => p.exercise.category !== 'isolation');
-  }
+  dropLast(p => p.exercise.category === 'grip');
+  dropLast(p => p.exercise.category === 'isolation', 1);
+  if (over(current)) current = current.map(p => ({ ...p, sets: Math.max(2, p.sets - 1) }));
+  dropLast(p => p.exercise.category === 'power' || p.exercise.category === 'grappling_specific');
+  if (over(current)) current = current.map(p => ({ ...p, sets: 2 }));
+  dropLast(p => p.exercise.category === 'isolation');
+  while (over(current) && current.length > 4) dropped.push(current.pop()!);
 
-  // Step 3: Reduce sets on all remaining (min 2 per exercise)
-  if (estMinutes(current) > targetWorkMinutes) {
-    current = current.map(p => ({
-      ...p,
-      sets: Math.max(2, p.sets - 1),
-    }));
-  }
-
-  // Step 4: Drop grappling_specific/power exercises if still over
-  if (estMinutes(current) > targetWorkMinutes) {
-    const compounds = current.filter(p => p.exercise.category === 'compound');
-    const others = current.filter(p => p.exercise.category !== 'compound');
-    // Keep at least the compounds
-    current = compounds.length > 0 ? compounds : current.slice(0, 3);
-    // Add back others only if time allows
-    for (const ex of others) {
-      if (estMinutes([...current, ex]) <= targetWorkMinutes) {
-        current.push(ex);
+  // Refill: re-add dropped exercises (original order) that still fit, at 2 sets
+  if (dropped.length > 0) {
+    const order = new Map(prescriptions.map((p, i) => [p, i]));
+    for (const p of [...dropped].sort((a, b) => (order.get(a)! - order.get(b)!))) {
+      const candidate = { ...p, sets: Math.min(p.sets, 2) };
+      if (!over([...current, candidate])) {
+        current.push(candidate);
       }
     }
-  }
-
-  // Step 5: If still over, reduce all sets to 2
-  if (estMinutes(current) > targetWorkMinutes) {
-    current = current.map(p => ({ ...p, sets: 2 }));
-  }
-
-  // Step 6: Last resort — limit to 4 exercises max
-  if (estMinutes(current) > targetWorkMinutes && current.length > 4) {
-    current = current.slice(0, 4);
+    const pos = new Map(prescriptions.map((p, i) => [p.exerciseId, i]));
+    current.sort((a, b) => (pos.get(a.exerciseId) ?? 0) - (pos.get(b.exerciseId) ?? 0));
   }
 
   // Never return empty
@@ -1064,7 +1076,11 @@ function generateMesocycleWeek(
   avgSportIntensity?: 'light' | 'moderate' | 'hard',
   sex?: BiologicalSex,
   dietGoal?: DietGoal,
-  totalWeeks: number = 5
+  totalWeeks: number = 5,
+  splitOverride?: SplitType,
+  locked?: LockedPick[][],
+  capture?: LockedPick[][],
+  exclude?: Set<string>,
 ): MesocycleWeek {
   // Determine workout types based on periodization strategy
   let workoutTypes: WorkoutType[];
@@ -1156,7 +1172,7 @@ function generateMesocycleWeek(
   }
 
   // Determine split day roles for proper muscle targeting (PPL, UL, etc.)
-  const splitType = determineSplitType(sessionsPerWeek, trainingIdentity, combatSport);
+  const splitType = splitOverride ?? determineSplitType(sessionsPerWeek, trainingIdentity, combatSport);
   const dayRoles = getSplitDayRoles(splitType, sessionsPerWeek);
 
   const sessions: WorkoutSession[] = workoutTypes.map((type, index) => {
@@ -1176,8 +1192,14 @@ function generateMesocycleWeek(
       sex,
       dietGoal,
       sessionsPerWeek,
-      splitDayRole
+      splitDayRole,
+      splitOverride,
+      locked?.[index],
+      exclude,
     );
+    if (capture) {
+      capture[index] = session.exercises.map(e => ({ exercise: e.exercise, sets: e.sets }));
+    }
 
     // Apply progressive overload (weeks 1-4) or deload reduction (week 5)
     session.exercises = session.exercises.map(ex => {
@@ -1264,6 +1286,11 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
 
   const includeDeload = options.includeDeload !== false; // Default true
 
+  // Exercises are chosen ONCE per block (week 1) and carried through every
+  // later week — only sets/reps/intensity progress. Re-picking each week made
+  // week-over-week overload impossible to track. Variety rotates between blocks.
+  const picks: LockedPick[][] = [];
+  const exclude = new Set(options.excludeExerciseIds ?? []);
   for (let i = 1; i <= weeks; i++) {
     const isDeload = includeDeload && i === weeks;
     const weekIndex = i - 1;
@@ -1272,7 +1299,11 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
         i, isDeload, sessionsPerWeek, equipment, goalFocus,
         periodizationType, weekIndex, muscleEmphasis, availableEquipment,
         sessionDurationMinutes, trainingIdentity, combatSport, experienceLevel,
-        sportSessionsPerWeek, avgSportIntensity, sex, dietGoal, weeks
+        sportSessionsPerWeek, avgSportIntensity, sex, dietGoal, weeks,
+        options.splitType,
+        i === 1 ? undefined : picks,
+        i === 1 ? picks : undefined,
+        exclude,
       )
     );
   }
@@ -1297,13 +1328,31 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
     strength_endurance: ['Endurance Builder', 'Work Capacity Phase', 'Sustained Strength Block'],
   };
   const namePool = trainingIdentity === 'combat' ? combatNames : generalNames;
-  const splitType = determineSplitType(sessionsPerWeek, trainingIdentity, combatSport);
+  const splitType = options.splitType ?? determineSplitType(sessionsPerWeek, trainingIdentity, combatSport);
 
   // Validate per-muscle volume stays within MEV–MRV
-  const allExercises = getExercisesByGranularEquipment(equipment, availableEquipment);
+  const allExercises = getExercisesByGranularEquipment(equipment, availableEquipment)
+    .filter(e => !exclude.has(e.id));
   const { weeks: validatedWeeks, warnings } = validateAndFixMuscleVolume(
     mesocycleWeeks, VOLUME_LANDMARKS, allExercises
   );
+  // MEV top-ups are decided per week, and a week's wave multiplier can flip
+  // whether a muscle is short — which would re-introduce week-to-week exercise
+  // drift. Use week 1's top-ups for every training week of the block.
+  const isTopUp = (e: ExercisePrescription) => (e.notes ?? '').startsWith('Added to meet');
+  const firstTraining = validatedWeeks.find(w => !w.isDeload);
+  if (firstTraining) {
+    const topUps = firstTraining.sessions.map(sess => sess.exercises.filter(isTopUp));
+    for (const w of validatedWeeks) {
+      if (w === firstTraining || w.isDeload) continue;
+      w.sessions.forEach((sess, si) => {
+        sess.exercises = [
+          ...sess.exercises.filter(e => !isTopUp(e)),
+          ...(topUps[si] ?? []).map(e => ({ ...e, prescription: { ...e.prescription } })),
+        ];
+      });
+    }
+  }
 
   return {
     id: uuidv4(),

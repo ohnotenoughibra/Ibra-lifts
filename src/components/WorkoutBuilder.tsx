@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAppStore } from '@/lib/store';
+import { useAppStore, type BlockOverrides } from '@/lib/store';
 import { exercises as allExercises, getExercisesByEquipment, getExerciseById } from '@/lib/exercises';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import {
@@ -36,7 +36,10 @@ import {
   GoalFocus,
   SetPrescription,
   ExercisePrescription,
-  WorkoutSession
+  WorkoutSession,
+  SplitType,
+  EquipmentType,
+  MuscleGroupConfig,
 } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { detectSupersetCandidates } from '@/lib/superset-engine';
@@ -73,13 +76,25 @@ interface MesocycleTemplate {
   category: TemplateCategory;
   tags: string[];
   icon: string;
+  // Block-scoped generator overrides — a template's name must be true of what
+  // it generates (PPL used to generate full body; "Bodyweight Only" gave bench).
+  split?: SplitType;
+  equipment?: Equipment;
+  availableEquipment?: EquipmentType[];
+  emphasis?: Partial<MuscleGroupConfig>;
 }
+
+const DEFAULT_EMPHASIS: MuscleGroupConfig = {
+  chest: 'maintain', back: 'maintain', shoulders: 'maintain', biceps: 'maintain', triceps: 'maintain',
+  quadriceps: 'maintain', hamstrings: 'maintain', glutes: 'maintain', calves: 'maintain', core: 'maintain',
+};
 
 // Preset mesocycle templates — comprehensive, evidence-based
 const MESOCYCLE_TEMPLATES: MesocycleTemplate[] = [
   // ─── POPULAR ───
   {
     id: 'push_pull_legs',
+    split: 'push_pull_legs',
     name: 'Push / Pull / Legs',
     description: 'The gold standard bodybuilding split. Each session targets push, pull, or leg muscles with high volume.',
     sessions: 3,
@@ -290,6 +305,7 @@ const MESOCYCLE_TEMPLATES: MesocycleTemplate[] = [
   },
   {
     id: 'chest_back_focus',
+    emphasis: { chest: 'focus', back: 'focus', quadriceps: 'maintain', hamstrings: 'maintain', glutes: 'maintain' },
     name: 'Chest & Back Focus',
     description: 'Extra pushing and pulling volume for upper body emphasis. Legs at maintenance.',
     sessions: 4,
@@ -302,6 +318,7 @@ const MESOCYCLE_TEMPLATES: MesocycleTemplate[] = [
   },
   {
     id: 'leg_specialization',
+    emphasis: { quadriceps: 'focus', hamstrings: 'focus', glutes: 'focus', calves: 'focus', chest: 'maintain', back: 'maintain' },
     name: 'Leg Specialization',
     description: 'Extra quad, hamstring, and glute volume. Upper body at maintenance. Wrestlers and athletes.',
     sessions: 4,
@@ -390,6 +407,8 @@ const MESOCYCLE_TEMPLATES: MesocycleTemplate[] = [
   },
   {
     id: 'home_gym',
+    equipment: 'home_gym',
+    availableEquipment: ['barbell', 'dumbbell', 'bench', 'pull_up_bar', 'bodyweight'],
     name: 'Home Gym Essentials',
     description: 'Optimized for limited equipment — barbell, dumbbells, pull-up bar. No machines needed.',
     sessions: 3,
@@ -402,8 +421,10 @@ const MESOCYCLE_TEMPLATES: MesocycleTemplate[] = [
   },
   {
     id: 'bodyweight_only',
+    equipment: 'minimal',
+    availableEquipment: ['bodyweight', 'pull_up_bar'],
     name: 'Bodyweight Only',
-    description: 'Zero equipment. Push-ups, squats, pull-ups, core. Travel-friendly and effective.',
+    description: 'Bodyweight plus a pull-up bar. Push-ups, squats, pull-ups, core. Travel-friendly and effective.',
     sessions: 4,
     weeks: 4,
     focus: 'hypertrophy',
@@ -710,16 +731,15 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
   const startFromTemplate = (template: MesocycleTemplate) => {
     if (!user) return;
 
-    // Set user's goal and sessions to match the template before generating
-    useAppStore.setState({
-      user: {
-        ...user,
-        goalFocus: template.focus,
-        sessionsPerWeek: template.sessions as any,
-        updatedAt: new Date()
-      }
+    // Template settings apply to THIS block only — the athlete's own goal stays.
+    generateNewMesocycle(template.weeks, undefined, template.periodization, {
+      goalFocus: template.focus,
+      sessionsPerWeek: template.sessions as BlockOverrides['sessionsPerWeek'],
+      splitType: template.split,
+      equipment: template.equipment,
+      availableEquipment: template.availableEquipment,
+      muscleEmphasis: template.emphasis ? { ...DEFAULT_EMPHASIS, ...template.emphasis } : undefined,
     });
-    generateNewMesocycle(template.weeks, undefined, template.periodization);
     onClose();
   };
 

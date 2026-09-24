@@ -700,13 +700,16 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
   });
 
   const handleStartProgram = (template: ProgramTemplate, weeks: number, sessions: SessionsPerWeek) => {
-    // Update user's goal and sessions if needed
-    if (user) {
-      useAppStore.setState({
-        user: { ...user, goalFocus: template.goalFocus, sessionsPerWeek: sessions, updatedAt: new Date() }
-      });
-    }
-    generateNewMesocycle(weeks);
+    // Template goal/days/periodization shape THIS block only — the athlete's
+    // profile goal isn't overwritten (was permanent, with no confirmation).
+    // Beginners keep the generator's linear default unless the program is block-periodized.
+    const periodization = template.periodization === 'undulating' && user?.experienceLevel === 'beginner'
+      ? undefined
+      : template.periodization;
+    generateNewMesocycle(weeks, undefined, periodization, {
+      goalFocus: template.goalFocus,
+      sessionsPerWeek: sessions,
+    });
     onClose();
   };
 

@@ -8,6 +8,7 @@ import {
   GamificationStats,
   OnboardingData,
   GoalFocus,
+  SplitType,
   Equipment,
   EquipmentType,
   EquipmentProfileName,
@@ -115,6 +116,20 @@ import { calculateEnhancedACWR } from './fatigue-metrics';
 import { v4 as uuidv4 } from 'uuid';
 import { resolveWeightUnit } from './units';
 import type { ThrottleResult } from './readiness-throttle';
+
+/**
+ * Per-block settings from a program template. They shape THIS block only —
+ * templates used to overwrite user.goalFocus permanently, so picking a 1-week
+ * "Active Recovery" left every later auto-generated block on 'balanced'.
+ */
+export interface BlockOverrides {
+  goalFocus?: GoalFocus;
+  sessionsPerWeek?: 1 | 2 | 3 | 4 | 5 | 6;
+  splitType?: SplitType;
+  equipment?: Equipment;
+  availableEquipment?: EquipmentType[];
+  muscleEmphasis?: MuscleGroupConfig;
+}
 
 /** Throttle outcome persisted on the active workout (the adjusted session is the workout itself). */
 export type ActiveWorkoutThrottle = Omit<ThrottleResult, 'adjustedSession'>;
@@ -404,7 +419,7 @@ interface AppState {
   setMuscleEmphasis: (config: MuscleGroupConfig) => void;
 
   // Mesocycle actions
-  generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number, periodizationStyle?: 'linear' | 'undulating' | 'block' | 'conjugate') => void;
+  generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number, periodizationStyle?: 'linear' | 'undulating' | 'block' | 'conjugate', overrides?: BlockOverrides) => void;
   completeMesocycle: () => void;
   stopMesocycle: () => void;
   undoBlockAction: (expectedId?: number) => string | null;
@@ -1410,7 +1425,7 @@ export const useAppStore = create<AppState>()(
       },
 
       // Mesocycle actions
-      generateNewMesocycle: (weeks = 5, sessionDurationMinutes, periodizationStyle?: 'linear' | 'undulating' | 'block' | 'conjugate') => withBlockUndo('New block created', get, set, () => {
+      generateNewMesocycle: (weeks = 5, sessionDurationMinutes, periodizationStyle?: 'linear' | 'undulating' | 'block' | 'conjugate', overrides?: BlockOverrides) => withBlockUndo('New block created', get, set, () => {
         const { user, currentMesocycle, mesocycleHistory, baselineLifts, muscleEmphasis } = get();
         if (!user) return;
         // Fall back to user's stored preference if no explicit duration passed
@@ -1477,13 +1492,14 @@ export const useAppStore = create<AppState>()(
         // Generate new mesocycle with granular equipment, sport load, and diet phase scaling
         const newMesocycle = generateMesocycle({
           userId: user.id,
-          goalFocus: user.goalFocus,
-          equipment: user.equipment,
-          availableEquipment: user.availableEquipment || get().getActiveEquipment(),
-          sessionsPerWeek: user.sessionsPerWeek,
+          goalFocus: overrides?.goalFocus ?? user.goalFocus,
+          equipment: overrides?.equipment ?? user.equipment,
+          availableEquipment: overrides?.availableEquipment ?? (user.availableEquipment || get().getActiveEquipment()),
+          sessionsPerWeek: overrides?.sessionsPerWeek ?? user.sessionsPerWeek,
+          splitType: overrides?.splitType,
           weeks,
           baselineLifts: baselineLifts || undefined,
-          muscleEmphasis: muscleEmphasis || undefined,
+          muscleEmphasis: overrides?.muscleEmphasis ?? (muscleEmphasis || undefined),
           sessionDurationMinutes: duration,
           trainingIdentity: user.trainingIdentity,
           combatSport: user.combatSport,

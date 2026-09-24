@@ -12,6 +12,7 @@
  * Home tab and Today card behave identically.
  */
 
+import { formatTarget, formatSetsTarget } from '@/lib/prescription-format';
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -232,7 +233,7 @@ export default function WorkoutStartChooser({ open, onClose, scheduledSession, o
                           >
                             <span className="text-[10px] font-bold text-grappler-600 w-3 tabular-nums">{i + 1}</span>
                             <span className="text-xs text-grappler-200 flex-1 truncate">{ex.exercise.name}</span>
-                            <span className="text-[10px] text-grappler-500 tabular-nums">{ex.sets}×{ex.prescription.targetReps}</span>
+                            <span className="text-[10px] text-grappler-500 tabular-nums">{formatSetsTarget(ex.sets, ex.prescription.targetReps, ex.exercise)}</span>
                           </div>
                         ))}
                         {exerciseCount > previewExercises.length && (

@@ -82,7 +82,7 @@ import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards, calculateStreak, defaultWellnessStats, calculateWellnessMultiplier, updateWellnessStreaks, calculateWellnessXP, checkWellnessBadges } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
-import { isBodyweightLoadedExercise, backfillBodyweightInLogs, estimate1RM } from './weight-estimator';
+import { isBodyweightLoadedExercise, backfillBodyweightInLogs, estimate1RM, estimateFirstTimeWeight } from './weight-estimator';
 import { safeDayKey, isValidDate, localDayKey, localMondayKey, parseLocalDate } from './utils';
 
 /**
@@ -116,6 +116,28 @@ import { calculateEnhancedACWR } from './fatigue-metrics';
 import { v4 as uuidv4 } from 'uuid';
 import { resolveWeightUnit } from './units';
 import type { ThrottleResult } from './readiness-throttle';
+import { suggestNextLoad } from './next-load';
+
+
+/**
+ * Starting weight for a set of `exercise` at today's prescription — the single
+ * source for every prefill (start, swap, add). History → next-load engine;
+ * no history → first-time estimate from baseline lifts; bodyweight lifts →
+ * bodyweight. Replaces copying last session's sets verbatim.
+ */
+function plannedLoad(
+  exercise: Exercise, targetReps: number, targetRPE: number,
+  logs: WorkoutLog[], user: UserProfile | null, baselineLifts: BaselineLifts | null,
+): number {
+  const unit = resolveWeightUnit(user?.weightUnit);
+  const next = suggestNextLoad({ exercise, logs, targetReps, targetRPE, unit });
+  if (next && next.weight > 0) return next.weight;
+  const fromBodyweight = resolveInitialSetWeight(exercise.id, null, user);
+  if (fromBodyweight > 0) return fromBodyweight;
+  if (exercise.measurementType && exercise.measurementType !== 'reps') return 0;
+  const est = estimateFirstTimeWeight(exercise, targetReps, baselineLifts, user?.bodyWeightKg, user?.sex, user?.experienceLevel, unit);
+  return est?.weight ?? 0;
+}
 
 /**
  * Per-block settings from a program template. They shape THIS block only —
@@ -2171,10 +2193,11 @@ export const useAppStore = create<AppState>()(
         };
 
         // Pre-fill weights from previous session using auto-adjust
+        const { baselineLifts } = get();
         const exerciseLogs = activeSession.exercises.map((ex) => {
           const unit = resolveWeightUnit(user?.weightUnit);
-          const suggestedWeight = getSuggestedWeight(ex.exerciseId, workoutLogs, unit);
-          // Get per-set data from previous session to prefill reps individually
+          const load = plannedLoad(ex.exercise, ex.prescription.targetReps, ex.prescription.rpe, workoutLogs, user, baselineLifts);
+          // Previous session is only used for time-based durations now.
           const previousSets = getPreviousSessionSets(ex.exerciseId, workoutLogs, unit);
           // For time-based exercises, the "target" is seconds; prefill duration
           // from last session (if logged) or fall back to prescription target.
@@ -2184,8 +2207,8 @@ export const useAppStore = create<AppState>()(
             exerciseName: ex.exercise.name,
             sets: Array.from({ length: ex.sets }, (_, i) => ({
               setNumber: i + 1,
-              weight: previousSets?.[i]?.weight ?? resolveInitialSetWeight(ex.exerciseId, suggestedWeight, user),
-              reps: previousSets?.[i]?.reps ?? ex.prescription.targetReps,
+              weight: load,
+              reps: ex.prescription.targetReps,
               rpe: ex.prescription.rpe,
               rpeSource: 'prefill' as const,
               completed: false,
@@ -2332,12 +2355,11 @@ export const useAppStore = create<AppState>()(
         const oldPrescription = activeWorkout.session.exercises[exerciseIndex];
         if (!oldLog || !oldPrescription) return;
 
-        const unit = resolveWeightUnit(user?.weightUnit);
-        const suggested = resolveInitialSetWeight(newExerciseId, getSuggestedWeight(newExerciseId, workoutLogs, unit), user);
         const targetReps = oldPrescription.prescription?.targetReps ?? 0;
         const foundExercise = getExerciseById(newExerciseId)
           ?? getAllExercises().find(e => e.id === newExerciseId);
         const newExercise = foundExercise || { ...oldPrescription.exercise, id: newExerciseId, name: newExerciseName };
+        const suggested = plannedLoad(newExercise, targetReps, oldPrescription.prescription.rpe, workoutLogs, user, get().baselineLifts);
 
         const done = oldLog.sets.filter(s => s.completed).length;
         const remaining = done === 0 ? oldLog.sets.length : Math.max(1, oldLog.sets.length - done);
@@ -2411,7 +2433,7 @@ export const useAppStore = create<AppState>()(
           },
         };
 
-        const bonusSuggestedWeight = resolveInitialSetWeight(exercise.id, getSuggestedWeight(exercise.id, get().workoutLogs, resolveWeightUnit(get().user?.weightUnit)), get().user);
+        const bonusSuggestedWeight = plannedLoad(exercise, reps, 7, get().workoutLogs, get().user, get().baselineLifts);
         const newLog: ExerciseLog = {
           exerciseId: exercise.id,
           exerciseName: exercise.name,

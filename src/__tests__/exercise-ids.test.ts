@@ -111,3 +111,13 @@ describe('combat benchmarks actually match logged lifts', () => {
     expect(res.map(r => r.exerciseId)).toContain('bench-press');
   });
 });
+
+describe('measurement types', () => {
+  it('carries and isometric holds are measured by time or distance, not reps', () => {
+    const shouldNotBeReps = exercises.filter(e =>
+      e.movementPattern === 'carry' || /\b(carry|walk|hold|hang|plank|pinch|wall sit|crawl)\b/i.test(e.name),
+    ).filter(e => !/lunge|clean|gripper/i.test(e.name)); // rep-based despite the name/tag
+    const wrong = shouldNotBeReps.filter(e => (e.measurementType ?? 'reps') === 'reps').map(e => e.id);
+    expect(wrong).toEqual([]);
+  });
+});

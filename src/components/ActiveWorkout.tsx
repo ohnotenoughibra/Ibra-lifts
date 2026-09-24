@@ -1,10 +1,12 @@
 'use client';
 
+import { formatTarget, formatSetsTarget } from '@/lib/prescription-format';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore, type ActiveWorkoutThrottle } from '@/lib/store';
 import { useToast } from './Toast';
 import ExerciseSwapSheet from './ExerciseSwapSheet';
+import { suggestNextLoad, getLoadProfile, formatLoad, nextLoadStep, roundForImplement } from '@/lib/next-load';
 import { useShallow } from 'zustand/react/shallow';
 import { useSwipe } from '@/lib/use-swipe';
 import { useRestTimer } from '@/hooks/useRestTimer';
@@ -463,6 +465,8 @@ export default function ActiveWorkout() {
   const currentLog = activeWorkout.exerciseLogs[currentExerciseIndex];
   const currentSet = currentLog.sets[currentSetIndex];
   const isTimeBased = currentExercise.exercise.measurementType === 'time';
+  // Distance work (bear crawl, sled, band walks) stores METRES in the reps field.
+  const isDistance = currentExercise.exercise.measurementType === 'distance';
 
   // Real-time PR detection - check if current input would beat historical best
   const prDetection = useMemo(() => {
@@ -713,8 +717,9 @@ export default function ActiveWorkout() {
       }
       // A first-ever lift isn't a record, and each set must beat the session's
       // own best too — otherwise every heavier set re-fires the celebration.
-      isPR = currentSet.weight > 0 && hasHistoryForExercise
+      isPR = !isDistance && currentSet.weight > 0 && hasHistoryForExercise
         && estimated1RM > Math.max(previousBest1RM, currentLog.estimated1RM || 0);
+      if (isDistance) estimated1RM = 0; // metres aren't reps — no e1RM
     }
 
     updateExerciseLog(currentExerciseIndex, {
@@ -824,16 +829,20 @@ export default function ActiveWorkout() {
         });
         const inc = getWeightIncrement(weightUnit);
 
+        void inc;
+        // Implement-aware steps: a dumbbell's next step isn't a 2.5 kg plate pair.
+        const up = nextLoadStep(currentWeight, loadProfile, weightUnit, 1);
+        const down = nextLoadStep(currentWeight, loadProfile, weightUnit, -1);
         if (actualReps >= targetReps + 3) {
-          const suggestedWeight = Math.max(currentWeight + inc, corrected?.suggested ?? currentWeight + inc);
+          const suggestedWeight = Math.max(up, roundForImplement(corrected?.suggested ?? up, loadProfile, weightUnit));
           setWeightSuggestion({
             message: `You hit ${actualReps} reps (target ${targetReps}) — consider bumping up`,
             suggestedWeight,
           });
         } else if (actualReps <= targetReps - 3 && currentSet.rpe >= 9) {
           const suggestedWeight = Math.max(
-            inc,
-            Math.min(currentWeight - inc, corrected?.suggested ?? currentWeight - inc)
+            roundForImplement(0.01, loadProfile, weightUnit),
+            Math.min(down, roundForImplement(corrected?.suggested ?? down, loadProfile, weightUnit))
           );
           setWeightSuggestion({
             message: `Only ${actualReps} reps at RPE ${currentSet.rpe} — consider dropping weight`,
@@ -1214,43 +1223,15 @@ export default function ActiveWorkout() {
   // rep: that's what makes undulating (DUP) blocks work. A power day logged at
   // 3 reps and a hypertrophy day prescribed at 12 reps sit at very different
   // points on the load curve, and a linear model badly under-corrects.
-  const getRPEWeightSuggestion = () => {
-    if (!previousPerformance || previousPerformance.weight === 0) return null;
-    const targetRPE = currentExercise.prescription.rpe;
-    const targetReps = currentExercise.prescription.targetReps;
-    const lastRPE = previousPerformance.rpe || 9;
-    const lastWeight = previousPerformance.weight;
-
-    // Last session's subjective feedback nudges the underlying e1RM, not the
-    // final load — so the adjustment survives a rep-range change.
-    let intensityFactor = 1;
-    if (previousPerformance.feedback) {
-      if (previousPerformance.feedback.difficulty === 'too_easy') intensityFactor = 1.05;
-      if (previousPerformance.feedback.difficulty === 'too_hard') intensityFactor = 0.90;
-    }
-
-    const carried = carryOverLoad({
-      lastWeight,
-      lastReps: previousPerformance.reps,
-      lastRPE,
-      targetReps,
-      targetRPE,
-      unit: weightUnit,
-      intensityFactor,
-    });
-    if (!carried) return null;
-
-    return {
-      suggested: carried.suggested,
-      lastWeight,
-      lastRPE,
-      targetRPE,
-      targetPct: Math.round(carried.targetPct * 100),
-      e1RM: Math.round(carried.e1RM),
-    };
-  };
-
-  const rpeSuggestion = getRPEWeightSuggestion();
+  // One engine decides the prefill AND explains it (lib/next-load).
+  const nextLoad = useMemo(() => suggestNextLoad({
+    exercise: currentExercise.exercise,
+    logs: useAppStore.getState().workoutLogs,
+    targetReps: currentExercise.prescription.targetReps,
+    targetRPE: currentExercise.prescription.rpe,
+    unit: weightUnit,
+  }), [currentExercise.exerciseId, currentExercise.prescription.targetReps, currentExercise.prescription.rpe, weightUnit]); // eslint-disable-line react-hooks/exhaustive-deps
+  const loadProfile = useMemo(() => getLoadProfile(currentExercise.exercise), [currentExercise.exerciseId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // First-time weight estimate (when no exercise history exists)
   const firstTimeEstimate: WeightEstimate | null = useMemo(() => {
@@ -2245,7 +2226,7 @@ export default function ActiveWorkout() {
                           <div className="min-w-0">
                             <p className="font-semibold text-grappler-100">{ex.exercise.name}</p>
                             <p className="text-xs text-grappler-400 mt-0.5">
-                              {ex.sets} x {ex.prescription.targetReps} reps{ex.exercise.isUnilateral ? ' /side' : ''} @ RPE {ex.prescription.rpe}
+                              {ex.sets} × {formatTarget(ex.prescription.targetReps, ex.exercise)}{ex.exercise.isUnilateral ? ' /side' : ''} @ RPE {ex.prescription.rpe}
                               {ex.prescription.percentageOf1RM && (
                                 <span className="text-primary-400 ml-1">~{prescribedPercentOf1RM(ex.prescription.targetReps, ex.prescription.rpe)}% 1RM</span>
                               )}
@@ -2764,7 +2745,7 @@ export default function ActiveWorkout() {
             {/* What's next — one-line hint */}
             {!isLastSet && (
               <p className="mt-4 text-sm text-grappler-400 text-center">
-                Next: Set {currentSetIndex + 1}/{currentLog.sets.length} · {currentExercise.prescription.targetReps} reps
+                Next: Set {currentSetIndex + 1}/{currentLog.sets.length} · {formatTarget(currentExercise.prescription.targetReps, currentExercise.exercise)}
               </p>
             )}
             {isLastSet && !allExercisesDone && (
@@ -3252,7 +3233,7 @@ export default function ActiveWorkout() {
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className="text-sm text-grappler-300">
-                {currentExercise.sets} sets x {currentExercise.prescription.targetReps} reps{currentExercise.exercise.isUnilateral ? ' /side' : ''}
+                {currentExercise.sets} sets × {formatTarget(currentExercise.prescription.targetReps, currentExercise.exercise)}{currentExercise.exercise.isUnilateral ? ' /side' : ''}
               </span>
               <span className="px-2 py-0.5 rounded-md bg-primary-500/15 text-sm font-semibold text-primary-400">
                 RPE {currentExercise.prescription.rpe}
@@ -3280,13 +3261,17 @@ export default function ActiveWorkout() {
 
             {/* Compact weight suggestion + last session (merged into one row) */}
             <div className="mt-2 flex items-center gap-2 flex-wrap">
-              {rpeSuggestion && (
+              {nextLoad && nextLoad.weight > 0 && (
                 <button
-                  onClick={() => setExactValue('weight', rpeSuggestion.suggested)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 bg-primary-500/10 border border-primary-500/30 rounded-lg text-xs transition-colors hover:bg-primary-500/20 active:scale-95"
+                  onClick={() => setExactValue('weight', nextLoad.weight)}
+                  className="flex items-start gap-1.5 px-2.5 py-1 bg-primary-500/10 border border-primary-500/30 rounded-lg text-xs text-left transition-colors hover:bg-primary-500/20 active:scale-95 w-full"
+                  aria-label={`Use suggested ${formatLoad(nextLoad.weight, nextLoad.profile, weightUnit)}`}
                 >
-                  <Lightbulb className="w-3 h-3 text-primary-400" />
-                  <span className="text-primary-300 font-semibold">{rpeSuggestion.suggested} {weightUnit}</span>
+                  <Lightbulb className="w-3 h-3 text-primary-400 mt-0.5 flex-shrink-0" />
+                  <span>
+                    <span className="text-primary-300 font-semibold">{formatLoad(nextLoad.weight, nextLoad.profile, weightUnit)}</span>
+                    <span className="text-grappler-400"> · {nextLoad.reason}</span>
+                  </span>
                 </button>
               )}
               {previousPerformance && (
@@ -3390,7 +3375,7 @@ export default function ActiveWorkout() {
               ) : (
                 <div className="mt-2 px-3 py-1.5 bg-grappler-800/60 rounded-lg">
                   <p className="text-xs text-grappler-400">
-                    No history yet. Start with a weight you can handle for {currentExercise.prescription.targetReps} reps
+                    No history yet. Start with a weight you can handle for {formatTarget(currentExercise.prescription.targetReps, currentExercise.exercise)}
                     with {+(10 - currentExercise.prescription.rpe).toFixed(1)} reps left in reserve.
                     {currentExercise.prescription.rpe <= 7 && ' This should feel moderate.'}
                     {currentExercise.prescription.rpe === 8 && ' This should be challenging but doable.'}
@@ -3510,7 +3495,7 @@ export default function ActiveWorkout() {
                   prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed
                     ? 'text-yellow-400'
                     : 'text-grappler-400'
-                )}>Weight ({weightUnit})</label>
+                )}>{loadProfile.count === 2 ? `Per hand (${weightUnit}) · 2 ${loadProfile.implement === 'kettlebell' ? 'bells' : 'dumbbells'}` : `Weight (${weightUnit})`}</label>
                 {currentSet.weight > 0 && previousPerformance && (
                   <span className="text-xs text-primary-400">
                     {currentSet.weight > previousPerformance.weight ? '+' : ''}{Math.round(currentSet.weight - previousPerformance.weight)} vs last
@@ -3575,7 +3560,8 @@ export default function ActiveWorkout() {
               const currentValue = isTimeBased ? (currentSet.duration || 0) : currentSet.reps;
               const suggested = currentExercise.prescription.targetReps;
               const showSuggestionPill = suggested > 0 && currentValue !== suggested;
-              const increments = isTimeBased ? [5, 10, 30] : [1, 2, 5];
+              const increments = isTimeBased ? [5, 10, 30] : isDistance ? [5, 10, 20] : [1, 2, 5];
+              const unitLabel = isTimeBased ? 'Seconds' : isDistance ? 'Metres' : 'Reps';
               const prHighlight = prDetection.isPotentialPR
                 && (isTimeBased ? currentValue > 0 : (currentSet.weight > 0 && currentSet.reps > 0))
                 && !currentSet.completed;
@@ -3590,7 +3576,7 @@ export default function ActiveWorkout() {
                     <label className={cn(
                       'text-xs uppercase tracking-wide',
                       prHighlight ? 'text-yellow-400' : 'text-grappler-400'
-                    )}>{isTimeBased ? 'Seconds' : 'Reps'}</label>
+                    )}>{unitLabel}</label>
                     {/* Prominent suggestion badge */}
                     <button
                       type="button"
@@ -3607,14 +3593,16 @@ export default function ActiveWorkout() {
                       {showSuggestionPill ? 'Use ' : 'Target '}
                       {isTimeBased
                         ? `${suggested}s`
+                        : isDistance
+                        ? `${suggested} m`
                         : `${currentExercise.prescription.minReps}-${currentExercise.prescription.maxReps}${currentExercise.exercise.isUnilateral ? ' /side' : ''}`}
                     </button>
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <button
-                      onClick={() => updateSetValue(field, -(isTimeBased ? 5 : 1))}
+                      onClick={() => updateSetValue(field, -(isTimeBased || isDistance ? 5 : 1))}
                       className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
-                      aria-label={isTimeBased ? 'Decrease seconds' : 'Decrease reps'}
+                      aria-label={`Decrease ${unitLabel.toLowerCase()}`}
                     >
                       <Minus className="w-6 h-6 text-grappler-300" />
                     </button>
@@ -3623,16 +3611,16 @@ export default function ActiveWorkout() {
                       onCommit={(v) => setExactValue(field, v)}
                       kind="int"
                       placeholder={isTimeBased ? `${suggested}` : '0'}
-                      ariaLabel={isTimeBased ? 'Seconds' : 'Reps'}
+                      ariaLabel={unitLabel}
                       className={cn(
                         'w-28 text-center text-4xl font-black bg-transparent focus-visible:outline-none placeholder:text-grappler-600',
                         prHighlight ? 'text-yellow-300' : 'text-grappler-50'
                       )}
                     />
                     <button
-                      onClick={() => updateSetValue(field, isTimeBased ? 5 : 1)}
+                      onClick={() => updateSetValue(field, isTimeBased || isDistance ? 5 : 1)}
                       className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
-                      aria-label={isTimeBased ? 'Increase seconds' : 'Increase reps'}
+                      aria-label={`Increase ${unitLabel.toLowerCase()}`}
                     >
                       <Plus className="w-6 h-6 text-grappler-300" />
                     </button>
@@ -3645,7 +3633,7 @@ export default function ActiveWorkout() {
                         onClick={() => updateSetValue(field, inc)}
                         className="px-3.5 py-2.5 rounded-lg bg-grappler-700/60 text-xs font-semibold text-grappler-300 active:scale-95 transition-transform"
                       >
-                        +{inc}{isTimeBased ? 's' : ''}
+                        +{inc}{isTimeBased ? 's' : isDistance ? 'm' : ''}
                       </button>
                     ))}
                   </div>

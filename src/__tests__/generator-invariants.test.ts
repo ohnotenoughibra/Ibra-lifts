@@ -141,3 +141,17 @@ describe('template overrides reach the generator (audit C3)', () => {
     expect(repicked).toEqual([]);
   });
 });
+
+describe('timed and distance work is prescribed in seconds / metres', () => {
+  it('no time-based exercise is prescribed like reps (e.g. farmer\'s walk "4 × 5")', () => {
+    for (const seed of SEEDS) {
+      for (const opts of Object.values(PROFILES)) {
+        const m = seeded(seed, () => generateMesocycle(opts));
+        for (const e of m.weeks.flatMap(w => w.sessions.flatMap(s => s.exercises))) {
+          if (e.exercise.measurementType === 'time') expect(e.prescription.targetReps).toBeGreaterThanOrEqual(15);
+          if (e.exercise.measurementType === 'distance') expect(e.prescription.targetReps).toBeGreaterThanOrEqual(10);
+        }
+      }
+    }
+  });
+});

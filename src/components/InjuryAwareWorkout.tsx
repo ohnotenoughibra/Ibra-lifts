@@ -6,6 +6,7 @@
  * constraints; we filter the exercise pool and produce a usable session.
  */
 
+import { formatTarget, formatSetsTarget } from '@/lib/prescription-format';
 import { useMemo, useState } from 'react';
 import { Check } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
@@ -275,7 +276,7 @@ export default function InjuryAwareWorkout({ onClose }: Props) {
                     </div>
                   </div>
                   <div className="text-xs font-mono tabular-nums text-white flex-shrink-0">
-                    {ep.sets} × {ep.prescription.targetReps} · RPE {ep.prescription.rpe}
+                    {ep.sets} × {formatTarget(ep.prescription.targetReps, ep.exercise)} · RPE {ep.prescription.rpe}
                   </div>
                 </div>
               ))}

@@ -511,6 +511,7 @@ export const exercises: Exercise[] = [
       'Switch sides'
     ],
     isUnilateral: true,
+    measurementType: 'time',
   },
   {
     id: 'medicine-ball-slam',
@@ -661,7 +662,8 @@ export const exercises: Exercise[] = [
       'Pinch plates together smooth sides out',
       'Hold at side for time',
       'Progressive overload with more plates'
-    ]
+    ],
+    measurementType: 'time',
   },
   {
     id: 'wrist-roller',
@@ -3521,7 +3523,8 @@ export const exercises: Exercise[] = [
       'Lift legs to horizontal, toes pointed',
       'Keep lower back flat, not rounded',
       'Start with tucked knees if needed'
-    ]
+    ],
+    measurementType: 'time',
   },
 
   // ─── EXPLOSIVE / POWER ADDITIONS ───
@@ -3745,7 +3748,8 @@ export const exercises: Exercise[] = [
       'Walk with short, controlled steps',
       'Keep chest up, core braced',
       'Don\'t let it slip — squeeze harder'
-    ]
+    ],
+    measurementType: 'time',
   },
   {
     id: 'sandbag-over-shoulder',

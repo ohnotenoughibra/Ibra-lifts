@@ -881,6 +881,22 @@ function generateWorkoutSession(
     }
 
     const prescription = createSetPrescription(type, sex);
+    // Timed / distance work: targetReps holds SECONDS or METRES, not reps.
+    // (A farmer's walk used to be prescribed "4 × 5" — five seconds.)
+    if (exercise.measurementType === 'time') {
+      const loaded = (exercise.equipmentTypes ?? []).some(t => t !== 'bodyweight');
+      const secs = loaded
+        ? ({ strength: 20, power: 15, hypertrophy: 30, strength_endurance: 45 } as Record<WorkoutType, number>)[type]
+        : ({ strength: 30, power: 20, hypertrophy: 40, strength_endurance: 60 } as Record<WorkoutType, number>)[type];
+      prescription.targetReps = secs;
+      prescription.minReps = Math.round(secs * 0.75);
+      prescription.maxReps = Math.round(secs * 1.25);
+    } else if (exercise.measurementType === 'distance') {
+      const m = ({ strength: 20, power: 15, hypertrophy: 30, strength_endurance: 40 } as Record<WorkoutType, number>)[type];
+      prescription.targetReps = m;
+      prescription.minReps = m;
+      prescription.maxReps = m;
+    }
     // Adjust RPE based on experience level and diet phase
     prescription.rpe = Math.max(5, Math.min(10, +(prescription.rpe + expMod.rpeOffset + dietMod.rpeOffset).toFixed(1)));
     // Adjust rest periods for diet phase (longer rest during cuts — glycogen depletion)
@@ -1224,9 +1240,12 @@ function generateMesocycleWeek(
       const trainingWeeks = Math.max(1, totalWeeks - 1); // exclude deload week
       const progressFraction = Math.min(1, (weekNumber - 1) / Math.max(1, trainingWeeks - 1));
       const repRange = ex.prescription.maxReps - ex.prescription.minReps;
-      const progressiveReps = Math.round(
-        ex.prescription.maxReps - progressFraction * repRange
-      );
+      // Time/distance targets progress by building up (longer/farther) — load
+      // does the intensification. Reps go top-of-range → bottom as load rises.
+      const isRepBased = !ex.exercise.measurementType || ex.exercise.measurementType === 'reps';
+      const progressiveReps = isRepBased
+        ? Math.round(ex.prescription.maxReps - progressFraction * repRange)
+        : Math.round(ex.prescription.minReps + progressFraction * repRange);
 
       return {
         ...ex,

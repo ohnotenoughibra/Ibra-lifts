@@ -1,5 +1,6 @@
 'use client';
 
+import { formatTarget, formatSetsTarget } from '@/lib/prescription-format';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -1279,7 +1280,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
                                     {ex.exercise.name}
                                   </p>
                                   <p className="text-xs text-grappler-400 mt-0.5">
-                                    {ex.sets} sets x {ex.prescription.targetReps} reps @ RPE {ex.prescription.rpe}
+                                    {ex.sets} sets × {formatTarget(ex.prescription.targetReps, ex.exercise)} @ RPE {ex.prescription.rpe}
                                   </p>
                                 </div>
                                 <div className="text-xs text-grappler-400 flex-shrink-0 ml-2">

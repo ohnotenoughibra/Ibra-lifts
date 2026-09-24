@@ -1,5 +1,6 @@
 'use client';
 
+import { formatTarget, formatSetsTarget } from '@/lib/prescription-format';
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
@@ -83,7 +84,7 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
           <div className="flex-1 min-w-0">
             <p className="font-medium text-grappler-100">{ex.exercise?.name || 'Unknown Exercise'}</p>
             <p className="text-sm text-grappler-400">
-              {ex.sets} x {ex.prescription?.targetReps ?? '?'} reps @ RPE {ex.prescription?.rpe ?? '?'}
+              {ex.sets} × {ex.prescription ? formatTarget(ex.prescription.targetReps, ex.exercise) : '?'} @ RPE {ex.prescription?.rpe ?? '?'}
             </p>
             {lastPerf && lastPerf.weight > 0 && (
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">

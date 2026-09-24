@@ -1,5 +1,6 @@
 'use client';
 
+import { formatTarget, formatSetsTarget } from '@/lib/prescription-format';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -33,7 +34,7 @@ interface LiftPhaseProps {
   nextWorkout: {
     id: string;
     name: string;
-    exercises: { exercise: { name: string }; sets: number; prescription: { targetReps: number } }[];
+    exercises: { exercise: { name: string; measurementType?: 'reps' | 'time' | 'distance' }; sets: number; prescription: { targetReps: number } }[];
     estimatedDuration: number;
   };
   mesocycleProgress: { total: number; completed: number; percent: number } | null;
@@ -207,7 +208,7 @@ export default function LiftPhase({
             )}>
               <span className="text-xs font-bold text-grappler-600 w-4 text-center tabular-nums">{i + 1}</span>
               <p className="text-xs text-grappler-200 flex-1 truncate">{ex.exercise.name}</p>
-              <span className="text-xs text-grappler-400 tabular-nums">{ex.sets}×{ex.prescription.targetReps}</span>
+              <span className="text-xs text-grappler-400 tabular-nums">{formatSetsTarget(ex.sets, ex.prescription.targetReps, ex.exercise)}</span>
             </div>
           ))}
           {nextWorkout.exercises.length > 4 && (

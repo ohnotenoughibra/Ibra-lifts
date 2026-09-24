@@ -1,5 +1,6 @@
 'use client';
 
+import { formatTarget, formatSetsTarget } from '@/lib/prescription-format';
 import { useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -881,7 +882,7 @@ function WorkoutPreviewPanel({
                 <div key={eIdx} className="flex items-center justify-between text-xs">
                   <span className="text-grappler-300 truncate flex-1">{ex.exercise.name}</span>
                   <span className="text-grappler-500 ml-2 flex-shrink-0">
-                    {ex.sets}&times;{ex.prescription.targetReps}
+                    {formatSetsTarget(ex.sets, ex.prescription.targetReps, ex.exercise)}
                   </span>
                 </div>
               ))}

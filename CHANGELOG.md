@@ -3,6 +3,15 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.14.0] - 2026-09-24
+
+**The weight in the box is now the right one, carries are timed, and Whoop stays fresh on its own.**
+
+### Fixed
+- **One weight engine.** The prefilled weight copied last session verbatim (ignoring your rating, today's reps, RPE target, deloads); a second path jumped ±5 regardless of the lift; a third rounded dumbbells to barbell steps. Now one engine decides the number and shows why ("Last 100 kg × 5 @ RPE 7 → today 5 @ RPE 8"), adjusts for time off, and snaps to loads that exist: dumbbell pairs per hand ("2 × 12 kg"), real kettlebell sizes, plate-loadable barbell weights.
+- **Timed and distance work.** Farmer's walks were prescribed "4 × 5" (five seconds). Holds and carries are prescribed in seconds, crawls/sled/band walks in metres, with a Metres mode in the logger.
+- **Whoop sync.** Data stays fresh without opening Wearable: syncs on open, on return to the app, when back online and every 15 minutes; Whoop mat sessions import in the background; token refreshes can no longer race. Today shows "Whoop · updated 3 min ago", and failures say so instead of failing silently.
+
 ## [2.13.0] - 2026-09-24
 
 **No more paywall, a live workout that remembers what you did, blocks that keep their exercises, and a swap sheet that searches everything.**

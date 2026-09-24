@@ -201,21 +201,6 @@ export async function GET() {
       }
     } catch { /* table may not exist */ }
 
-    // 6. Subscription
-    let subscription = null;
-    try {
-      const { rows } = await sql`SELECT * FROM subscriptions WHERE user_id = ${userId}`;
-      if (rows.length > 0) {
-        subscription = {
-          tier: rows[0].tier,
-          status: rows[0].status,
-          paypalSubscriptionId: rows[0].paypal_subscription_id,
-          startDate: rows[0].start_date,
-          endDate: rows[0].end_date,
-        };
-      }
-    } catch { /* table may not exist */ }
-
     // Build recovered user profile
     let user = null;
     if (profile) {
@@ -256,7 +241,6 @@ export async function GET() {
     if (baselineLifts) recoveredData.baselineLifts = baselineLifts;
     if (currentMesocycle) recoveredData.currentMesocycle = currentMesocycle;
     if (mesocycleHistory.length > 0) recoveredData.mesocycleHistory = mesocycleHistory;
-    if (subscription) recoveredData.subscription = subscription;
 
     return NextResponse.json({
       recovered: true,
@@ -269,7 +253,6 @@ export async function GET() {
         hasMesocycle: !!currentMesocycle,
         mesocycleHistory: mesocycleHistory.length,
         hasBaselineLifts: !!baselineLifts,
-        hasSubscription: !!subscription,
       },
     });
   } catch (error) {

@@ -19,7 +19,6 @@ import { cn } from '@/lib/utils';
 import { hapticMedium } from '@/lib/haptics';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
-import { useCurrentTier } from '@/lib/useFeatureAccess';
 import { getTopTools } from '@/lib/tool-affinity';
 import type { OverlayView } from './dashboard-types';
 
@@ -33,7 +32,6 @@ export interface Tool {
   keywords: string;
   icon: React.ElementType;
   color: string;
-  isPro?: boolean;
   /** Which top-level tab this tile belongs to. Drives 3-tab nav split. */
   tab?: 'train' | 'body';
   /** Hide for users whose sex doesn't match. Currently only 'female' (cycle tracking). */
@@ -65,15 +63,15 @@ const CATEGORIES: Category[] = [
     tools: [
       { id: 'program_browser', label: 'Programs', desc: 'Browse, preview, queue', longDesc: 'Mesocycles, periodization view, AI block suggestions, queue your next block. Speed-Strength (plyometric) and Energy Systems blocks live here as program presets.', keywords: 'program browser mesocycle block plan periodization deload peak taper schedule plyometric speed strength', icon: Sparkles, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', tab: 'train' },
       { id: 'builder', label: 'Builder', desc: 'Custom one-off session', longDesc: 'Design a one-off session from 300+ exercises with sets, reps, and RPE. Save as template inline.', keywords: 'create make design custom build workout session template save', icon: Dumbbell, color: 'from-primary-500/20 to-primary-500/5 text-primary-400', tab: 'train' },
-      { id: 'conditioning', label: 'Cardio', desc: 'Z2, threshold, RSA, intervals', longDesc: 'All cardio in one place: Zone 2 base, Norwegian 4×4, repeated sprint ability, EMOM, Tabata, AMRAP, shark tanks, custom circuits. HR zones calculated.', keywords: 'cardio conditioning zone 2 z2 threshold norwegian 4x4 vo2max rsa repeated sprint tempo aerobic anaerobic emom tabata amrap circuit shark tank intervals heart rate', icon: Heart, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', tab: 'train', isPro: true },
-      { id: 'mobility', label: 'Mobility', desc: 'Stretching & ROM', longDesc: 'Body check-in with stretching protocols, ROM tracking, and soreness logging.', keywords: 'stretch flexible rom range motion yoga foam roll mobility joint stiff tight', icon: Move, color: 'from-teal-500/20 to-teal-500/5 text-teal-400', tab: 'train', isPro: true },
-      { id: 'grappling', label: 'Mat Sessions', desc: 'BJJ, wrestling, sparring', longDesc: 'Session tracker with technique notes and mat time. For round-count CTE-load tracking, see Sparring Load.', keywords: 'bjj jiu jitsu wrestling mma roll mat submission martial arts grappling drilling', icon: Navigation, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', tab: 'train', isPro: true },
-      { id: 'sparring_tracker', label: 'Sparring Load', desc: 'Round-count CTE risk', longDesc: 'Live sparring rounds tracked separately from mat time. Effective hard rounds (intensity-weighted), ACWR spike detection, CTE-zone alerts. Top-3 concussion risk metric for combat athletes.', keywords: 'sparring rounds rolling live boxing kickboxing muay thai mma cte concussion head trauma load risk overload taper hard fighting', icon: Shield, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', tab: 'train', isPro: true },
-      { id: 'technique_log', label: 'Technique Log', desc: 'Drilling reps tracker', longDesc: 'Log drilling reps by technique. Skill compounds with reps — track which moves you\'ve drilled 100, 500, 2000, 10000 times. Greg Jackson mastery rule, made trackable.', keywords: 'technique drilling reps skill mastery move single leg double pass guard sweep submission jab cross combo combat', icon: Target, color: 'from-amber-500/20 to-amber-500/5 text-amber-400', tab: 'train', isPro: true },
-      { id: 'camp_timeline', label: 'Camp Timeline', desc: '10-week fight camp at a glance', longDesc: 'Visualize the full fight camp: off-season → base → intensification → peak → fight week. Current phase prescription, days to fight, deload alignment.', keywords: 'fight camp timeline phase week peak base intensification taper fight day weigh in countdown competition tournament', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', tab: 'train', isPro: true },
+      { id: 'conditioning', label: 'Cardio', desc: 'Z2, threshold, RSA, intervals', longDesc: 'All cardio in one place: Zone 2 base, Norwegian 4×4, repeated sprint ability, EMOM, Tabata, AMRAP, shark tanks, custom circuits. HR zones calculated.', keywords: 'cardio conditioning zone 2 z2 threshold norwegian 4x4 vo2max rsa repeated sprint tempo aerobic anaerobic emom tabata amrap circuit shark tank intervals heart rate', icon: Heart, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', tab: 'train' },
+      { id: 'mobility', label: 'Mobility', desc: 'Stretching & ROM', longDesc: 'Body check-in with stretching protocols, ROM tracking, and soreness logging.', keywords: 'stretch flexible rom range motion yoga foam roll mobility joint stiff tight', icon: Move, color: 'from-teal-500/20 to-teal-500/5 text-teal-400', tab: 'train' },
+      { id: 'grappling', label: 'Mat Sessions', desc: 'BJJ, wrestling, sparring', longDesc: 'Session tracker with technique notes and mat time. For round-count CTE-load tracking, see Sparring Load.', keywords: 'bjj jiu jitsu wrestling mma roll mat submission martial arts grappling drilling', icon: Navigation, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', tab: 'train' },
+      { id: 'sparring_tracker', label: 'Sparring Load', desc: 'Round-count CTE risk', longDesc: 'Live sparring rounds tracked separately from mat time. Effective hard rounds (intensity-weighted), ACWR spike detection, CTE-zone alerts. Top-3 concussion risk metric for combat athletes.', keywords: 'sparring rounds rolling live boxing kickboxing muay thai mma cte concussion head trauma load risk overload taper hard fighting', icon: Shield, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', tab: 'train' },
+      { id: 'technique_log', label: 'Technique Log', desc: 'Drilling reps tracker', longDesc: 'Log drilling reps by technique. Skill compounds with reps — track which moves you\'ve drilled 100, 500, 2000, 10000 times. Greg Jackson mastery rule, made trackable.', keywords: 'technique drilling reps skill mastery move single leg double pass guard sweep submission jab cross combo combat', icon: Target, color: 'from-amber-500/20 to-amber-500/5 text-amber-400', tab: 'train' },
+      { id: 'camp_timeline', label: 'Camp Timeline', desc: '10-week fight camp at a glance', longDesc: 'Visualize the full fight camp: off-season → base → intensification → peak → fight week. Current phase prescription, days to fight, deload alignment.', keywords: 'fight camp timeline phase week peak base intensification taper fight day weigh in countdown competition tournament', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', tab: 'train' },
       { id: 'movement_library', label: 'Exercise Library', desc: 'Browse & add exercises', longDesc: 'Searchable exercise database with form cues, muscle targets, and alternatives. Add custom exercises not in the database.', keywords: 'exercise library reference form cues movement muscles custom add', icon: BookOpen, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400', tab: 'train' },
       { id: 'knowledge_hub', label: 'Knowledge', desc: 'Science-backed articles', longDesc: 'Curated library of science-backed articles on strength, nutrition, recovery, and combat sports training.', keywords: 'articles knowledge learn science research evidence based study insights', icon: BookMarked, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400', tab: 'train' },
-      { id: 'competition', label: 'Fight Prep', desc: 'Peak, cut, taper', longDesc: 'Competition peaking with taper protocols, weight cut management, rehydration plans, and fight-day fueling.', keywords: 'meet competition event peak taper fight tournament weigh in weight cut rehydrate refeed combat sport mma boxing muay thai', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', tab: 'train', isPro: true },
+      { id: 'competition', label: 'Fight Prep', desc: 'Peak, cut, taper', longDesc: 'Competition peaking with taper protocols, weight cut management, rehydration plans, and fight-day fueling.', keywords: 'meet competition event peak taper fight tournament weigh in weight cut rehydrate refeed combat sport mma boxing muay thai', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', tab: 'train' },
     ],
   },
   {
@@ -81,14 +79,14 @@ const CATEGORIES: Category[] = [
     icon: Heart,
     accent: 'text-rose-400',
     tools: [
-      { id: 'recovery', label: 'Recovery', desc: 'Readiness, fatigue, deload', longDesc: 'Composite readiness from sleep, stress, soreness, HRV. Fatigue debt, smart deload recommendations, recovery protocols. Wearable data flows here.', keywords: 'rest readiness soreness recover ready sleep stress fatigue deload hrv whoop wearable', icon: Heart, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', tab: 'body', isPro: true },
-      { id: 'wearable', label: 'Wearable', desc: 'Connect & sync Whoop', longDesc: 'Connect your Whoop to auto-sync recovery, strain, sleep, and body weight. Manage the connection, re-authorize, and pull your latest data here.', keywords: 'whoop wearable connect sync band strap device link import recovery strain hrv process pair authorize', icon: Activity, color: 'from-emerald-500/20 to-emerald-500/5 text-emerald-400', tab: 'body', isPro: true },
+      { id: 'recovery', label: 'Recovery', desc: 'Readiness, fatigue, deload', longDesc: 'Composite readiness from sleep, stress, soreness, HRV. Fatigue debt, smart deload recommendations, recovery protocols. Wearable data flows here.', keywords: 'rest readiness soreness recover ready sleep stress fatigue deload hrv whoop wearable', icon: Heart, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', tab: 'body' },
+      { id: 'wearable', label: 'Wearable', desc: 'Connect & sync Whoop', longDesc: 'Connect your Whoop to auto-sync recovery, strain, sleep, and body weight. Manage the connection, re-authorize, and pull your latest data here.', keywords: 'whoop wearable connect sync band strap device link import recovery strain hrv process pair authorize', icon: Activity, color: 'from-emerald-500/20 to-emerald-500/5 text-emerald-400', tab: 'body' },
       { id: 'nutrition', label: 'Nutrition', desc: 'Macros & meal tracking', longDesc: 'Full macro tracking with daily targets and cutting/bulking protocols.', keywords: 'food eat diet meal calories macros protein carbs fat water hydration weight cut bulk', icon: Apple, color: 'from-green-500/20 to-green-500/5 text-green-400', tab: 'body' },
-      { id: 'strength', label: 'Strength', desc: 'PRs, progression, sticking points', longDesc: 'e1RM trends, PR tracking, sticking-point detection, progression over time, per-exercise deep-dive.', keywords: 'pr personal record max strength progression overload chart trend e1rm sticking point weak profiler', icon: BarChart3, color: 'from-red-500/20 to-red-500/5 text-red-400', tab: 'body', isPro: true },
-      { id: 'volume_map', label: 'Volume & Balance', desc: 'Muscle volume + ratios', longDesc: 'Weekly sets per muscle group against MEV/MAV/MRV landmarks. Push/pull ratios and imbalance detection.', keywords: 'muscle group heatmap volume sets weekly body part split balance ratio push pull imbalance mev mav mrv', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', tab: 'body', isPro: true },
-      { id: 'athletic_benchmarks', label: 'Benchmarks', desc: 'Vertical, sprint, shuttle, hang', longDesc: 'Six tested attributes with tier classification and weakest-link auto-routing to the right training tool.', keywords: 'benchmark test athletic vertical jump broad sprint shuttle agility hang push up combat fitness assessment combine attributes weakest', icon: BarChart3, color: 'from-emerald-500/20 to-emerald-500/5 text-emerald-400', tab: 'body', isPro: true },
-      { id: 'injury', label: 'Setbacks', desc: 'Injury & illness', longDesc: 'Track injuries by body region. Launch phased Rehab Plan or generate an Injury-Aware Workout. Illness logging with Neck Check return-to-training is one tap away.', keywords: 'hurt pain injury rehab illness sick cold flu fever symptom shoulder knee back elbow wrist hip joint muscle strain return train neck check', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', tab: 'body', isPro: true },
-      { id: 'cycle_tracking', label: 'Cycle', desc: 'Menstrual cycle phases', longDesc: 'Log cycle phases to optimize training around hormonal fluctuations.', keywords: 'period menstrual cycle female women hormone luteal follicular ovulation pms', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', tab: 'body', isPro: true, gendered: 'female' },
+      { id: 'strength', label: 'Strength', desc: 'PRs, progression, sticking points', longDesc: 'e1RM trends, PR tracking, sticking-point detection, progression over time, per-exercise deep-dive.', keywords: 'pr personal record max strength progression overload chart trend e1rm sticking point weak profiler', icon: BarChart3, color: 'from-red-500/20 to-red-500/5 text-red-400', tab: 'body' },
+      { id: 'volume_map', label: 'Volume & Balance', desc: 'Muscle volume + ratios', longDesc: 'Weekly sets per muscle group against MEV/MAV/MRV landmarks. Push/pull ratios and imbalance detection.', keywords: 'muscle group heatmap volume sets weekly body part split balance ratio push pull imbalance mev mav mrv', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', tab: 'body' },
+      { id: 'athletic_benchmarks', label: 'Benchmarks', desc: 'Vertical, sprint, shuttle, hang', longDesc: 'Six tested attributes with tier classification and weakest-link auto-routing to the right training tool.', keywords: 'benchmark test athletic vertical jump broad sprint shuttle agility hang push up combat fitness assessment combine attributes weakest', icon: BarChart3, color: 'from-emerald-500/20 to-emerald-500/5 text-emerald-400', tab: 'body' },
+      { id: 'injury', label: 'Setbacks', desc: 'Injury & illness', longDesc: 'Track injuries by body region. Launch phased Rehab Plan or generate an Injury-Aware Workout. Illness logging with Neck Check return-to-training is one tap away.', keywords: 'hurt pain injury rehab illness sick cold flu fever symptom shoulder knee back elbow wrist hip joint muscle strain return train neck check', icon: Shield, color: 'from-sky-500/20 to-sky-500/5 text-sky-400', tab: 'body' },
+      { id: 'cycle_tracking', label: 'Cycle', desc: 'Menstrual cycle phases', longDesc: 'Log cycle phases to optimize training around hormonal fluctuations.', keywords: 'period menstrual cycle female women hormone luteal follicular ovulation pms', icon: Activity, color: 'from-pink-500/20 to-pink-500/5 text-pink-400', tab: 'body', gendered: 'female' },
       { id: 'coach_report', label: 'Coach Report', desc: 'Share status with your coach', longDesc: 'Read-only snapshot of your training, recovery, body weight, and active injuries — share via native share or copy as text. Keep your coach in the loop.', keywords: 'coach trainer share send report summary status update injury weight', icon: Users, color: 'from-emerald-500/20 to-emerald-500/5 text-emerald-400', tab: 'body' },
       { id: 'crews', label: 'Crews', desc: 'Weekly leaderboard with your gym', longDesc: 'Train with your gym or partners. Join a crew with a 6-character code and see who shows up the most each week. Ranked by sessions completed, resets every Monday. Opt-in — only your name and weekly consistency are shared, with that crew only.', keywords: 'crew crews leaderboard social friends gym team rank ranking compete competition consistency weekly group partners challenge accountability whop', icon: Trophy, color: 'from-yellow-500/20 to-yellow-500/5 text-yellow-400', tab: 'body' },
     ],
@@ -253,8 +251,6 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
   const [usageMap, setUsageMap] = useState<Record<string, number>>(() => readJson(STORAGE_KEY_USAGE, {}));
   const [allToolsExpanded, setAllToolsExpanded] = useState(false);
 
-  const tier = useCurrentTier();
-  const isFree = tier !== 'pro';
 
   // Tab-scoped views — when embedded inside Train or Body tab, only show that subset.
   const visibleCategories = useMemo(
@@ -525,7 +521,6 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
                       'w-full flex items-center gap-3.5 p-4 rounded-lg bg-gradient-to-r border',
                       'active:scale-[0.98] transition-transform select-none text-left',
                       suggestion.gradient,
-                      isFree && tool.isPro && 'opacity-50'
                     )}
                     style={{ touchAction: 'manipulation' }}
                   >
@@ -535,11 +530,6 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-grappler-100">{tool.label}</span>
-                        {tool.isPro && (
-                          <span className="px-1.5 py-0.5 rounded-md bg-amber-500/90 text-[9px] font-bold text-white uppercase tracking-wide">
-                            Pro
-                          </span>
-                        )}
                       </div>
                       <p className="text-xs text-grappler-300 mt-0.5 leading-snug">{suggestion.reason}</p>
                     </div>
@@ -599,7 +589,6 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
                     'w-12 h-12 rounded-xl bg-gradient-to-b flex items-center justify-center',
                     'border-2 border-primary-500/40 active:scale-90 transition-all select-none',
                     tool.color,
-                    isFree && tool.isPro && 'opacity-50'
                   )}
                   style={{ touchAction: 'manipulation' }}
                   title={tool.label}
@@ -637,7 +626,6 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
                 tool={tool}
                 isPinned={pinnedIds.includes(tool.id)}
                 pinMode={false}
-                isFree={isFree}
                 onTap={handleCardTap}
               />
             ))}
@@ -667,12 +655,6 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
               <span className="text-sm font-medium text-grappler-300">
                 {visibleTools.length} tools here
               </span>
-              <span className="text-xs text-grappler-500">
-                {tier === 'pro'
-                  ? 'all unlocked'
-                  : `${visibleTools.filter(t => !t.isPro).length} free / ${visibleTools.filter(t => t.isPro).length} Pro`
-                }
-              </span>
             </div>
             <motion.div
               animate={{ rotate: allToolsExpanded ? 180 : 0 }}
@@ -698,8 +680,7 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
                       tool={tool}
                       isPinned={pinnedIds.includes(tool.id)}
                       pinMode={false}
-                      isFree={isFree}
-                      onTap={handleCardTap}
+                            onTap={handleCardTap}
                     />
                   ))}
                 </div>
@@ -724,7 +705,6 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
                 tool={tool}
                 isPinned={pinnedIds.includes(tool.id)}
                 pinMode={pinMode}
-                isFree={isFree}
                 onTap={handleCardTap}
               />
             ))}
@@ -737,11 +717,10 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
 
 // ─── ToolCard (unchanged behavior) ──────────────────────────────────────────
 
-function ToolCard({ tool, isPinned, pinMode, isFree, onTap }: {
+function ToolCard({ tool, isPinned, pinMode, onTap }: {
   tool: Tool;
   isPinned: boolean;
   pinMode: boolean;
-  isFree: boolean;
   onTap: (id: NonNullable<OverlayView>) => void;
 }) {
   return (
@@ -755,19 +734,12 @@ function ToolCard({ tool, isPinned, pinMode, isFree, onTap }: {
         !pinMode && isPinned && 'border-2 border-primary-500/40',
         !pinMode && !isPinned && 'border border-grappler-800/50',
         tool.color,
-        isFree && tool.isPro && !pinMode && 'opacity-50'
       )}
       style={{ touchAction: 'manipulation' }}
     >
       {pinMode && isPinned && (
         <span className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary-500 flex items-center justify-center pointer-events-none">
           <Check className="w-3 h-3 text-white" />
-        </span>
-      )}
-
-      {tool.isPro && !pinMode && (
-        <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-md bg-amber-500/90 text-[10px] font-bold text-white uppercase tracking-wide shadow-sm pointer-events-none">
-          Pro
         </span>
       )}
 

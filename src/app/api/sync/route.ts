@@ -124,12 +124,7 @@ export async function POST(request: Request) {
 
     let mergedData = data;
 
-    // ── Never trust a client-supplied subscription tier ──
-    // The authoritative tier lives in the `subscriptions` table (set by the
-    // PayPal webhook). Stripping it ONLY in the merge branch left a hole: a
-    // brand-new user's first sync (no server row yet) could persist a
-    // self-granted {tier:'pro'} into user_store. Strip unconditionally; the
-    // server's copy is restored below when one exists.
+    // Legacy field from the removed paywall — drop it if an old client sends it.
     delete data.subscription;
 
     if (existingRows.length > 0 && existingRows[0].data) {
@@ -179,9 +174,6 @@ export async function POST(request: Request) {
           incomingScore,
         });
       }
-
-      // ── Preserve server subscription: never trust client-side subscription data ──
-      data.subscription = serverData.subscription;
 
       // ── SERVER-SIDE MERGE: merge incoming with existing server data ──
       // This is the bulletproof fix for multi-device sync. Instead of blindly

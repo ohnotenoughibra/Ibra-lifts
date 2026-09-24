@@ -149,7 +149,6 @@ Block lifecycle: `active` → `completed` (via `completeMesocycle`, requires ≥
 ### Integration
 - `whoop.ts` — Whoop API calls
 - `useWhoopSync.ts` — Background Whoop sync hook
-- `subscription.ts` — Feature gates (free/pro)
 - `notifications.ts` — Push notification scheduling
 - `push-subscription.ts` — Web push subscription management (VAPID key exchange, subscribe/unsubscribe)
 - `health-import.ts` — Apple Health XML + Google Fit data import and normalization

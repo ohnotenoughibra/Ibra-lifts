@@ -52,7 +52,6 @@ import { cn, formatNumber, localDayKey } from '@/lib/utils';
 import { useWeightUnit } from '@/hooks/useWeightUnit';
 import { resolveWeightUnit, type WeightUnit } from '@/lib/units';
 import { estimate1RM } from '@/lib/weight-estimator';
-import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
 import type { MealEntry, SkipReason } from '@/lib/types';
 import { getIllnessTrainingRecommendation, getIllnessDurationDays } from '@/lib/illness-engine';
 import { shouldDeload } from '@/lib/auto-adjust';
@@ -394,7 +393,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     user, currentMesocycle, workoutLogs, startWorkout,
     lastCompletedWorkout, dismissWorkoutSummary, generateNewMesocycle,
     rawMesocycleHistory, competitions,
-    trainingSessions, latestWhoopData, rawMeals, subscription,
+    trainingSessions, latestWhoopData, rawMeals,
     migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount, repairMesocycleProgress,
     skipWorkout, gamificationStats, rawMesocycleQueue, completeMesocycle,
     deleteSkip, undoValidateBlock, awardSmartRest, addQuickLog, workoutSkips, addTrainingSession,
@@ -403,7 +402,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       user: s.user, currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, startWorkout: s.startWorkout,
       lastCompletedWorkout: s.lastCompletedWorkout, dismissWorkoutSummary: s.dismissWorkoutSummary, generateNewMesocycle: s.generateNewMesocycle,
       rawMesocycleHistory: s.mesocycleHistory, competitions: s.competitions,
-      trainingSessions: s.trainingSessions, latestWhoopData: s.latestWhoopData, rawMeals: s.meals, subscription: s.subscription,
+      trainingSessions: s.trainingSessions, latestWhoopData: s.latestWhoopData, rawMeals: s.meals,
       migrateWorkoutLogsToMesocycle: s.migrateWorkoutLogsToMesocycle, getCurrentMesocycleLogCount: s.getCurrentMesocycleLogCount, repairMesocycleProgress: s.repairMesocycleProgress,
       skipWorkout: s.skipWorkout, gamificationStats: s.gamificationStats, rawMesocycleQueue: s.mesocycleQueue, completeMesocycle: s.completeMesocycle,
       deleteSkip: s.deleteSkip, undoValidateBlock: s.undoValidateBlock, awardSmartRest: s.awardSmartRest, addQuickLog: s.addQuickLog,

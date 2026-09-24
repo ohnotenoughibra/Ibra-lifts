@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -27,8 +26,6 @@ import SyncConflictResolver from './SyncConflictResolver';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import VersionUpgradePopup from './VersionUpgradePopup';
 import { getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
-import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
-import UpgradePrompt from './UpgradePrompt';
 // ThemeToggle moved to Settings page — no longer in header
 import { ToastProvider } from './Toast';
 import { HomeTabSkeleton, ProgramTabSkeleton, ExploreTabSkeleton, ProgressTabSkeleton } from './Skeleton';
@@ -117,31 +114,6 @@ const TrainingJournal = dynamic(() => import('./TrainingJournal'), { loading: ()
 const KnowledgeHub = dynamic(() => import('./KnowledgeHub'), { loading: () => <OverlaySkeleton /> });
 const ReadyForThis = dynamic(() => import('./ReadyForThis'), { loading: () => <OverlaySkeleton /> });
 
-// Map overlay views to their required feature gate key (null = free)
-const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
-  nutrition: 'nutrition-tracking',
-  wearable: 'wearable-integration',
-  competition: 'competition-prep',
-  mobility: 'mobility-routines',
-  coach: 'ai-coach',
-  strength: 'strength-analysis',
-  injury: 'injury-illness',
-  illness: 'injury-illness',
-  custom_exercise: 'custom-exercises',
-  templates: 'session-templates',
-  grip_strength: 'grip-tracking',
-  // program_browser is free — no gate
-  volume_map: 'advanced-analytics',
-  periodization: 'advanced-analytics',
-  overload: 'advanced-analytics',
-  recovery: 'advanced-analytics',
-  cycle_tracking: 'advanced-analytics',
-  fatigue: 'advanced-analytics',
-  fight_camp: 'fight-camp-nutrition',
-  grappling: 'competition-prep',
-  conditioning: 'advanced-analytics',
-  training_journal: 'advanced-analytics',
-};
 
 function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: () => void }) {
   const title = getLevelTitle(level);
@@ -292,9 +264,6 @@ export default function Dashboard({
     overlayDepthRef.current = newDepth;
     skipHistoryPushRef.current = false;
   }, [overlayView, overlayHistory.length]);
-  const subscription = useAppStore(s => s.subscription);
-  const { data: session } = useSession();
-  const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null);
   const [showReadyScreen, setShowReadyScreen] = useState(false);
   const readyScreenSkipped = useRef(false);
 
@@ -345,15 +314,6 @@ export default function Dashboard({
 
   const setOverlayView = (view: OverlayView, context?: string) => {
     if (view !== null) {
-      // Check feature gate before opening pro overlays
-      const featureKey = OVERLAY_FEATURE_MAP[view];
-      if (featureKey) {
-        const tier = getEffectiveTier(subscription, session?.user?.email);
-        if (!hasFeatureAccess(featureKey, tier)) {
-          setUpgradeFeature(featureKey);
-          return;
-        }
-      }
       // If there's already an overlay open, push it onto the back stack
       // so that closing the new one returns to the previous (e.g. Injury → Rehab → back).
       if (overlayView && overlayView !== view) {
@@ -514,8 +474,6 @@ export default function Dashboard({
           } else {
             setOverlayView(null);
           }
-        } else if (upgradeFeature) {
-          setUpgradeFeature(null);
         } else if (levelUpDisplay) {
           setLevelUpDisplay(null);
         } else if (reportMesocycleId) {
@@ -525,7 +483,7 @@ export default function Dashboard({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [overlayView, upgradeFeature, levelUpDisplay, reportMesocycleId]);
+  }, [overlayView, levelUpDisplay, reportMesocycleId]);
 
   // Show Ready for This when workout starts
   const prevActiveWorkoutRef = useRef(activeWorkout);
@@ -1187,15 +1145,6 @@ export default function Dashboard({
 
       {/* Version Upgrade Popup */}
       <VersionUpgradePopup />
-
-      {/* Upgrade Prompt (shown when user taps a pro feature) */}
-      {upgradeFeature && (
-        <UpgradePrompt
-          feature={upgradeFeature}
-          variant="modal"
-          onDismiss={() => setUpgradeFeature(null)}
-        />
-      )}
 
       {/* Level-Up Celebration */}
       <AnimatePresence>

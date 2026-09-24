@@ -33,14 +33,6 @@ All routes use `runtime = 'nodejs'` and `dynamic = 'force-dynamic'` (never cache
 | `init/route.ts` | POST | Authenticated | Initialize DB tables |
 | `recover/route.ts` | — | Authenticated | Data recovery |
 
-### Subscription (`/api/subscription/`)
-| Route | Method | Auth | Purpose |
-|-------|--------|------|---------|
-| `checkout/route.ts` | POST | Authenticated | Create PayPal subscription |
-| `status/route.ts` | GET | Authenticated | Fetch subscription tier |
-| `activate/route.ts` | — | Authenticated | Subscription activation |
-| `webhook/route.ts` | POST | Public (signature verified) | PayPal webhook handler |
-
 ### Whoop (`/api/whoop/`)
 | Route | Method | Auth | Purpose |
 |-------|--------|------|---------|
@@ -83,7 +75,7 @@ All routes use `runtime = 'nodejs'` and `dynamic = 'force-dynamic'` (never cache
 // Sync POST special case — blocks data regression
 { success: false, blocked: true, reason: "data_regression", serverScore: number, incomingScore: number }
 
-// Webhook — always 200 to prevent PayPal retries
+// Webhook — always 200 to prevent provider retries
 { received: true }
 ```
 
@@ -95,10 +87,10 @@ Uses `@vercel/postgres` with SQL template literals (safe from injection):
 const { rows } = await sql`SELECT * FROM user_store WHERE user_id = ${userId}`;
 ```
 
-**Key tables**: `auth_users`, `user_store` (JSONB blob), `user_store_backups`, `gamification_stats`, `subscriptions`, `password_reset_tokens`, `email_verification_tokens`
+**Key tables**: `auth_users`, `user_store` (JSONB blob), `user_store_backups`, `gamification_stats`, `password_reset_tokens`, `email_verification_tokens`
 
 **Patterns**:
-- Upsert: `INSERT ... ON CONFLICT DO UPDATE` (user_store, gamification, subscriptions)
+- Upsert: `INSERT ... ON CONFLICT DO UPDATE` (user_store, gamification)
 - Lazy table creation: `CREATE TABLE IF NOT EXISTS` on first write
 - Cascading delete: account deletion removes all dependent rows
 - Dual-write: sync POST updates both `user_store` JSONB and `gamification_stats` table

@@ -361,7 +361,7 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
             'gamificationStats', 'bodyWeightLog', 'injuryLog', 'customExercises',
             'sessionTemplates', 'hrSessions', 'trainingSessions', 'themeMode',
             'meals', 'macroTargets', 'waterLog', 'activeDietPhase', 'weeklyCheckIns',
-            'bodyComposition', 'muscleEmphasis', 'competitions', 'subscription',
+            'bodyComposition', 'muscleEmphasis', 'competitions',
             'quickLogs', 'gripTests', 'gripExerciseLogs', 'activeEquipmentProfile',
             'notificationPreferences', 'workoutSkips', 'illnessLogs', 'cycleLogs',
             'mealReminders', 'dailyLoginBonus', 'featureFeedback',

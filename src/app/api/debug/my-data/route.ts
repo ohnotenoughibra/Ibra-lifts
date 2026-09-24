@@ -150,14 +150,6 @@ export async function GET() {
       results.strength_progress = { error: e instanceof Error ? e.message : 'table may not exist' };
     }
 
-    // ── 9. subscriptions ──
-    try {
-      const { rows } = await sql`SELECT * FROM subscriptions WHERE user_id = ${userId}`;
-      results.subscriptions = rows[0] || null;
-    } catch (e: unknown) {
-      results.subscriptions = { error: e instanceof Error ? e.message : 'table may not exist' };
-    }
-
     // ── 10. whoop_tokens (existence only, don't leak tokens) ──
     try {
       const { rows } = await sql`

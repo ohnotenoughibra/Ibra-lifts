@@ -58,7 +58,7 @@ Next.js route handlers. See `src/app/api/CLAUDE.md` for details.
 
 ### 5. Database (Vercel Postgres)
 
-**Monolithic JSONB sync** — the entire store is serialized as one JSONB blob in `user_store`. Individual tables exist only for auth (`auth_users`), gamification leaderboard (`gamification_stats`), subscriptions, and backups.
+**Monolithic JSONB sync** — the entire store is serialized as one JSONB blob in `user_store`. Individual tables exist only for auth (`auth_users`), gamification leaderboard (`gamification_stats`), and backups.
 
 This is intentional: local-first means the client is the source of truth. The server is a backup with conflict resolution, not a normalized relational database.
 
@@ -100,7 +100,6 @@ This is intentional: local-first means the client is the source of truth. The se
 | **Google Fit** | OAuth2 → REST API | `health-import.ts`, `app/api/google-fit/route.ts` |
 | **Web Push** | VAPID (`web-push`) | `push-subscription.ts`, `app/api/push/route.ts` |
 | **OpenFoodFacts** | REST API | `barcode-lookup.ts` (cached) |
-| **PayPal** | REST API + Webhooks | `subscription.ts`, `app/api/subscription/*` |
 | **Sentry** | SDK instrumentation | `sentry.*.config.ts`, `instrumentation.ts` |
 | **Vercel Analytics** | Auto-instrumented | `layout.tsx` |
 
@@ -115,11 +114,9 @@ Tokens stored in BOTH localStorage AND Postgres. If localStorage is evicted (iOS
 - **Push notifications**: VAPID-based via `web-push` library. Requested after 3rd workout. Preferences managed in `NotificationSettings.tsx`
 - **Update flow**: "Update available" banner → user clicks → SW skipWaiting → reload
 
-## Subscription Tiers
+## Access
 
-- **Free**: Basic workout tracking, single mesocycle, streaks, 1RM calculator
-- **Pro**: Full history, multiple programs, AI coach, nutrition, Whoop, weight cuts, fight camp, supplements
-- **Resolution order**: Owner bypass → active subscription → 14-day grace → trial → free
+No paywall. Every feature is available to every user (subscription tiers, PayPal checkout and feature gates were removed in v2.12). The legacy `subscriptions` table is only touched by account deletion.
 
 ## Key Design Decisions
 

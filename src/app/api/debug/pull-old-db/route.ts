@@ -167,7 +167,6 @@ export async function POST(request: Request) {
       { name: 'gamification_stats', key: 'user_id', single: true },
       { name: 'user_badges', key: 'user_id', single: false },
       { name: 'strength_progress', key: 'user_id', single: false },
-      { name: 'subscriptions', key: 'user_id', single: false },
     ];
 
     for (const t of tablesToPull) {

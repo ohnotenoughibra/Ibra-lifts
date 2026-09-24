@@ -18,8 +18,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
-import { getEffectiveTier, hasFeatureAccess } from '@/lib/subscription';
-import { useSession } from 'next-auth/react';
 import {
   detectFightCampPhase,
   getPhaseConfig,
@@ -48,14 +46,10 @@ const PHASE_COLORS: Record<string, { text: string; bg: string; border: string }>
 };
 
 export default function FightCampNutrition({ onClose }: FightCampNutritionProps) {
-  const { user, competitions, bodyWeightLog, combatNutritionProfile, activeSupplements, subscription } = useAppStore();
-  const { data: session } = useSession();
+  const { user, competitions, bodyWeightLog, combatNutritionProfile, activeSupplements } = useAppStore();
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [showSupplements, setShowSupplements] = useState(false);
   const [showElectrolytes, setShowElectrolytes] = useState(false);
-
-  const effectiveTier = getEffectiveTier(subscription, session?.user?.email);
-  const hasFightCampAccess = hasFeatureAccess('fight-camp-nutrition', effectiveTier);
 
   const weightUnit = resolveWeightUnit(user?.weightUnit);
   const sex = (user?.sex || 'male') as 'male' | 'female';
@@ -119,33 +113,6 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
 
   // Tournament day fuel
   const tournamentFuel = isTournament ? getTournamentDayFuel(bodyWeightKg) : null;
-
-  if (!hasFightCampAccess) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto"
-      >
-        <div className="min-h-screen px-4 pt-6 pb-24 max-w-2xl mx-auto">
-          <div className="flex items-center gap-3 mb-6">
-            <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl font-bold text-grappler-50">Fight Camp Nutrition</h1>
-          </div>
-          <div className="text-center py-16">
-            <Shield className="w-12 h-12 text-primary-500/50 mx-auto mb-4" />
-            <p className="text-grappler-300 font-semibold mb-2">Pro Feature</p>
-            <p className="text-sm text-grappler-500 max-w-xs mx-auto">
-              Phase-specific nutrition targets that auto-adjust through fight camp. Upgrade to Pro to unlock.
-            </p>
-          </div>
-        </div>
-      </motion.div>
-    );
-  }
 
   if (!nearestCompetition) {
     return (

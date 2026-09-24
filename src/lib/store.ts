@@ -53,7 +53,6 @@ import {
   IllnessSeverity,
   WorkoutSkip,
   SkipReason,
-  Subscription,
   NotificationPreferences,
   DailyLoginBonus,
   PlannedMesocycle,
@@ -363,8 +362,6 @@ interface AppState {
   // Set when localStorage persistence is degraded (quota trimmed / write failing)
   _storageWarning?: string;
 
-  // Subscription
-  subscription: Subscription | null;
 
   // Notifications
   notificationPreferences: NotificationPreferences;
@@ -651,8 +648,6 @@ interface AppState {
   resolveSyncConflict: (resolution: 'local' | 'remote' | 'merge') => void;
   dismissSyncConflict: () => void;
 
-  // Subscription actions
-  setSubscription: (sub: Subscription | null) => void;
 
   // Notification actions
   setNotificationPreferences: (prefs: Partial<NotificationPreferences>) => void;
@@ -877,7 +872,6 @@ export const useAppStore = create<AppState>()(
       syncConflict: null,
       pendingRemoteData: null,
       _syncUrgent: false,
-      subscription: null,
       notificationPreferences: {
         enabled: false,
         pushEnabled: false,
@@ -4583,7 +4577,7 @@ export const useAppStore = create<AppState>()(
           'bodyWeightLog', 'injuryLog', 'rehabStates', 'benchmarkResults', 'activePlyoBlock', 'rsiHistory', 'techniqueLog', 'sparringRounds', 'customExercises', 'sessionTemplates',
           'hrSessions', 'trainingSessions', 'themeMode', 'colorTheme', 'meals', 'macroTargets',
           'waterLog', 'activeDietPhase', 'dietPhaseHistory', 'weeklyCheckIns', 'bodyComposition',
-          'muscleEmphasis', 'competitions', 'subscription', 'quickLogs',
+          'muscleEmphasis', 'competitions', 'quickLogs',
           'gripTests', 'gripExerciseLogs', 'activeEquipmentProfile',
           'notificationPreferences', 'workoutSkips', 'illnessLogs', 'cycleLogs',
           'mealReminders', 'dailyLoginBonus', 'lastSyncAt',
@@ -4637,8 +4631,6 @@ export const useAppStore = create<AppState>()(
       },
       dismissSyncConflict: () => set({ syncConflict: null, pendingRemoteData: null }),
 
-      // Subscription actions
-      setSubscription: (sub) => set({ subscription: sub }),
 
       // Notification actions
       setNotificationPreferences: (prefs) => {
@@ -4816,7 +4808,6 @@ export const useAppStore = create<AppState>()(
           whoopWorkouts: [],
           isOnline: true,
           lastSyncAt: null,
-          subscription: null,
           notificationPreferences: {
             enabled: false,
             pushEnabled: false,
@@ -5178,7 +5169,6 @@ export const useAppStore = create<AppState>()(
         activeWorkout: state.activeWorkout,           // CRITICAL for crash recovery
         workoutMinimized: state.workoutMinimized,
         gamificationStats: state.gamificationStats,
-        subscription: state.subscription,
         macroTargets: state.macroTargets,
         activeDietPhase: state.activeDietPhase,
         lastSyncAt: state.lastSyncAt,

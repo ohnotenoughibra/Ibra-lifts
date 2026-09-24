@@ -1590,20 +1590,6 @@ export interface IllnessTrainingRecommendation {
   returnPhase?: ReturnToTrainingPhaseType;
 }
 
-// ── Subscription Types ─────────────────────────────────────────────────────
-export type SubscriptionTier = 'free' | 'pro';
-export type SubscriptionSource = 'paypal' | 'sepa' | 'gym' | 'trial';
-export type SubscriptionPaymentStatus = 'active' | 'grace' | 'expired' | 'cancelled';
-
-export interface Subscription {
-  tier: SubscriptionTier;
-  source: SubscriptionSource;
-  status: SubscriptionPaymentStatus;
-  currentPeriodStart: string; // ISO date
-  currentPeriodEnd: string;   // ISO date
-  paypalSubscriptionId?: string;
-  graceEndsAt?: string;       // ISO date — 14-day grace after expiry
-}
 
 // ── Notification Types ─────────────────────────────────────────────────────
 export interface PushSubscriptionData {

@@ -193,8 +193,3 @@ Living map of how the pieces connect. When you need to change something, look he
 
 | Piece | File | Purpose |
 |-------|------|---------|
-| Subscription | `src/lib/subscription.ts` | Feature gates (free/pro), tier resolution |
-| Feature access | `src/lib/useFeatureAccess.ts` | React hook for subscription gating |
-| Checkout API | `src/app/api/subscription/checkout/` | PayPal subscription creation |
-| Status API | `src/app/api/subscription/status/` | Tier checking |
-| Webhook API | `src/app/api/subscription/webhook/` | PayPal event handling |

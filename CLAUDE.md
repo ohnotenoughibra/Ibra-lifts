@@ -77,7 +77,7 @@ Entry point. Commands, workflow rules, and routing to deeper context.
 - **Libraries**: `src/lib/` — ~70 pure-function engines. See `src/lib/CLAUDE.md`
 - **Database**: Vercel Postgres via `@vercel/postgres` — monolithic JSONB sync
 - **Auth**: NextAuth with credentials, magic link, Google, Apple
-- **Payments**: PayPal subscriptions
+- **Payments**: none — the paywall was removed in v2.12; every feature is free
 - **Local-first**: All data persists to localStorage. Cloud is backup, not source of truth
 
 ## Important: Large Files

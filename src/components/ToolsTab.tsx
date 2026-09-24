@@ -18,7 +18,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Pin, Droplets, Moon, Scale, Zap } from 'lucide-react';
-import { ALL_TOOLS, TOOL_MAP, readPins, type Tool } from './ExploreTab';
+import { ALL_TOOLS, TOOL_MAP, readPins, writePins, type Tool } from './ExploreTab';
+import { useLongPress } from '@/lib/use-long-press';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { hapticMedium } from '@/lib/haptics';
@@ -78,6 +79,15 @@ export default function ToolsTab({ onNavigate }: Props) {
   const trainTools = useMemo(() => ALL_TOOLS.filter(t => t.tab === 'train'), []);
   const bodyTools = useMemo(() => ALL_TOOLS.filter(t => t.tab === 'body'), []);
 
+  // Hold a tile to pin/unpin — the hint said so, but no handler existed.
+  const pinnedSet = useMemo(() => new Set(pinned.map(p => p.id)), [pinned]);
+  const togglePin = (tool: Tool) => {
+    const cur = readPins();
+    const next = cur.includes(tool.id) ? cur.filter(id => id !== tool.id) : [...cur, tool.id];
+    writePins(next);
+    setPinned(next.map(id => TOOL_MAP.get(id)).filter(Boolean) as Tool[]);
+  };
+
   const launch = (tool: Tool) => {
     hapticMedium();
     trackToolLaunch(tool.id);
@@ -135,7 +145,7 @@ export default function ToolsTab({ onNavigate }: Props) {
             </p>
           ) : (
             <div className="grid grid-cols-3 gap-2">
-              {filtered.map(t => <Tile key={t.id} tool={t} onLaunch={launch} />)}
+              {filtered.map(t => <Tile key={t.id} tool={t} onLaunch={launch} onTogglePin={togglePin} pinned={pinnedSet.has(t.id)} />)}
             </div>
           )}
         </div>
@@ -157,7 +167,7 @@ export default function ToolsTab({ onNavigate }: Props) {
             <div>
               <SectionHeader>Recent</SectionHeader>
               <div className="grid grid-cols-3 gap-2">
-                {recents.slice(0, 6).map(t => <Tile key={t.id} tool={t} onLaunch={launch} />)}
+                {recents.slice(0, 6).map(t => <Tile key={t.id} tool={t} onLaunch={launch} onTogglePin={togglePin} pinned={pinnedSet.has(t.id)} />)}
               </div>
             </div>
           )}
@@ -167,7 +177,7 @@ export default function ToolsTab({ onNavigate }: Props) {
             <div>
               <SectionHeader icon={Pin}>Pinned</SectionHeader>
               <div className="grid grid-cols-3 gap-2">
-                {pinned.map(t => <Tile key={t.id} tool={t} onLaunch={launch} />)}
+                {pinned.map(t => <Tile key={t.id} tool={t} onLaunch={launch} onTogglePin={togglePin} pinned={pinnedSet.has(t.id)} />)}
               </div>
             </div>
           )}
@@ -176,19 +186,19 @@ export default function ToolsTab({ onNavigate }: Props) {
           <div>
             <SectionHeader>Train</SectionHeader>
             <div className="grid grid-cols-3 gap-2">
-              {trainTools.map(t => <Tile key={t.id} tool={t} onLaunch={launch} />)}
+              {trainTools.map(t => <Tile key={t.id} tool={t} onLaunch={launch} onTogglePin={togglePin} pinned={pinnedSet.has(t.id)} />)}
             </div>
           </div>
 
           <div>
             <SectionHeader>Body</SectionHeader>
             <div className="grid grid-cols-3 gap-2">
-              {bodyTools.map(t => <Tile key={t.id} tool={t} onLaunch={launch} />)}
+              {bodyTools.map(t => <Tile key={t.id} tool={t} onLaunch={launch} onTogglePin={togglePin} pinned={pinnedSet.has(t.id)} />)}
             </div>
           </div>
 
           <p className="text-[11px] text-grappler-500 text-center">
-            Long-press any tool below to pin it here.
+            Hold any tool to pin it here (hold again to unpin).
           </p>
         </div>
       )}
@@ -207,16 +217,22 @@ function SectionHeader({ children, icon: Icon }: { children: React.ReactNode; ic
   );
 }
 
-function Tile({ tool, onLaunch }: { tool: Tool; onLaunch: (t: Tool) => void }) {
+function Tile({ tool, onLaunch, onTogglePin, pinned = false }: {
+  tool: Tool; onLaunch: (t: Tool) => void; onTogglePin: (t: Tool) => void; pinned?: boolean;
+}) {
   const Icon = tool.icon;
+  const { handlers, wasLongPress } = useLongPress(() => onTogglePin(tool));
   return (
     <button
-      onClick={() => onLaunch(tool)}
-      aria-label={tool.label}
+      {...handlers}
+      onClick={() => { if (!wasLongPress()) onLaunch(tool); }}
+      aria-label={`${tool.label}${pinned ? ' (pinned)' : ''} — hold to ${pinned ? 'unpin' : 'pin'}`}
       className={cn(
-        'relative flex flex-col items-start gap-1.5 p-2.5 rounded-lg border border-grappler-800 bg-grappler-900/40 hover:border-grappler-700 active:scale-95 transition text-left min-h-[68px]',
+        'relative flex flex-col items-start gap-1.5 p-2.5 rounded-lg border bg-grappler-900/40 hover:border-grappler-700 active:scale-95 transition text-left min-h-[68px]',
+        pinned ? 'border-primary-500/40' : 'border-grappler-800',
       )}
     >
+      {pinned && <Pin className="absolute top-1.5 right-1.5 w-3 h-3 text-primary-400" aria-hidden="true" />}
       <Icon className="w-4 h-4 flex-shrink-0 text-grappler-300" />
       <span className="text-[11px] font-semibold leading-tight line-clamp-2 text-white">{tool.label}</span>
     </button>

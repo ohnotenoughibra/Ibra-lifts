@@ -31,4 +31,21 @@ test.describe('State continuity', () => {
     await page.getByRole('button', { name: 'Log', exact: true }).click({ timeout: 20_000 });
     await expect(page.getByPlaceholder(/Arm bars, guard passing/)).toHaveValue('Kimura trap from half guard');
   });
+
+  test('holding a tool pins it (and holding again unpins)', async ({ page }) => {
+    await page.getByRole('tab', { name: 'Tools' }).click();
+    const tile = page.getByRole('button', { name: /^Cardio — hold to pin/ });
+    const box = (await tile.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down(); await page.waitForTimeout(700); await page.mouse.up();
+    await expect(page.getByText('Pinned', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Cardio \(pinned\)/ }).first()).toBeVisible();
+    // the hold must not also open the tool
+    await expect(page.getByRole('tab', { name: 'Tools' })).toHaveAttribute('aria-selected', 'true');
+    const pinnedTile = page.getByRole('button', { name: /^Cardio \(pinned\)/ }).first();
+    const b2 = (await pinnedTile.boundingBox())!;
+    await page.mouse.move(b2.x + b2.width / 2, b2.y + b2.height / 2);
+    await page.mouse.down(); await page.waitForTimeout(700); await page.mouse.up();
+    await expect(page.getByRole('button', { name: /^Cardio \(pinned\)/ })).toHaveCount(0);
+  });
 });

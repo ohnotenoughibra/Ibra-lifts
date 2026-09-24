@@ -60,6 +60,7 @@ import Link from 'next/link';
 import CardErrorBoundary from './CardErrorBoundary';
 import { useToast } from './Toast';
 import WorkoutStartChooser from './WorkoutStartChooser';
+import WhoopFreshness from './WhoopFreshness';
 import { fireConfetti } from '@/lib/confetti';
 import { generateQuickWorkout, getVolumeGaps } from '@/lib/workout-generator';
 import { levelProgress, pointsToNextLevel, pointRewards } from '@/lib/gamification';
@@ -1854,6 +1855,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
              directive.readinessLevel === 'low' ? `${directive.readinessScore}% — Low. Go light today.` :
              `${directive.readinessScore}% — Rest recommended.`}
           </p>
+          <WhoopFreshness onReconnect={() => onNavigate('wearable')} />
 
           {/* Height hint removed — low-value friction */}
         </section>

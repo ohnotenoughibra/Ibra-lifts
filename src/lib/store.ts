@@ -374,6 +374,8 @@ interface AppState {
 
   // Whoop / wearable data
   latestWhoopData: WearableData | null;
+  // Device-local Whoop sync health (shown as "Whoop · updated 3 min ago").
+  whoopSync?: { lastAttemptAt?: string; lastSuccessAt?: string; lastError?: string };
   wearableHistory: WearableData[]; // 7-day trend for multi-day analysis
   whoopWorkouts: WhoopWorkout[]; // Recent Whoop-tracked workouts for HR correlation
 
@@ -912,6 +914,7 @@ export const useAppStore = create<AppState>()(
       supplementStack: [],
       supplementIntakes: [],
       latestWhoopData: null,
+      whoopSync: {},
       wearableHistory: [],
       whoopWorkouts: [],
       isOnline: true,

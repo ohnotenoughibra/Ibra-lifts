@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore, type BlockOverrides } from '@/lib/store';
+import { usePersistentState } from '@/lib/use-persistent-state';
 import { exercises as allExercises, getExercisesByEquipment, getExerciseById } from '@/lib/exercises';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import {
@@ -551,7 +552,10 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
   // New custom workouts land straight on the exercise picker. The "templates"
   // tab (full block generation) is still reachable but is no longer the default —
   // this screen is now "build a workout", not "pick a program".
-  const [view, setView] = useState<BuilderView>(editTemplateId ? 'build' : 'browse');
+  // A half-built NEW workout survives closing the builder or the app (24 h).
+  const draftKey = editTemplateId ? null : 'draft:builder';
+  const DRAFT_TTL = 24 * 3600e3;
+  const [view, setView] = usePersistentState<BuilderView>(draftKey && `${draftKey}:view`, editTemplateId ? 'build' : 'browse', { ttlMs: DRAFT_TTL });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | 'all'>('all');
   const [selectedCategory, setSelectedCategory] = useState<ExerciseCategory | 'all'>('all');
@@ -559,9 +563,9 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
   const [templateCategory, setTemplateCategory] = useState<TemplateCategory | 'all'>('all');
 
   // Builder state
-  const [builtExercises, setBuiltExercises] = useState<BuiltExercise[]>([]);
-  const [workoutName, setWorkoutName] = useState('Custom Workout');
-  const [workoutType, setWorkoutType] = useState<WorkoutType>('hypertrophy');
+  const [builtExercises, setBuiltExercises, clearBuiltDraft] = usePersistentState<BuiltExercise[]>(draftKey && `${draftKey}:exercises`, [], { ttlMs: DRAFT_TTL });
+  const [workoutName, setWorkoutName, clearNameDraft] = usePersistentState(draftKey && `${draftKey}:name`, 'Custom Workout', { ttlMs: DRAFT_TTL });
+  const [workoutType, setWorkoutType, clearTypeDraft] = usePersistentState<WorkoutType>(draftKey && `${draftKey}:type`, 'hypertrophy', { ttlMs: DRAFT_TTL });
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [pendingTemplate, setPendingTemplate] = useState<MesocycleTemplate | null>(null);
 
@@ -712,6 +716,9 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
       updateTemplate(editTemplateId, name, session);
     } else {
       saveAsTemplate(name, session);
+      // Saved → the draft has done its job.
+      clearBuiltDraft(); clearNameDraft(); clearTypeDraft();
+      try { localStorage.removeItem('draft:builder:view'); } catch { /* ignore */ }
     }
 
     if (start) {

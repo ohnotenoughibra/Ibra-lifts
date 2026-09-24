@@ -28,6 +28,7 @@ import VersionUpgradePopup from './VersionUpgradePopup';
 import { getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
 // ThemeToggle moved to Settings page — no longer in header
 import { ToastProvider } from './Toast';
+import { usePersistentState } from '@/lib/use-persistent-state';
 import { HomeTabSkeleton, ProgramTabSkeleton, ExploreTabSkeleton, ProgressTabSkeleton } from './Skeleton';
 import CardErrorBoundary from './CardErrorBoundary';
 import MorningRitual, { shouldShowRitual } from './MorningRitual';
@@ -216,9 +217,10 @@ export default function Dashboard({
   syncFailureCount = 0,
 }: DashboardProps = {}) {
   const computed = useComputedGamification();
-  const [activeTab, setActiveTab] = useState<TabType>('home');
-  const [overlayView, setOverlayViewRaw] = useState<OverlayView>(null);
-  const [overlayContext, setOverlayContext] = useState<string | undefined>(undefined);
+  // Where you were survives a reload / iOS PWA resume (was: always Today).
+  const [activeTab, setActiveTab] = usePersistentState<TabType>('ui:tab', 'home', { storage: 'session' });
+  const [overlayView, setOverlayViewRaw] = usePersistentState<OverlayView>('ui:overlay', null, { storage: 'session' });
+  const [overlayContext, setOverlayContext] = usePersistentState<string | undefined>('ui:overlay-ctx', undefined, { storage: 'session' });
   // Stack of previous overlays for back-navigation (e.g. InjuryLogger → Rehab → tap close → goes back to InjuryLogger)
   const [overlayHistory, setOverlayHistory] = useState<{ view: NonNullable<OverlayView>; context?: string }[]>([]);
   // Universal Tool Launcher (4th nav slot). Bottom sheet with recents + pinned + all tools + quick log.

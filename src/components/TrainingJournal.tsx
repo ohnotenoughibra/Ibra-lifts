@@ -1,5 +1,6 @@
 'use client';
 
+import { usePersistentState } from '@/lib/use-persistent-state';
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -60,8 +61,8 @@ export default function TrainingJournal({ onClose }: { onClose: () => void }) {
   const weightUnit = useAppStore(s => resolveWeightUnit(s.user?.weightUnit));
 
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState<FilterType>('all');
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('30d');
+  const [typeFilter, setTypeFilter] = usePersistentState<FilterType>('ui:journal-type', 'all');
+  const [timeFilter, setTimeFilter] = usePersistentState<TimeFilter>('ui:journal-time', '30d');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 

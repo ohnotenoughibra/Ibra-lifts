@@ -24,6 +24,7 @@ import {
   Weight,
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { usePersistentState } from '@/lib/use-persistent-state';
 import {
   ActivityType,
   TrainingIntensity,
@@ -177,26 +178,41 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
 
   const trainingSessions = useMemo(() => rawTrainingSessions.filter(s => !s._deleted), [rawTrainingSessions]);
 
+  // Smart defaults: a new session starts from your LAST one (type, intensity,
+  // timing, length, rounds) instead of always "No-Gi · moderate · 60 min".
+  const last = useMemo(() => [...trainingSessions]
+    .filter(t => ['grappling', 'mma', 'striking'].includes(t.category))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0], [trainingSessions]);
+  const defaults = {
+    type: (last?.type ?? 'bjj_nogi') as ActivityType,
+    intensity: (last?.actualIntensity ?? last?.plannedIntensity ?? 'moderate') as TrainingIntensity,
+    timing: (last?.timing ?? 'standalone') as SessionTiming,
+    duration: last?.duration ?? 60,
+    rounds: last?.rounds,
+    roundDuration: last?.roundDuration,
+  };
+
   // UI state
   const [showAddForm, setShowAddForm] = useState(false);
-  const [activeTab, setActiveTab] = useState<'log' | 'combat' | 'lifting'>('log');
+  const [activeTab, setActiveTab] = usePersistentState<'log' | 'combat' | 'lifting'>('ui:grappling-tab', 'log');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [editingIntensityId, setEditingIntensityId] = useState<string | null>(null);
   const [statsPeriod, setStatsPeriod] = useState<'30d' | '3m' | 'year' | 'all'>('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Form state
-  const [formType, setFormType] = useState<ActivityType>('bjj_nogi');
-  const [formIntensity, setFormIntensity] = useState<TrainingIntensity>('moderate');
-  const [formTiming, setFormTiming] = useState<SessionTiming>('standalone');
-  const [formDuration, setFormDuration] = useState(60);
-  const [formRounds, setFormRounds] = useState<number | undefined>(undefined);
-  const [formRoundDuration, setFormRoundDuration] = useState<number | undefined>(undefined);
+  const [formType, setFormType] = useState<ActivityType>(defaults.type);
+  const [formIntensity, setFormIntensity] = useState<TrainingIntensity>(defaults.intensity);
+  const [formTiming, setFormTiming] = useState<SessionTiming>(defaults.timing);
+  const [formDuration, setFormDuration] = useState(defaults.duration);
+  const [formRounds, setFormRounds] = useState<number | undefined>(defaults.rounds);
+  const [formRoundDuration, setFormRoundDuration] = useState<number | undefined>(defaults.roundDuration);
   const [formRPE, setFormRPE] = useState(6);
-  const [formTechniques, setFormTechniques] = useState('');
+  // What you typed survives closing the sheet (12 h), cleared on save.
+  const [formTechniques, setFormTechniques, clearTechDraft] = usePersistentState('draft:mat:techniques', '', { ttlMs: 12 * 3600e3 });
   const [formSubmissions, setFormSubmissions] = useState<number | undefined>(undefined);
   const [formTaps, setFormTaps] = useState<number | undefined>(undefined);
-  const [formNotes, setFormNotes] = useState('');
+  const [formNotes, setFormNotes, clearNotesDraft] = usePersistentState('draft:mat:notes', '', { ttlMs: 12 * 3600e3 });
   // Pre-session check-in state
   const [formSleepQuality, setFormSleepQuality] = useState(3);
   const [formSleepHours, setFormSleepHours] = useState(7);
@@ -373,18 +389,17 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
   // Handlers
   // -----------------------------------------------------------------------
 
-  const resetForm = () => {
-    setFormType('bjj_nogi');
-    setFormIntensity('moderate');
-    setFormTiming('standalone');
-    setFormDuration(60);
-    setFormRounds(undefined);
-    setFormRoundDuration(undefined);
+  const resetForm = (keepDraft = false) => {
+    setFormType(defaults.type);
+    setFormIntensity(defaults.intensity);
+    setFormTiming(defaults.timing);
+    setFormDuration(defaults.duration);
+    setFormRounds(defaults.rounds);
+    setFormRoundDuration(defaults.roundDuration);
+    if (!keepDraft) { clearTechDraft(); clearNotesDraft(); setFormTechniques(''); setFormNotes(''); }
     setFormRPE(6);
-    setFormTechniques('');
     setFormSubmissions(undefined);
     setFormTaps(undefined);
-    setFormNotes('');
     // Reset check-in
     setFormSleepQuality(3);
     setFormSleepHours(7);
@@ -462,7 +477,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
             </div>
           </div>
           <button
-            onClick={() => { resetForm(); setShowAddForm(true); }}
+            onClick={() => { resetForm(true); setShowAddForm(true); }}
             className="btn btn-sm gap-1 bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-500 shadow-lg shadow-emerald-500/25"
           >
             <Plus className="w-4 h-4" />

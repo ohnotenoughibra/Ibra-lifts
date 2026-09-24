@@ -152,4 +152,18 @@ test.describe('Live workout', () => {
     await page.getByRole('button', { name: 'Undo', exact: true }).click();
     await expect(pills(page)).toHaveCount(before);
   });
+
+  test('the rest timer survives pausing mid-rest and can be adjusted', async ({ page }) => {
+    await page.getByRole('spinbutton', { name: 'Weight' }).fill('60');
+    await page.getByRole('spinbutton', { name: 'Reps' }).fill('5');
+    await page.getByRole('button', { name: 'Complete Set' }).click();
+    await expect(page.getByRole('button', { name: 'Skip Rest' })).toBeVisible();
+    await page.getByRole('button', { name: 'Rest 15 seconds more' }).click();
+    await page.getByRole('button', { name: 'Minimize' }).click().catch(() => {});
+    await page.getByRole('button', { name: 'Cancel workout' }).click();
+    await page.getByRole('button', { name: /Pause & Browse/ }).click();
+    await page.getByRole('button', { name: /^Resume/ }).first().click();
+    // still resting after coming back
+    await expect(page.getByRole('button', { name: /Skip Rest/i }).first()).toBeVisible();
+  });
 });

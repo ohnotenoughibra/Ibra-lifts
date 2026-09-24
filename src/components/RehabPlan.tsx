@@ -9,6 +9,7 @@
  * (caution → info → go) and a tracked phase label.
  */
 
+import { usePersistentState } from '@/lib/use-persistent-state';
 import { useMemo, useState } from 'react';
 import {
   ChevronRight, Check, AlertTriangle, Circle, CheckCircle2, Youtube, ArrowLeft, PlayCircle,
@@ -485,7 +486,8 @@ function CheckInView({ injury, switcher, onBack, onSubmit }: {
   const [rom, setRom] = useState(75);
   const [swelling, setSwelling] = useState<'none' | 'mild' | 'moderate' | 'significant'>('none');
   const [completedSession, setCompletedSession] = useState(true);
-  const [notes, setNotes] = useState('');
+  // Typed notes survive closing the tool (12 h); saving resets them to ''.
+  const [notes, setNotes, clearNotesDraft] = usePersistentState('draft:rehab:notes', '', { ttlMs: 12 * 3600e3 });
 
   const submit = () => {
     onSubmit({
@@ -499,6 +501,7 @@ function CheckInView({ injury, switcher, onBack, onSubmit }: {
       completedSession,
       notes: notes.trim() || undefined,
     });
+    clearNotesDraft(); setNotes(''); // logged → drop the draft (sync, before any unmount)
   };
 
   return (

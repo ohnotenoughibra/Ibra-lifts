@@ -1,5 +1,6 @@
 'use client';
 
+import { usePersistentState } from '@/lib/use-persistent-state';
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -168,7 +169,7 @@ export default function InjuryLogger({ onClose, onNavigate }: InjuryLoggerProps)
   // UI state
   const [showAddForm, setShowAddForm] = useState(false);
   const [showResolved, setShowResolved] = useState(false);
-  const [activeTab, setActiveTab] = useState<'log' | 'prevention'>('prevention');
+  const [activeTab, setActiveTab] = usePersistentState<'log' | 'prevention'>('ui:injury-tab', 'prevention');
   const [expandedInjuryId, setExpandedInjuryId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { usePersistentState } from '@/lib/use-persistent-state';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -28,7 +29,7 @@ interface NutritionTrackerProps {
 }
 
 export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+  const [activeTab, setActiveTab] = usePersistentState<Tab>('ui:nutrition-tab', 'dashboard');
   const [showLog, setShowLog] = useState(false);
 
   // Date navigation

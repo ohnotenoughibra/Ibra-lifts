@@ -1,5 +1,6 @@
 'use client';
 
+import { usePersistentState } from '@/lib/use-persistent-state';
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -124,7 +125,7 @@ function ChartTooltip({ active, payload, label }: any) {
 
 export default function NutritionTrends({ meals, macroTargets }: NutritionTrendsProps) {
   const [expanded, setExpanded] = useState(false);
-  const [range, setRange] = useState<TimeRange>('7d');
+  const [range, setRange] = usePersistentState<TimeRange>('ui:nutrition-trends-range', '7d');
   const [activeChart, setActiveChart] = useState<'calories' | 'macros'>('calories');
 
   const dailyData = useMemo(

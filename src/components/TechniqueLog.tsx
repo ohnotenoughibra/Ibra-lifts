@@ -8,6 +8,7 @@
  * its own ToolShell with sticky CTA.
  */
 
+import { usePersistentState } from '@/lib/use-persistent-state';
 import { useMemo, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
@@ -148,7 +149,8 @@ function LogView({ onBack, onLog }: {
   const [reps, setReps] = useState(20);
   const [withResistance, setWithResistance] = useState(false);
   const [partner, setPartner] = useState('');
-  const [notes, setNotes] = useState('');
+  // Typed notes survive closing the tool (12 h); saving resets them to ''.
+  const [notes, setNotes, clearNotesDraft] = usePersistentState('draft:technique:notes', '', { ttlMs: 12 * 3600e3 });
   const { showToast } = useToast();
 
   const submit = () => {
@@ -169,6 +171,7 @@ function LogView({ onBack, onLog }: {
       partnerName: partner.trim() || undefined,
       notes: notes.trim() || undefined,
     });
+    clearNotesDraft(); setNotes(''); // logged → drop the draft (sync, before any unmount)
   };
 
   return (

@@ -217,7 +217,7 @@ export default function ActiveWorkout() {
   // Rest timer — extracted to hook for testability and reuse
   const {
     isResting, restMinimized, setRestMinimized, restTimer, restDuration,
-    startRest, cancelRest, setIsResting,
+    startRest, cancelRest, setIsResting, adjustRest,
   } = useRestTimer(useCallback(() => {
     setLastCompletedExerciseIndex(null);
   }, []));
@@ -2750,6 +2750,10 @@ export default function ActiveWorkout() {
               <span className="text-sm text-grappler-400">{completedSets}/{totalSets} sets</span>
               <span className="text-grappler-600">·</span>
               <span className="text-sm text-grappler-400">{totalVolumeCompleted.toLocaleString()} {weightUnit}</span>
+            </div>
+            <div className="flex items-center gap-3 mb-3">
+              <button onClick={() => adjustRest(-15)} className="btn btn-secondary btn-md min-w-[64px]" aria-label="Rest 15 seconds less">−15s</button>
+              <button onClick={() => adjustRest(15)} className="btn btn-secondary btn-md min-w-[64px]" aria-label="Rest 15 seconds more">+15s</button>
             </div>
             <div className="flex items-center gap-3">
               <button onClick={skipRest} className="btn btn-secondary btn-lg px-8">

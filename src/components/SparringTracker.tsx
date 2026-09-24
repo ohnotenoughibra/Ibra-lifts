@@ -8,6 +8,7 @@
  * pills lose their per-level rainbow.
  */
 
+import { usePersistentState } from '@/lib/use-persistent-state';
 import { useMemo, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
@@ -155,7 +156,8 @@ function LogView({ onBack, onLog }: {
   const [intensity, setIntensity] = useState<SparringIntensity>('moderate');
   const [partnerLevel, setPartnerLevel] = useState<PartnerLevel | undefined>(undefined);
   const [partnerName, setPartnerName] = useState('');
-  const [notes, setNotes] = useState('');
+  // Typed notes survive closing the tool (12 h); saving resets them to ''.
+  const [notes, setNotes, clearNotesDraft] = usePersistentState('draft:sparring:notes', '', { ttlMs: 12 * 3600e3 });
   const { showToast } = useToast();
 
   const submit = () => {
@@ -173,6 +175,7 @@ function LogView({ onBack, onLog }: {
       partnerName: partnerName.trim() || undefined,
       notes: notes.trim() || undefined,
     });
+    clearNotesDraft(); setNotes(''); // logged → drop the draft (sync, before any unmount)
   };
 
   return (

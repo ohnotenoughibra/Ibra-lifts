@@ -256,3 +256,29 @@ Possible on app open: MorningRitual (weekly now — fine), VersionUpgradePopup, 
 - **Observed live (E2E):** "NEW PR!" overlay fires on the very first set ever logged; RPE saved as 9.5 on an untouched set; set-count pill flips 0/2 ↔ 0/4 after a throttled check-in (C4); Esc doesn't close the swap sheet; the full-screen rest overlay blocks all navigation until "Skip Rest".
 - **Also found:** `ai-coach-client.ts`, `nudge-engine.ts`, `monetization-engine.ts`, `db.ts` are documented as shipped but imported by nothing.
 
+
+---
+
+# Part 3 — State continuity ("leave and come back")
+
+**Method:** code sweep for state that resets on unmount/reload (positions, sub-tabs, filters, typed drafts, index keys) + Playwright leave-and-return tests.
+
+## Fixed (2026-09-25)
+| Where | Was | Now |
+|---|---|---|
+| Live workout: moving between exercises | always set 1 (re-logging overwrote a done set) | first open set |
+| Live workout: Pause & Browse / reload | overview again, exercise 1/set 1, throttle re-applied | position, overview state, throttle persisted |
+| Rest timer | lost on pause/reload; `new Notification()` from page (throws on Android, frozen on iOS) | end time persisted (1 h TTL, cleared on start/finish/cancel); SW notifications; −15/+15 s |
+| Main tab + open tool | reload/iOS resume → Today | restored (session storage) incl. tool context |
+| Mat session form | always "No-Gi · moderate · 60 min"; typed techniques/notes lost on close | defaults from your last session; techniques/notes drafted 12 h |
+| Sparring / technique / rehab notes | lost on close | drafted 12 h, cleared on log |
+| Workout Builder (new) | half-built workout lost on close | drafted 24 h, cleared on save |
+| Sub-tabs/filters (Nutrition, Injury, Mat Sessions, Journal, Nutrition trends) | reset every open | remembered |
+
+Tests: `use-persistent-state.test.ts` (6), `e2e/continuity.spec.ts` (tab + tool + draft across reload), live e2e (set cursor, pause/resume, rest across pause).
+
+## Remaining
+- **170 list keys by array index** — harmless until delete/reorder ships; switch to stable set ids with Phase 6 (delete/reorder sets).
+- Drafts not yet persisted: meal logging search (NutritionLogSheet), cycle/photo/benchmark notes, crew name.
+- Scroll position inside long overlays (History, Knowledge) resets on close.
+- RecoveryHub tab comes from the caller (`initialTab`) — can't remember the last tab without a prop change.

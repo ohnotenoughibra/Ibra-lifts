@@ -126,6 +126,11 @@ import { buildPowerPrimer, PRIMER_DRILL_IDS, type PrimerFocus } from './power-pr
  * no history → first-time estimate from baseline lifts; bodyweight lifts →
  * bodyweight. Replaces copying last session's sets verbatim.
  */
+/** The live rest timer persists its end time; a new/finished workout must not inherit it. */
+function clearLiveRest() {
+  try { if (typeof window !== 'undefined') window.localStorage.removeItem('live:rest'); } catch { /* ignore */ }
+}
+
 function plannedLoad(
   exercise: Exercise, targetReps: number, targetRPE: number,
   logs: WorkoutLog[], user: UserProfile | null, baselineLifts: BaselineLifts | null,
@@ -2181,6 +2186,7 @@ export const useAppStore = create<AppState>()(
 
         // Guard: refuse to silently overwrite an active workout
         if (activeWorkout && !force) return false;
+        clearLiveRest();
 
         // Autoregulate: adjust session based on recent feedback (intermediate+ only)
         let activeSession = session;
@@ -2906,6 +2912,7 @@ export const useAppStore = create<AppState>()(
       },
 
       completeWorkout: (feedback) => {
+        clearLiveRest();
         const { activeWorkout, workoutLogs, gamificationStats, currentMesocycle, user, trainingSessions } = get();
         if (!activeWorkout || !user) return;
         // Mesocycle can be null for template/quick workouts — still log the workout
@@ -3206,7 +3213,7 @@ export const useAppStore = create<AppState>()(
         set({ _syncUrgent: true });
       },
 
-      cancelWorkout: () => set({ activeWorkout: null, workoutMinimized: false }),
+      cancelWorkout: () => { clearLiveRest(); set({ activeWorkout: null, workoutMinimized: false }); },
 
       pauseWorkout: () => {
         const { activeWorkout } = get();

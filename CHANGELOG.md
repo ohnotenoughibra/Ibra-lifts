@@ -3,6 +3,31 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.13.0] - 2026-09-24
+
+**No more paywall, a live workout that remembers what you did, blocks that keep their exercises, and a swap sheet that searches everything.**
+
+### Removed
+- **The paywall.** Every feature is free: no Pro badges, locks, upgrade prompts or PayPal checkout; subscription API routes and the PayPal dependency are gone.
+- Four engines nothing imported (AI-coach client, nudge engine, monetization engine, legacy `db.ts`).
+
+### Fixed — live workout
+- **Low-readiness days filed sets under the wrong exercise.** The throttle dropped isolations but kept the old per-position logs; logs now follow the exercise.
+- **Pause → resume** no longer resets you to exercise 1 / set 1, re-shows the check-in, or throttles the session a second time.
+- **Moving between exercises** lands on the first open set instead of set 1 (which let you overwrite a logged set).
+- **Skipping** no longer saves fake 0×0 "too hard" sets that prefilled the next session with 0×0.
+- **Swapping mid-exercise** keeps the sets you already did on the lift you did them on; swaps can be undone.
+- History prefill and PRs respect kg/lbs; bodyweight prefill defaults to kg; untouched RPE is no longer treated as your rating; no "NEW PR!" on a first-ever lift; Discard on a recovered workout asks first.
+
+### Fixed — program generation
+- **Exercises stay the same for the whole block** (they were re-randomised weekly); only sets/reps/load progress.
+- **60-minute sessions keep isolation work** — trimming drops one exercise at a time and refills.
+- **Templates do what they say:** PPL generates push/pull/legs, Bodyweight Only uses no barbell, emphasis templates emphasise, block programs run block periodization, and templates no longer overwrite your profile goal.
+
+### Added
+- **Swap search** across the whole library (and your custom exercises): name, muscle, equipment, shorthand like "db", "rdl", "hams"; "Show more" instead of a hard cap of 8.
+- **Don't recommend** — hide exercises you never want generated or suggested (still searchable); manage them in Settings → Training.
+
 ## [2.12.0] - 2026-09-24
 
 **Guardrails and demolition: tests that pin the known bugs, and ~8,500 lines of UI nobody could reach.**

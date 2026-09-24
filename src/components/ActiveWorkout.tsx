@@ -2624,15 +2624,17 @@ export default function ActiveWorkout() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between mb-3">
-          <button onClick={() => {
-            if (completedSets > 0) {
-              setShowCancelConfirm(true);
-            } else {
-              cancelWorkout();
-            }
-          }} className="btn btn-ghost btn-sm" aria-label="Cancel workout">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            {/* Always confirm — a stray tap on X used to delete an unstarted workout. */}
+            <button onClick={() => setShowCancelConfirm(true)} className="btn btn-ghost btn-sm" aria-label="Cancel workout">
+              <X className="w-5 h-5" />
+            </button>
+            {/* Leave for now: everything (position, rest timer) is kept; resume from any tab. */}
+            <button onClick={() => pauseWorkout()} className="btn btn-ghost btn-sm gap-1 text-grappler-300" aria-label="Leave workout for now">
+              <ChevronDown className="w-5 h-5" />
+              <span className="text-xs">Leave</span>
+            </button>
+          </div>
           <div className="text-center">
             <h1 className="font-bold text-grappler-50">{activeWorkout.session.name}</h1>
             <p className="text-xs text-grappler-400">
@@ -2998,44 +3000,87 @@ export default function ActiveWorkout() {
       <AnimatePresence>
         {isResting && restMinimized && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="fixed top-4 right-4 z-50 safe-area-top"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            className="fixed bottom-0 left-0 right-0 z-50 bg-grappler-900/95 backdrop-blur-lg border-t border-grappler-700 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl shadow-black/40"
+            role="region"
+            aria-label="Rest timer"
           >
-            <button
-              onClick={() => setRestMinimized(false)}
-              className="flex items-center gap-2.5 pl-1.5 pr-3.5 py-1.5 rounded-full bg-grappler-900/90 backdrop-blur-lg border border-grappler-700/50 shadow-lg shadow-black/30 active:scale-95 transition-transform"
-            >
-              {/* Mini circular progress timer */}
-              <div className="relative w-9 h-9 flex-shrink-0">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(100,116,139,0.2)" strokeWidth="2.5" />
-                  <circle
-                    cx="18" cy="18" r="15" fill="none"
-                    strokeWidth="2.5" strokeLinecap="round"
-                    className={cn(
-                      'transition-colors',
-                      restTimer <= 10 && restTimer > 0 ? 'stroke-red-400' : restTimer <= 30 && restTimer > 0 ? 'stroke-yellow-400' : 'stroke-primary-400'
-                    )}
-                    strokeDasharray={2 * Math.PI * 15}
-                    strokeDashoffset={2 * Math.PI * 15 * (1 - restTimer / Math.max(restDuration, 1))}
-                  />
-                </svg>
+            {/* Row 1 — time + controls. The logger above stays usable during rest. */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setRestMinimized(false)}
+                className="flex items-baseline gap-1.5 min-w-[92px] text-left"
+                aria-label="Expand rest timer"
+              >
                 <span className={cn(
-                  'absolute inset-0 flex items-center justify-center text-xs font-bold tabular-nums',
-                  restTimer <= 10 && restTimer > 0 ? 'text-red-400' : restTimer <= 30 && restTimer > 0 ? 'text-yellow-400' : 'text-primary-400'
+                  'text-3xl font-black tabular-nums',
+                  restTimer <= 10 ? 'text-red-400' : restTimer <= 30 ? 'text-yellow-400' : 'text-grappler-50',
                 )}>
-                  {restTimer}
+                  {Math.floor(restTimer / 60)}:{String(restTimer % 60).padStart(2, '0')}
                 </span>
+                <span className="text-xs text-grappler-400">{restTimer <= 10 ? 'Go' : 'rest'}</span>
+              </button>
+              <button onClick={() => adjustRest(-15)} className="btn btn-secondary btn-sm min-h-[44px] min-w-[52px]" aria-label="Rest 15 seconds less">−15</button>
+              <button onClick={() => adjustRest(15)} className="btn btn-secondary btn-sm min-h-[44px] min-w-[52px]" aria-label="Rest 15 seconds more">+15</button>
+              <button onClick={skipRest} className="btn btn-primary btn-sm min-h-[44px] flex-1" aria-label="Skip Rest">Skip</button>
+            </div>
+
+            {/* Row 2 — rate the set you just did (one tap, half steps) */}
+            {undoInfo && activeWorkout.exerciseLogs[undoInfo.exerciseIndex]?.sets[undoInfo.setIndex] && (() => {
+              const done = activeWorkout.exerciseLogs[undoInfo.exerciseIndex].sets[undoInfo.setIndex];
+              const rated = done.rpeSource === 'user' ? done.rpe : null;
+              return (
+                <div className="mt-2">
+                  <p className="text-[11px] text-grappler-400 mb-1">How hard was that set? <span className="text-grappler-500">(RPE)</span></p>
+                  <div className="flex gap-1">
+                    {[7, 7.5, 8, 8.5, 9, 9.5, 10].map(v => (
+                      <button
+                        key={v}
+                        onClick={() => {
+                          const log = activeWorkout.exerciseLogs[undoInfo.exerciseIndex];
+                          updateExerciseLog(undoInfo.exerciseIndex, {
+                            ...log,
+                            sets: log.sets.map((st, i) => i === undoInfo.setIndex ? { ...st, rpe: v, rpeSource: 'user' as const } : st),
+                          });
+                        }}
+                        className={cn(
+                          'flex-1 min-h-[40px] rounded-lg text-sm font-bold tabular-nums transition-colors',
+                          rated === v ? 'bg-primary-500 text-white' : 'bg-grappler-800 text-grappler-300 active:bg-grappler-700',
+                        )}
+                        aria-label={`Rate last set RPE ${v}`}
+                        aria-pressed={rated === v}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Row 3 — what's next, with plates */}
+            {!allExercisesDone && currentSet && !currentSet.completed && (
+              <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+                <p className="text-grappler-300 truncate">
+                  <span className="text-grappler-500">Next:</span>{' '}
+                  {currentExercise.exercise.name} · set {currentSetIndex + 1}/{currentLog.sets.length} ·{' '}
+                  <span className="text-grappler-100 font-semibold">
+                    {currentSet.weight > 0 ? `${formatLoad(currentSet.weight, loadProfile, weightUnit)} × ` : ''}
+                    {formatTarget(currentExercise.prescription.targetReps, currentExercise.exercise)}
+                  </span>
+                </p>
               </div>
-              <span className={cn(
-                'text-xs font-semibold',
-                restTimer <= 10 && restTimer > 0 ? 'text-red-400' : 'text-grappler-300'
-              )}>
-                {restTimer <= 10 && restTimer > 0 ? 'Go!' : 'Rest'}
-              </span>
-            </button>
+            )}
+            {!allExercisesDone && currentSet && !currentSet.completed && loadProfile.implement === 'barbell' && currentSet.weight > 0 && (
+              <div className="mt-1">
+                <MiniPlateCalc weight={currentSet.weight} unit={weightUnit} />
+              </div>
+            )}
+            {allExercisesDone && (
+              <p className="mt-2 text-xs font-medium text-green-400">All sets done — finish when you&apos;re ready.</p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

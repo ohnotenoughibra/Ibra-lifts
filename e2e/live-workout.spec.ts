@@ -159,11 +159,25 @@ test.describe('Live workout', () => {
     await page.getByRole('button', { name: 'Complete Set' }).click();
     await expect(page.getByRole('button', { name: 'Skip Rest' })).toBeVisible();
     await page.getByRole('button', { name: 'Rest 15 seconds more' }).click();
-    await page.getByRole('button', { name: 'Minimize' }).click().catch(() => {});
+    // rest is a slim bottom bar now — the logger header stays reachable
     await page.getByRole('button', { name: 'Cancel workout' }).click();
     await page.getByRole('button', { name: /Pause & Browse/ }).click();
     await page.getByRole('button', { name: /^Resume/ }).first().click();
     // still resting after coming back
     await expect(page.getByRole('button', { name: /Skip Rest/i }).first()).toBeVisible();
+  });
+
+  test('Leave keeps everything and the resume bar shows exactly where you are', async ({ page }) => {
+    await logSet(page, '60', '5');
+    const name = (await pills(page).first().innerText()).replace(/\s*\d+\/\d+$/, '').trim();
+    await page.getByRole('button', { name: 'Leave workout for now' }).click();
+    const bar = page.getByRole('button', { name: 'Resume workout', exact: true });
+    await expect(bar).toBeVisible();
+    await expect(bar).toContainText(name);
+    await expect(bar).toContainText('set 2/');
+    await page.getByRole('tab', { name: 'Progress' }).click();
+    await bar.click();
+    await expect(page.getByRole('button', { name: 'Complete Set' })).toBeVisible();
+    await expect(pills(page).first()).toHaveAccessibleName(/1\/\d+$/);
   });
 });

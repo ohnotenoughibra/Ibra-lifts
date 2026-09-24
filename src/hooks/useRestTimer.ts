@@ -26,7 +26,7 @@ async function notify(title: string, body: string, tag: string) {
 
 export function useRestTimer(onComplete?: () => void) {
   const [rest, setRest] = usePersistentState<{ end: number; dur: number } | null>('live:rest', null, { ttlMs: 60 * 60 * 1000 });
-  const [restMinimized, setRestMinimized] = useState(false);
+  const [restMinimized, setRestMinimized] = useState(true);
   const [, force] = useState(0);
   const warned10sRef = useRef(false);
 
@@ -42,7 +42,8 @@ export function useRestTimer(onComplete?: () => void) {
 
   const startRest = useCallback((durationSeconds: number) => {
     setRest({ end: Date.now() + durationSeconds * 1000, dur: durationSeconds });
-    setRestMinimized(false);
+    // Slim bottom bar by default — the logger stays usable; tap to expand.
+    setRestMinimized(true);
   }, [setRest]);
 
   const cancelRest = useCallback(() => setRest(null), [setRest]);

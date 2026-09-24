@@ -28,6 +28,7 @@ import VersionUpgradePopup from './VersionUpgradePopup';
 import { getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamification';
 // ThemeToggle moved to Settings page — no longer in header
 import { ToastProvider } from './Toast';
+import ResumeWorkoutBar from './ResumeWorkoutBar';
 import { usePersistentState } from '@/lib/use-persistent-state';
 import { HomeTabSkeleton, ProgramTabSkeleton, ExploreTabSkeleton, ProgressTabSkeleton } from './Skeleton';
 import CardErrorBoundary from './CardErrorBoundary';
@@ -1071,33 +1072,8 @@ export default function Dashboard({
         </div>
       </div>
 
-      {/* Paused Workout Resume Banner */}
-      {activeWorkout && workoutMinimized && (
-        <button
-          onClick={resumeWorkout}
-          className="fixed bottom-[68px] lg:bottom-4 lg:left-[272px] left-3 right-3 z-30 safe-area-bottom will-change-transform"
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between bg-primary-500 hover:bg-primary-600 active:scale-[0.98] transition-all rounded-lg px-4 py-3 shadow-lg shadow-primary-500/30"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-                <Play className="w-5 h-5 text-white fill-white" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-white">{activeWorkout.session.name}</p>
-                <p className="text-xs text-white/70 flex items-center gap-1">
-                  <Timer className="w-3 h-3" />
-                  {formatTime(Math.floor((Date.now() - new Date(activeWorkout.startTime).getTime()) / 60000))} elapsed
-                </p>
-              </div>
-            </div>
-            <span className="text-sm font-semibold text-white/90">Resume</span>
-          </motion.div>
-        </button>
-      )}
+      {/* Paused workout: where you are + one tap back in */}
+      {activeWorkout && workoutMinimized && <ResumeWorkoutBar />}
 
       {/* Bottom Navigation — Mobile only (hidden on lg+) */}
       <nav

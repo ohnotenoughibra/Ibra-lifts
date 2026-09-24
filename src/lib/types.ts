@@ -221,6 +221,11 @@ export interface SetLog {
   reps: number;
   rpe: number;
   completed: boolean;
+  // Skipped sets are NOT completed and never count as history (no 0×0 prefill).
+  skipped?: boolean;
+  // Where the RPE value came from. 'prefill' = copied from the prescription and
+  // never touched — the RPE regulator must not treat it as the athlete's rating.
+  rpeSource?: 'user' | 'prefill';
   notes?: string;
   // For time-based exercises (measurementType === 'time'): hold duration in seconds.
   // For rep-based exercises this is undefined and `reps` is the source of truth.

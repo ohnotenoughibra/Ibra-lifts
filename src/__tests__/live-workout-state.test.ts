@@ -10,6 +10,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useAppStore, reconcileLogsToExercises } from '@/lib/store';
 import { applyThrottle } from '@/lib/readiness-throttle';
+import { getPreviousSessionSets, getSuggestedWeight } from '@/lib/auto-adjust';
+import { regulateRPE } from '@/lib/rpe-regulator';
 import type { UserProfile, WorkoutSession, ReadinessScore } from '@/lib/types';
 
 const user = {
@@ -103,5 +105,90 @@ describe('reconcileLogsToExercises', () => {
     expect(out.map(l => l.sets[0].weight)).toEqual([1, 3]);
     expect(out[1].sets).toHaveLength(2);
     expect(out[1].sets.map(s => s.setNumber)).toEqual([1, 2]);
+  });
+});
+
+const past = (id: string, sets: object[], extra: object = {}) => ({
+  id: `log-${Math.random()}`, date: new Date(Date.now() - 86400000), completed: true,
+  duration: 60, totalVolume: 0, overallRPE: 7, soreness: 3, energy: 7,
+  exercises: [{ exerciseId: id, exerciseName: id, personalRecord: false, sets }], ...extra,
+}) as any;
+
+describe('C6 — skipping never poisons history', () => {
+  it('skipped sets are not completed and carry no fake feedback', () => {
+    const log = aw().exerciseLogs[1];
+    // what handleSkipExercise now writes
+    useAppStore.getState().updateExerciseLog(1, { ...log, sets: log.sets.map(s => ({ ...s, skipped: true, completed: false })) });
+    const after = aw().exerciseLogs[1];
+    expect(after.sets.every(s => !s.completed && s.skipped)).toBe(true);
+    expect(after.feedback).toBeUndefined();
+  });
+
+  it('history lookups skip skipped / 0×0 sets and fall back to the last real session', () => {
+    const logs = [
+      past('bench-press', [{ setNumber: 1, weight: 100, reps: 5, rpe: 8, completed: true }]),
+      // legacy shape: skip stored as completed 0×0
+      past('bench-press', [{ setNumber: 1, weight: 0, reps: 0, rpe: 0, completed: true, notes: 'Skipped' }]),
+      // new shape
+      past('bench-press', [{ setNumber: 1, weight: 0, reps: 5, rpe: 8, completed: false, skipped: true }]),
+    ];
+    expect(getPreviousSessionSets('bench-press', logs)).toEqual([{ weight: 100, reps: 5, duration: undefined }]);
+    expect(getSuggestedWeight('bench-press', logs)).toBe(100);
+  });
+});
+
+describe('unit-aware history', () => {
+  it('converts a lbs log into kg for a kg athlete', () => {
+    const logs = [past('bench-press', [{ setNumber: 1, weight: 225, reps: 5, rpe: 8, completed: true }], { weightUnit: 'lbs' })];
+    expect(getPreviousSessionSets('bench-press', logs, 'kg')![0].weight).toBeCloseTo(102.1, 1);
+    expect(getSuggestedWeight('bench-press', logs, 'kg')).toBeCloseTo(102.1, 1);
+    // no unit on the log → value passes through untouched (legacy)
+    const legacy = [past('bench-press', [{ setNumber: 1, weight: 100, reps: 5, rpe: 8, completed: true }])];
+    expect(getSuggestedWeight('bench-press', legacy, 'lbs')).toBe(100);
+  });
+
+  it('bodyweight prefill falls back to kg when the profile has no unit', () => {
+    useAppStore.setState({ user: { ...user, weightUnit: undefined, bodyWeightKg: 80 } as any, activeWorkout: null });
+    const pull = { ...session, exercises: [ex('pull-up', 'compound', 2)] } as WorkoutSession;
+    useAppStore.getState().startWorkout(pull);
+    expect(aw().exerciseLogs[0].sets[0].weight).toBe(80);
+  });
+});
+
+describe('swap keeps performed work', () => {
+  it('mid-exercise swap keeps completed sets on the old lift and continues on the new one', () => {
+    const log0 = aw().exerciseLogs[0];
+    useAppStore.getState().updateExerciseLog(0, { ...log0, sets: log0.sets.map((s, i) => i < 2 ? { ...s, weight: 140, reps: 5, completed: true } : s) });
+    const total = log0.sets.length;
+    const at = useAppStore.getState().swapExercise(0, 'trap-bar-deadlift', 'Trap Bar Deadlift');
+    expect(at).toBe(1);
+    const { session: s, exerciseLogs: logs } = aw();
+    expect(logs[0].exerciseId).toBe('deadlift');
+    expect(logs[0].sets).toHaveLength(2);
+    expect(logs[0].sets.every(x => x.completed && x.weight === 140)).toBe(true);
+    expect(logs[1].exerciseId).toBe('trap-bar-deadlift');
+    expect(logs[1].sets).toHaveLength(total - 2);
+    expect(s.exercises.map(e => e.exerciseId)).toEqual(logs.map(l => l.exerciseId));
+  });
+
+  it('swap before any set replaces in place; undo restores exactly', () => {
+    const before = JSON.stringify({ s: aw().session.exercises.map(e => e.exerciseId), l: aw().exerciseLogs });
+    const at = useAppStore.getState().swapExercise(1, 'hammer-curl', 'Hammer Curl');
+    expect(at).toBe(1);
+    expect(aw().exerciseLogs[1].exerciseId).toBe('hammer-curl');
+    expect(aw().exerciseLogs).toHaveLength(3);
+    expect(useAppStore.getState().undoSwap()).toBe(true);
+    expect(JSON.stringify({ s: aw().session.exercises.map(e => e.exerciseId), l: aw().exerciseLogs })).toBe(before);
+    expect(useAppStore.getState().undoSwap()).toBe(false);
+  });
+});
+
+describe('RPE source', () => {
+  it('new sets are marked prefill; the regulator ignores prefilled RPE', () => {
+    expect(aw().exerciseLogs[0].sets.every(s => s.rpeSource === 'prefill')).toBe(true);
+    const presc = aw().session.exercises[0];
+    const grind = (src: 'user' | 'prefill') => [1, 2].map(n => ({ setNumber: n, weight: 140, reps: 5, rpe: 10, completed: true, rpeSource: src }));
+    expect(regulateRPE(grind('prefill') as any, presc, 'green', 'kg')).toBeNull();
+    expect(regulateRPE(grind('user') as any, presc, 'green', 'kg')).not.toBeNull();
   });
 });

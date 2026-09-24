@@ -42,7 +42,9 @@ export function regulateRPE(
   throttleLevel: ThrottleLevel,
   weightUnit: 'lbs' | 'kg' = 'lbs',
 ): RPERegulation | null {
-  const done = completedSets.filter(s => s.completed);
+  // Only athlete-rated sets: a prefilled RPE is the prescription echoed back,
+  // not feedback — regulating on it would "confirm" every target.
+  const done = completedSets.filter(s => s.completed && !s.skipped && s.rpeSource !== 'prefill');
   if (done.length < 2) return null; // need at least 2 sets to regulate
 
   const targetRpe = prescription.prescription.rpe;
@@ -107,7 +109,9 @@ export function shouldShowRegulation(
   completedSets: SetLog[],
   prescription: ExercisePrescription,
 ): boolean {
-  const done = completedSets.filter(s => s.completed);
+  // Only athlete-rated sets: a prefilled RPE is the prescription echoed back,
+  // not feedback — regulating on it would "confirm" every target.
+  const done = completedSets.filter(s => s.completed && !s.skipped && s.rpeSource !== 'prefill');
   if (done.length < 2) return false;
   const targetRpe = prescription.prescription.rpe;
   const lastTwo = done.slice(-2);

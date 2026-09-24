@@ -97,7 +97,9 @@ function resolveInitialSetWeight(
 ): number {
   if (suggested && suggested > 0) return suggested;
   if (isBodyweightLoadedExercise(exerciseId) && user?.bodyWeightKg && user.bodyWeightKg > 0) {
-    const display = (user.weightUnit || 'lbs') === 'lbs'
+    // Unit fallback must match the rest of the app (kg). 'lbs' here prefilled
+    // a pull-up at 176.4 "kg" for an 80 kg athlete with no unit set.
+    const display = resolveWeightUnit(user.weightUnit) === 'lbs'
       ? user.bodyWeightKg * 2.20462
       : user.bodyWeightKg;
     return Math.round(display * 10) / 10;
@@ -216,6 +218,8 @@ interface AppState {
     // Session position + overview state survive pause/minimize/reload.
     overviewDone?: boolean;
     position?: { exerciseIndex: number; setIndex: number };
+    // One-level undo for the last in-workout swap.
+    swapUndo?: { session: WorkoutSession; exerciseLogs: ExerciseLog[] };
   } | null;
   workoutMinimized: boolean; // When true, workout is paused and user can browse app
   workoutLogs: WorkoutLog[];
@@ -439,7 +443,9 @@ interface AppState {
   markWorkoutOverviewDone: () => void;
   updateExerciseLog: (exerciseIndex: number, log: ExerciseLog) => void;
   updateExerciseFeedback: (exerciseIndex: number, feedback: ExerciseFeedback) => void;
-  swapExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => void;
+  /** Returns the index of the exercise the athlete should continue on. */
+  swapExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => number | void;
+  undoSwap: () => boolean;
   addBonusExercise: (exercise: Exercise, sets: number, reps: number) => void;
   swapProgramExercise: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
   adaptWorkoutToProfile: (profile: EquipmentProfileName) => void;
@@ -2133,9 +2139,10 @@ export const useAppStore = create<AppState>()(
 
         // Pre-fill weights from previous session using auto-adjust
         const exerciseLogs = activeSession.exercises.map((ex) => {
-          const suggestedWeight = getSuggestedWeight(ex.exerciseId, workoutLogs);
+          const unit = resolveWeightUnit(user?.weightUnit);
+          const suggestedWeight = getSuggestedWeight(ex.exerciseId, workoutLogs, unit);
           // Get per-set data from previous session to prefill reps individually
-          const previousSets = getPreviousSessionSets(ex.exerciseId, workoutLogs);
+          const previousSets = getPreviousSessionSets(ex.exerciseId, workoutLogs, unit);
           // For time-based exercises, the "target" is seconds; prefill duration
           // from last session (if logged) or fall back to prescription target.
           const isTimeBased = ex.exercise.measurementType === 'time';
@@ -2147,6 +2154,7 @@ export const useAppStore = create<AppState>()(
               weight: previousSets?.[i]?.weight ?? resolveInitialSetWeight(ex.exerciseId, suggestedWeight, user),
               reps: previousSets?.[i]?.reps ?? ex.prescription.targetReps,
               rpe: ex.prescription.rpe,
+              rpeSource: 'prefill' as const,
               completed: false,
               ...(isTimeBased
                 ? {
@@ -2285,56 +2293,72 @@ export const useAppStore = create<AppState>()(
       },
 
       swapExercise: (exerciseIndex, newExerciseId, newExerciseName) => {
-        const { activeWorkout } = get();
+        const { activeWorkout, workoutLogs, user } = get();
         if (!activeWorkout) return;
+        const oldLog = activeWorkout.exerciseLogs[exerciseIndex];
+        const oldPrescription = activeWorkout.session.exercises[exerciseIndex];
+        if (!oldLog || !oldPrescription) return;
 
-        // Update logs — prefill weight from history if available
-        const updatedLogs = [...activeWorkout.exerciseLogs];
-        const oldLog = updatedLogs[exerciseIndex];
-        const { workoutLogs } = get();
-        const swapSuggestedWeight = resolveInitialSetWeight(newExerciseId, getSuggestedWeight(newExerciseId, workoutLogs), get().user);
-        const oldPrescriptionForSwap = activeWorkout.session.exercises[exerciseIndex];
-        const targetReps = oldPrescriptionForSwap?.prescription?.targetReps ?? 0;
-        updatedLogs[exerciseIndex] = {
-          ...oldLog,
-          exerciseId: newExerciseId,
-          exerciseName: newExerciseName,
-          sets: oldLog.sets.map(s => ({ ...s, weight: swapSuggestedWeight, reps: targetReps, completed: false })),
-          personalRecord: false,
-          estimated1RM: undefined,
-          feedback: undefined
-        };
-
-        // Also update the session exercises so the UI reflects the new exercise
-        const updatedSession = { ...activeWorkout.session };
-        const updatedExercises = [...updatedSession.exercises];
-        const oldPrescription = updatedExercises[exerciseIndex];
-
-        // Find the full exercise data from the exercises database
-        const foundExercise = getExerciseById(newExerciseId);
+        const unit = resolveWeightUnit(user?.weightUnit);
+        const suggested = resolveInitialSetWeight(newExerciseId, getSuggestedWeight(newExerciseId, workoutLogs, unit), user);
+        const targetReps = oldPrescription.prescription?.targetReps ?? 0;
+        const foundExercise = getExerciseById(newExerciseId)
+          ?? getAllExercises().find(e => e.id === newExerciseId);
         const newExercise = foundExercise || { ...oldPrescription.exercise, id: newExerciseId, name: newExerciseName };
 
-        updatedExercises[exerciseIndex] = {
-          ...oldPrescription,
-          exerciseId: newExerciseId,
-          exercise: newExercise
+        const done = oldLog.sets.filter(s => s.completed).length;
+        const remaining = done === 0 ? oldLog.sets.length : Math.max(1, oldLog.sets.length - done);
+        const freshSets = (n: number) => Array.from({ length: n }, (_, i) => ({
+          setNumber: i + 1, weight: suggested, reps: targetReps,
+          rpe: oldPrescription.prescription.rpe, rpeSource: 'prefill' as const, completed: false,
+        }));
+        const newLog: ExerciseLog = {
+          exerciseId: newExerciseId, exerciseName: newExercise.name ?? newExerciseName,
+          sets: freshSets(remaining), personalRecord: false,
         };
-        // Re-run injury throttling over the new list. Spreading oldPrescription
-        // carried the replaced exercise's reduced sets, capped RPE and caution
-        // note onto whatever you swapped in — so swapping AWAY from a flagged
-        // movement kept the punishment, and swapping INTO one got no throttle.
-        updatedSession.exercises = applyInjuryAdaptationsToExercises(
-          updatedExercises,
-          getActiveInjuryAdaptations(get().injuryLog)
-        );
+        const newPrescription = { ...oldPrescription, exerciseId: newExerciseId, exercise: newExercise, sets: remaining };
+
+        const exercises = [...activeWorkout.session.exercises];
+        const logs = [...activeWorkout.exerciseLogs];
+        let continueAt = exerciseIndex;
+        if (done === 0) {
+          // Nothing performed yet — replace in place.
+          exercises[exerciseIndex] = newPrescription;
+          logs[exerciseIndex] = newLog;
+        } else {
+          // Sets already performed belong to the OLD lift. Keep them there
+          // (trim its pending sets) and continue with the new lift right after.
+          // Previously every set was rewritten to the new exercise and marked
+          // incomplete, silently deleting the work already done.
+          exercises[exerciseIndex] = { ...oldPrescription, sets: done };
+          logs[exerciseIndex] = { ...oldLog, sets: oldLog.sets.filter(s => s.completed) };
+          exercises.splice(exerciseIndex + 1, 0, newPrescription);
+          logs.splice(exerciseIndex + 1, 0, newLog);
+          continueAt = exerciseIndex + 1;
+        }
 
         set({
           activeWorkout: {
             ...activeWorkout,
-            session: updatedSession,
-            exerciseLogs: updatedLogs
-          }
+            swapUndo: { session: activeWorkout.session, exerciseLogs: activeWorkout.exerciseLogs },
+            session: {
+              ...activeWorkout.session,
+              // Re-run injury throttling over the new list so the swapped-in lift
+              // gets its own adaptation (not the replaced lift's).
+              exercises: applyInjuryAdaptationsToExercises(exercises, getActiveInjuryAdaptations(get().injuryLog)),
+            },
+            exerciseLogs: logs,
+          },
         });
+        return continueAt;
+      },
+
+      undoSwap: () => {
+        const { activeWorkout } = get();
+        if (!activeWorkout?.swapUndo) return false;
+        const { session, exerciseLogs } = activeWorkout.swapUndo;
+        set({ activeWorkout: { ...activeWorkout, session, exerciseLogs, swapUndo: undefined } });
+        return true;
       },
 
       addBonusExercise: (exercise, sets, reps) => {
@@ -2354,7 +2378,7 @@ export const useAppStore = create<AppState>()(
           },
         };
 
-        const bonusSuggestedWeight = resolveInitialSetWeight(exercise.id, getSuggestedWeight(exercise.id, get().workoutLogs), get().user);
+        const bonusSuggestedWeight = resolveInitialSetWeight(exercise.id, getSuggestedWeight(exercise.id, get().workoutLogs, resolveWeightUnit(get().user?.weightUnit)), get().user);
         const newLog: ExerciseLog = {
           exerciseId: exercise.id,
           exerciseName: exercise.name,
@@ -2690,7 +2714,7 @@ export const useAppStore = create<AppState>()(
               ? existingLog.sets.map(s => ({ ...s }))
               : Array.from({ length: ex.sets }, (_, si) => ({
                   setNumber: si + 1,
-                  weight: resolveInitialSetWeight(ex.exerciseId, getSuggestedWeight(ex.exerciseId, workoutLogs), get().user),
+                  weight: resolveInitialSetWeight(ex.exerciseId, getSuggestedWeight(ex.exerciseId, workoutLogs, resolveWeightUnit(get().user?.weightUnit)), get().user),
                   reps: ex.prescription.targetReps,
                   rpe: ex.prescription.rpe,
                   completed: false,
@@ -2734,7 +2758,7 @@ export const useAppStore = create<AppState>()(
               exerciseId: compatibleAlt.id,
               exercise: compatibleAlt,
             };
-            const suggestedWeight = resolveInitialSetWeight(compatibleAlt.id, getSuggestedWeight(compatibleAlt.id, workoutLogs), get().user);
+            const suggestedWeight = resolveInitialSetWeight(compatibleAlt.id, getSuggestedWeight(compatibleAlt.id, workoutLogs, resolveWeightUnit(get().user?.weightUnit)), get().user);
             updatedLogs[i] = {
               exerciseId: compatibleAlt.id,
               exerciseName: compatibleAlt.name,

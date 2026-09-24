@@ -546,7 +546,9 @@ export default function Dashboard({
     }
     return (
       <CardErrorBoundary fallbackLabel="Active workout" fullScreen secondaryAction={cancelEscape}>
-        <ActiveWorkout />
+        <ToastProvider>
+          <ActiveWorkout />
+        </ToastProvider>
       </CardErrorBoundary>
     );
   }

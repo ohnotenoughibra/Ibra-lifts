@@ -91,4 +91,25 @@ test.describe('Live workout', () => {
     expect(secondName).not.toBe('');
     await expect(page.getByRole('heading', { name: secondName, exact: true })).toBeVisible();
   });
+
+  test('a first-ever set is not celebrated as a PR', async ({ page }) => {
+    await page.getByRole('spinbutton', { name: 'Weight' }).fill('60');
+    await page.getByRole('spinbutton', { name: 'Reps' }).fill('5');
+    await page.getByRole('button', { name: 'Complete Set' }).click();
+    await expect(page.getByRole('button', { name: 'Skip Rest' })).toBeVisible();
+    await expect(page.getByText('NEW PR!')).not.toBeVisible();
+  });
+
+  test('swapping mid-exercise keeps the logged set, and undo restores the plan', async ({ page }) => {
+    const before = await pills(page).count();
+    await logSet(page, '60', '5');
+    await page.getByRole('button', { name: 'Swap exercise' }).last().click();
+    await page.getByRole('button', { name: /\d+%/ }).first().click();
+    // performed set stays on the original lift; the new lift is inserted after it
+    await expect(pills(page)).toHaveCount(before + 1);
+    await expect(pills(page).first()).toHaveAccessibleName(/1\/1$/);
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect(pills(page)).toHaveCount(before);
+    await expect(pills(page).first()).toHaveAccessibleName(/1\/\d+$/);
+  });
 });

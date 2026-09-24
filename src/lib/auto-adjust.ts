@@ -8,8 +8,10 @@ import {
   WorkoutSession,
   ExercisePrescription,
   WhoopWorkout,
-  WearableData
+  WearableData,
+  WeightUnit,
 } from './types';
+import { convertWeight } from './units';
 
 // RP-style auto-adjustment engine
 // Analyzes previous workout feedback and adjusts next workout parameters
@@ -468,21 +470,37 @@ export function applyAdjustmentsToSession(
 }
 
 // Get suggested weight for next session based on previous performance
+/**
+ * A set that actually happened: completed, not skipped, and with work in it.
+ * Skipped exercises used to be stored as "completed 0×0" sets, which then
+ * prefilled the next session with 0×0 — history lookups must ignore them.
+ */
+export function isPerformedSet(s: { completed: boolean; skipped?: boolean; reps: number; duration?: number }): boolean {
+  return s.completed && !s.skipped && (s.reps > 0 || (s.duration ?? 0) > 0);
+}
+
+/** Convert a logged weight into `targetUnit` when the log recorded its unit. */
+function toUnit(weight: number, log: WorkoutLog, targetUnit?: WeightUnit): number {
+  if (!targetUnit || !log.weightUnit || log.weightUnit === targetUnit) return weight;
+  return Math.round(convertWeight(weight, log.weightUnit, targetUnit) * 10) / 10;
+}
+
 export function getSuggestedWeight(
   exerciseId: string,
-  previousLogs: WorkoutLog[]
+  previousLogs: WorkoutLog[],
+  targetUnit?: WeightUnit,
 ): number | null {
   // Find the most recent log containing this exercise (search from newest to oldest)
   const sortedLogs = [...previousLogs].reverse();
   for (const log of sortedLogs) {
     const exerciseLog = log.exercises.find(e => e.exerciseId === exerciseId);
     if (exerciseLog && exerciseLog.sets.length > 0) {
-      // Only consider completed sets to avoid pre-filled/carry-over weights
-      const completedSets = exerciseLog.sets.filter(s => s.completed);
+      // Only consider performed sets to avoid pre-filled/carry-over/skipped weights
+      const completedSets = exerciseLog.sets.filter(isPerformedSet);
       if (completedSets.length === 0) continue;
 
-      // Get the working weight (highest weight from completed sets)
-      const maxWeight = completedSets.reduce((max, s) => Math.max(max, s.weight), 0);
+      // Get the working weight (highest weight from completed sets), in the athlete's current unit
+      const maxWeight = toUnit(completedSets.reduce((max, s) => Math.max(max, s.weight), 0), log, targetUnit);
 
       // If they had feedback
       if (exerciseLog.feedback) {
@@ -508,15 +526,16 @@ export function getSuggestedWeight(
 // Used to prefill each set individually instead of using the same weight for all
 export function getPreviousSessionSets(
   exerciseId: string,
-  previousLogs: WorkoutLog[]
+  previousLogs: WorkoutLog[],
+  targetUnit?: WeightUnit,
 ): { weight: number; reps: number; duration?: number }[] | null {
   const sortedLogs = [...previousLogs].reverse();
   for (const log of sortedLogs) {
     const exerciseLog = log.exercises.find(e => e.exerciseId === exerciseId);
     if (exerciseLog && exerciseLog.sets.length > 0) {
-      const completedSets = exerciseLog.sets.filter(s => s.completed);
+      const completedSets = exerciseLog.sets.filter(isPerformedSet);
       if (completedSets.length === 0) continue;
-      return completedSets.map(s => ({ weight: s.weight, reps: s.reps, duration: s.duration }));
+      return completedSets.map(s => ({ weight: toUnit(s.weight, log, targetUnit), reps: s.reps, duration: s.duration }));
     }
   }
   return null;

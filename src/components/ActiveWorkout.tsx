@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore, type ActiveWorkoutThrottle } from '@/lib/store';
+import { useToast } from './Toast';
 import { useShallow } from 'zustand/react/shallow';
 import { useSwipe } from '@/lib/use-swipe';
 import { useRestTimer } from '@/hooks/useRestTimer';
@@ -42,7 +43,7 @@ import {
   ArrowLeftRight,
 } from 'lucide-react';
 import { cn, formatTime } from '@/lib/utils';
-import { resolveWeightUnit, weightIncrement as getWeightIncrement, barWeight as getBarWeight } from '@/lib/units';
+import { resolveWeightUnit, convertWeight, weightIncrement as getWeightIncrement, barWeight as getBarWeight } from '@/lib/units';
 import { carryOverLoad, prescribedPercentOf1RM } from '@/lib/load-model';
 import { BufferedNumberInput } from './BufferedNumberInput';
 import { calculate1RM, getVolumeGaps } from '@/lib/workout-generator';
@@ -158,7 +159,7 @@ export default function ActiveWorkout() {
   const {
     activeWorkout, user, updateExerciseLog, completeWorkout, cancelWorkout, pauseWorkout,
     setPreCheckIn, updateExerciseFeedback, swapExercise, addBonusExercise, adaptWorkoutToProfile,
-    applyReadinessThrottle, setWorkoutPosition, markWorkoutOverviewDone,
+    applyReadinessThrottle, setWorkoutPosition, markWorkoutOverviewDone, undoSwap,
     activeEquipmentProfile, latestWhoopData, wearableHistory, applyWhoopAdjustment,
     baselineLifts
   } = useAppStore(
@@ -168,7 +169,7 @@ export default function ActiveWorkout() {
       setPreCheckIn: s.setPreCheckIn, updateExerciseFeedback: s.updateExerciseFeedback,
       swapExercise: s.swapExercise, addBonusExercise: s.addBonusExercise, adaptWorkoutToProfile: s.adaptWorkoutToProfile,
       applyReadinessThrottle: s.applyReadinessThrottle, setWorkoutPosition: s.setWorkoutPosition,
-      markWorkoutOverviewDone: s.markWorkoutOverviewDone,
+      markWorkoutOverviewDone: s.markWorkoutOverviewDone, undoSwap: s.undoSwap,
       activeEquipmentProfile: s.activeEquipmentProfile, latestWhoopData: s.latestWhoopData,
       wearableHistory: s.wearableHistory, applyWhoopAdjustment: s.applyWhoopAdjustment,
       baselineLifts: s.baselineLifts,
@@ -193,6 +194,7 @@ export default function ActiveWorkout() {
   const injuryLog = useAppStore(s => s.injuryLog);
   const injuryAdaptations = useMemo(() => getActiveInjuryAdaptations(injuryLog), [injuryLog]);
   const hasActiveInjuries = injuryAdaptations.classifications.length > 0;
+  const { showToast } = useToast();
   // Position + overview state are persisted on activeWorkout so pausing
   // ("Pause & Browse" unmounts this component) or a reload resumes in place.
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(
@@ -515,7 +517,8 @@ export default function ActiveWorkout() {
     const current = newSets[currentSetIndex][field] || 0;
     newSets[currentSetIndex] = {
       ...newSets[currentSetIndex],
-      [field]: Math.max(0, (current as number) + delta)
+      [field]: Math.max(0, (current as number) + delta),
+      ...(field === 'rpe' ? { rpeSource: 'user' as const } : {}),
     };
     updateExerciseLog(currentExerciseIndex, { ...currentLog, sets: newSets });
   };
@@ -524,7 +527,8 @@ export default function ActiveWorkout() {
     const newSets = [...currentLog.sets];
     newSets[currentSetIndex] = {
       ...newSets[currentSetIndex],
-      [field]: Math.max(0, value)
+      [field]: Math.max(0, value),
+      ...(field === 'rpe' ? { rpeSource: 'user' as const } : {}),
     };
     updateExerciseLog(currentExerciseIndex, { ...currentLog, sets: newSets });
   };
@@ -651,6 +655,7 @@ export default function ActiveWorkout() {
         weight: newSets[currentSetIndex].weight,
         reps: newSets[currentSetIndex].reps,
         rpe: newSets[currentSetIndex + 1].rpe || newSets[currentSetIndex].rpe,
+        rpeSource: 'prefill' as const,
         ...(isTimeBased && newSets[currentSetIndex].duration !== undefined
           ? { duration: newSets[currentSetIndex].duration }
           : {}),
@@ -679,7 +684,8 @@ export default function ActiveWorkout() {
           }
         }
       }
-      isPR = currentDuration > 0 && (!hasHistoryForExercise || currentDuration > previousBestDuration);
+      isPR = currentDuration > 0 && hasHistoryForExercise
+        && currentDuration > Math.max(previousBestDuration, currentLog.bestDuration || 0);
       bestDuration = Math.max(currentLog.bestDuration || 0, currentDuration);
     } else {
       estimated1RM = calculate1RM(currentSet.weight, currentSet.reps);
@@ -689,11 +695,18 @@ export default function ActiveWorkout() {
         for (const ex of log.exercises) {
           if (ex.exerciseId === currentLog.exerciseId && ex.estimated1RM) {
             hasHistoryForExercise = true;
-            previousBest1RM = Math.max(previousBest1RM, ex.estimated1RM);
+            // History may be in the other unit (athlete switched kg↔lbs)
+            const e1rm = log.weightUnit && log.weightUnit !== weightUnit
+              ? convertWeight(ex.estimated1RM, log.weightUnit, weightUnit)
+              : ex.estimated1RM;
+            previousBest1RM = Math.max(previousBest1RM, e1rm);
           }
         }
       }
-      isPR = currentSet.weight > 0 && (!hasHistoryForExercise || estimated1RM > previousBest1RM);
+      // A first-ever lift isn't a record, and each set must beat the session's
+      // own best too — otherwise every heavier set re-fires the celebration.
+      isPR = currentSet.weight > 0 && hasHistoryForExercise
+        && estimated1RM > Math.max(previousBest1RM, currentLog.estimated1RM || 0);
     }
 
     updateExerciseLog(currentExerciseIndex, {
@@ -851,26 +864,32 @@ export default function ActiveWorkout() {
   };
 
   const handleSwapExercise = (newExerciseId: string, newExerciseName: string) => {
-    swapExercise(currentExerciseIndex, newExerciseId, newExerciseName);
+    const from = { ex: currentExerciseIndex, set: currentSetIndex };
+    const continueAt = swapExercise(currentExerciseIndex, newExerciseId, newExerciseName);
     setShowSwapModal(false);
+    if (typeof continueAt === 'number') {
+      setCurrentExerciseIndex(continueAt);
+      if (continueAt !== from.ex) setCurrentSetIndex(0);
+    }
+    showToast(`Swapped to ${newExerciseName}`, 'success', {
+      label: 'Undo',
+      onClick: () => {
+        if (undoSwap()) {
+          setCurrentExerciseIndex(from.ex);
+          setCurrentSetIndex(from.set);
+        }
+      },
+    });
   };
 
   const handleSkipExercise = () => {
-    // Mark all remaining (incomplete) sets as completed with 0 weight/reps
+    // Remaining sets are marked skipped — NOT completed. They used to be saved
+    // as completed 0×0 with a fake 'too_hard' rating, which prefilled the next
+    // session with 0×0 and fed a bogus signal to autoregulation.
     const skippedSets = currentLog.sets.map(s =>
-      s.completed ? s : { ...s, weight: 0, reps: 0, rpe: 0, completed: true, notes: 'Skipped' }
+      s.completed ? s : { ...s, skipped: true, completed: false, notes: 'Skipped' }
     );
-    updateExerciseLog(currentExerciseIndex, {
-      ...currentLog,
-      sets: skippedSets,
-      feedback: {
-        exerciseId: currentLog.exerciseId,
-        pumpRating: 0,
-        difficulty: 'too_hard' as const,
-        jointPain: false,
-        wantToSwap: false,
-      },
-    });
+    updateExerciseLog(currentExerciseIndex, { ...currentLog, sets: skippedSets });
     // Move to next exercise if not on last one
     if (currentExerciseIndex < activeWorkout.session.exercises.length - 1) {
       setCurrentExerciseIndex(currentExerciseIndex + 1);
@@ -1012,8 +1031,9 @@ export default function ActiveWorkout() {
   };
 
   const totalSets = activeWorkout.exerciseLogs.reduce((sum, log) => sum + log.sets.length, 0);
+  // "Resolved" = performed or deliberately skipped; both count toward progress.
   const completedSets = activeWorkout.exerciseLogs.reduce(
-    (sum, log) => sum + log.sets.filter(s => s.completed).length,
+    (sum, log) => sum + log.sets.filter(s => s.completed || s.skipped).length,
     0
   );
   const progress = (completedSets / totalSets) * 100;
@@ -1022,10 +1042,10 @@ export default function ActiveWorkout() {
   const isLastExercise = currentExerciseIndex === activeWorkout.session.exercises.length - 1;
   // Check if ALL exercises are fully completed (not just current index position)
   const allExercisesDone = activeWorkout.exerciseLogs.every(
-    log => log.sets.every(s => s.completed)
+    log => log.sets.every(s => s.completed || s.skipped)
   );
   const hasIncompleteExercises = activeWorkout.exerciseLogs.some(
-    (log, i) => i !== currentExerciseIndex && log.sets.some(s => !s.completed)
+    (log, i) => i !== currentExerciseIndex && log.sets.some(s => !s.completed && !s.skipped)
   );
   const isWorkoutComplete = allExercisesDone;
 
@@ -1437,10 +1457,7 @@ export default function ActiveWorkout() {
                       Continue Workout
                     </button>
                     <button
-                      onClick={() => {
-                        setShowDraftRecovery(false);
-                        cancelWorkout();
-                      }}
+                      onClick={() => setShowCancelConfirm(true)}
                       className="btn btn-sm btn-secondary"
                     >
                       Discard
@@ -2329,6 +2346,7 @@ export default function ActiveWorkout() {
           const handleOverviewSwap = (newExerciseId: string, newExerciseName: string) => {
             swapExercise(overviewSwapIndex, newExerciseId, newExerciseName);
             setOverviewSwapIndex(null);
+            showToast(`Swapped to ${newExerciseName}`, 'success', { label: 'Undo', onClick: () => { undoSwap(); } });
           };
           return (
             <motion.div
@@ -3401,7 +3419,8 @@ export default function ActiveWorkout() {
               const log = activeWorkout.exerciseLogs[i];
               const completedSetsCount = log?.sets.filter(s => s.completed).length ?? 0;
               const totalSetsCount = log?.sets.length ?? ex.sets;
-              const allDone = completedSetsCount === totalSetsCount && totalSetsCount > 0;
+              const resolvedCount = log?.sets.filter(s => s.completed || s.skipped).length ?? 0;
+              const allDone = resolvedCount === totalSetsCount && totalSetsCount > 0;
               return (
                 <button
                   key={i}

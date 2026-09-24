@@ -391,6 +391,21 @@ export function getExerciseInsight(
 // ─── Private: find a named alternative for insight text ─────────────────────
 
 /**
+ * Well-known alternatives per movement pattern, used only for insight copy.
+ * Every id MUST exist in the exercise library — enforced by
+ * src/__tests__/exercise-ids.test.ts (a missing id silently yields no insight).
+ */
+export const WELL_KNOWN_ALTERNATIVES: Record<MovementPattern, string[]> = {
+  push: ['bench-press', 'dumbbell-press', 'overhead-press', 'incline-bench-press'],
+  pull: ['barbell-row', 'pull-up', 'cable-row', 'dumbbell-row'],
+  squat: ['back-squat', 'front-squat', 'goblet-squat', 'leg-press'],
+  hinge: ['deadlift', 'trap-bar-deadlift', 'romanian-deadlift', 'hip-thrust'],
+  carry: ['farmers-walk', 'suitcase-carry', 'sandbag-carry'],
+  rotation: ['cable-woodchop', 'landmine-rotation', 'med-ball-rotational-throw'],
+  explosive: ['box-jump', 'power-clean', 'push-press', 'kettlebell-swing'],
+};
+
+/**
  * Find the name of an alternative exercise with the same movement pattern,
  * for use in insight strings. Returns null if no alternative is found.
  */
@@ -398,20 +413,8 @@ function findAlternativeExerciseName(
   pattern: MovementPattern,
   excludeId: string,
 ): string | null {
-  // We import exercises indirectly via getExerciseById to avoid pulling
-  // the entire 3900-line file. Instead, we check a few well-known IDs.
-  // This is intentionally lightweight — a full search would be expensive.
-  const wellKnownAlternatives: Record<MovementPattern, string[]> = {
-    push: ['barbell-bench-press', 'dumbbell-bench-press', 'overhead-press', 'incline-bench-press'],
-    pull: ['barbell-row', 'pull-up', 'cable-row', 'dumbbell-row'],
-    squat: ['barbell-back-squat', 'front-squat', 'goblet-squat', 'leg-press'],
-    hinge: ['conventional-deadlift', 'trap-bar-deadlift', 'romanian-deadlift', 'hip-thrust'],
-    carry: ['farmers-walk', 'suitcase-carry', 'overhead-carry'],
-    rotation: ['cable-woodchop', 'landmine-rotation', 'russian-twist'],
-    explosive: ['box-jump', 'power-clean', 'push-press', 'kettlebell-swing'],
-  };
 
-  const candidates = wellKnownAlternatives[pattern] ?? [];
+  const candidates = WELL_KNOWN_ALTERNATIVES[pattern] ?? [];
   for (const id of candidates) {
     if (id === excludeId) continue;
     const ex = getExerciseById(id);

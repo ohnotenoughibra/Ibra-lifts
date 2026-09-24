@@ -126,7 +126,6 @@ Living map of how the pieces connect. When you need to change something, look he
 |-------|------|---------|
 | Competition prep | `src/components/CompetitionPrep.tsx` | Competition timeline, weight cut planning |
 | Grappling tracker | `src/components/GrapplingTracker.tsx` | BJJ/wrestling session logging |
-| Fighter's mind | `src/components/FightersMind.tsx` | Mental check-ins, confidence tracking |
 | Concurrent training | `src/lib/concurrent-training.ts` | ACWR (Acute:Chronic load), gym + combat interference management |
 | Conditioning | `src/lib/conditioning-templates.ts` | Grappler-specific conditioning protocols |
 | Fight camp engine | `src/lib/fight-camp-engine.ts` | Competition within 70 days triggers fight camp mode |
@@ -159,7 +158,6 @@ Living map of how the pieces connect. When you need to change something, look he
 | Mesocycle report | `src/lib/mesocycle-report.ts` | End-of-block summary (volume, intensity, PRs) |
 | Volume landmarks | `src/lib/volume-landmarks.ts` | MEV/MAV/MRV per muscle group |
 | Force-velocity | `src/lib/force-velocity.ts` | Power/strength profiling |
-| Progress UI | `src/components/ProgressCharts.tsx` | Charts and visualizations |
 | Strength analysis | `src/components/StrengthAnalysis.tsx` | Detailed strength metrics |
 
 ---

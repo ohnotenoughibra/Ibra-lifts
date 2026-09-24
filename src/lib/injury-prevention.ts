@@ -38,13 +38,13 @@ export interface InjuryAnalysis {
 }
 
 // High-risk movement patterns for common grappling injuries
-const HIGH_RISK_PATTERNS = {
+export const HIGH_RISK_PATTERNS = {
   neck: ['neck-curl', 'shrug', 'upright-row'],
-  shoulder: ['overhead-press', 'lateral-raise', 'bench-press', 'dips'],
+  shoulder: ['overhead-press', 'lateral-raise', 'bench-press', 'dip'],
   elbow: ['skull-crusher', 'preacher-curl', 'tricep-extension'],
   wrist: ['wrist-curl', 'reverse-wrist-curl'],
   knee: ['leg-extension', 'leg-press', 'squat', 'lunges'],
-  lower_back: ['deadlift', 'romanian-deadlift', 'good-morning', 'bent-row'],
+  lower_back: ['deadlift', 'romanian-deadlift', 'good-morning', 'barbell-row', 'pendlay-row'],
 };
 
 // Muscle groups that need balance

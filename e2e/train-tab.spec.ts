@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import { onboard } from './helpers';
 
 /**
  * Train tab E2E — the UI flows the coverage audit flagged as untestable
@@ -8,21 +9,6 @@ import { test, expect, Page } from '@playwright/test';
  * The app is local-first: each test onboards a fresh profile, which also
  * auto-generates the first training block.
  */
-
-async function onboard(page: Page) {
-  await page.goto('/');
-  await page.getByRole('button', { name: /Combat Athlete/ }).click();
-  await page.getByRole('button', { name: /^MMA/ }).click();
-  await page.getByRole('button', { name: 'Get Stronger' }).click();
-  await page.getByPlaceholder('Your name').fill('E2E');
-  await page.getByRole('spinbutton').fill('80');
-  await page.getByRole('button', { name: 'M', exact: true }).click();
-  await page.getByRole('button', { name: '1-3y' }).click();
-  await page.getByRole('button', { name: /I train at my own risk/ }).click();
-  await page.getByRole('button', { name: "Let's Go" }).click();
-  // Dashboard mounts when the bottom tab bar appears
-  await expect(page.getByRole('tab', { name: 'Train' })).toBeVisible({ timeout: 20_000 });
-}
 
 async function openTrainTab(page: Page) {
   await page.getByRole('tab', { name: 'Train' }).click();

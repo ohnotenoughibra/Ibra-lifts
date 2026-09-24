@@ -398,24 +398,24 @@ export function detectPlateaus(workoutLogs: WorkoutLog[]): PlateauAnalysis[] {
 
 // Strength standards by weight class (in kg) for combat athletes
 // Based on powerlifting/S&C standards adjusted for combat sport population
-const COMBAT_BENCHMARKS: Record<string, Record<string, number[]>> = {
+export const COMBAT_BENCHMARKS: Record<string, Record<string, number[]>> = {
   // [beginner, intermediate, advanced, elite] e1rm in kg
-  'barbell-bench-press': {
+  'bench-press': {
     '57': [40, 60, 80, 100], '66': [50, 70, 95, 115], '74': [55, 80, 105, 130],
     '83': [60, 85, 115, 140], '93': [65, 95, 125, 155], '105': [70, 100, 135, 165],
     '120': [75, 105, 140, 175],
   },
-  'barbell-squat': {
+  'back-squat': {
     '57': [55, 85, 115, 145], '66': [65, 100, 135, 170], '74': [75, 110, 150, 190],
     '83': [80, 120, 165, 205], '93': [90, 130, 175, 220], '105': [95, 140, 185, 235],
     '120': [100, 150, 195, 250],
   },
-  'barbell-deadlift': {
+  'deadlift': {
     '57': [70, 105, 140, 175], '66': [80, 120, 160, 200], '74': [90, 135, 180, 225],
     '83': [100, 145, 195, 245], '93': [105, 155, 210, 265], '105': [115, 165, 220, 280],
     '120': [120, 175, 230, 290],
   },
-  'barbell-overhead-press': {
+  'overhead-press': {
     '57': [25, 40, 55, 70], '66': [30, 45, 65, 80], '74': [35, 50, 70, 90],
     '83': [40, 55, 75, 95], '93': [42, 60, 82, 105], '105': [45, 65, 88, 110],
     '120': [48, 70, 92, 115],

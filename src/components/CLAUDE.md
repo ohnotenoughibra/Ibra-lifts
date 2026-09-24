@@ -36,7 +36,6 @@
 - `ProgramExerciseCard.tsx` (~290) — Program exercise row: swap with alternatives, inline prescription editor, form video, remove
 - `BlockComposer.tsx` (~280) — Block creation: focus/length/days/wave segmented controls, live volume-wave preview, Start/Queue CTAs
 - `SessionTemplates.tsx` (~1,540) — Save/load templates
-- `CircuitBuilder.tsx` (~1,340) — Circuit/EMOM builder
 - `ConditioningSession.tsx` (~1,160) — Conditioning workout logging
 
 ### Nutrition
@@ -57,11 +56,9 @@
 - `FatigueOverlay.tsx` (~600) — Fatigue warnings
 
 ### Dashboard Insights
-- `DashboardInsights.tsx` (~160) — Pulse strip: surfaces analysis engine previews (ACWR, fatigue, strength, volume, PRs, recovery) as compact tappable tiles on HomeTab. Uses `dashboard-insights.ts` engine.
 - `TrainingLoadDashboard.tsx` (~280) — Full ACWR dashboard with zone bar, weekly load chart, 28-day heatmap, actionable CTAs
 
 ### Progress & Analytics
-- `ProgressCharts.tsx` (~1,090) — Charts and visualizations
 - `ProgressiveOverload.tsx` (~640) — Overload tracking
 - `StrengthAnalysis.tsx` (~690) — Strength metrics
 - `VolumeHeatMap.tsx` (~660) — Volume distribution
@@ -71,7 +68,6 @@
 ### Combat Sport
 - `CompetitionPrep.tsx` (~1,150) — Competition timeline, weight cut
 - `GrapplingTracker.tsx` (~1,630) — BJJ/wrestling session logging
-- `FightersMind.tsx` (~920) — Mental check-ins, confidence
 - `WeightCutDashboard.tsx` (~350) — Weight cut progress
 
 ### Body Tracking
@@ -93,14 +89,11 @@
 - `PeriodizationCalendar.tsx` (~500) — Calendar view
 - `TrainingCalendar.tsx` (~800) — Weekly calendar
 - `ProgramBrowser.tsx` (~600) — Program catalog, AI suggestions, workout preview, queue management
-- `SplitAnalyzer.tsx` (~1,300) — Training split analysis
 
 ### Knowledge & Coaching
 - `KnowledgeHub.tsx` (~490) — Article browser
 - `WeeklyCoach.tsx` (~460) — Weekly AI coach summary
-- `InsightCard.tsx` (~155) — Contextual insight display
 - `OneThingBanner.tsx` (~90) — "The One Thing" time-aware directive banner on HomeTab
-- `CornerCoachInfo.tsx` (~180) — Between-set coaching
 
 ### Health & Wearable Import
 - `HealthImport.tsx` — Apple Health / Google Fit import UI (file picker for XML, Google Fit OAuth flow)
@@ -116,7 +109,6 @@
 - `Skeleton.tsx` (~130) — Loading skeleton
 - `LoadingScreen.tsx` (~80) — Full-page loader
 - `CardErrorBoundary.tsx` (~39) — Error boundary wrapper
-- `StatusBar.tsx` (~100) — App status bar
 
 ## Shared Patterns
 
@@ -158,3 +150,21 @@ All icons from `lucide-react`. No other icon library.
 - Pull-to-refresh via `usePullRefresh` hook
 - Haptic feedback via `haptics.ts`
 - Responsive Tailwind classes throughout
+
+## Parked (unwired, pending merge — plan PR 16)
+
+Built but unreachable from any UI entry point; unwired from `Dashboard.tsx` in
+v2.12.0. Merge into their new tab homes or delete after two releases.
+
+- `PhotoProgress.tsx` → Progress tab
+- `TrainingLoadDashboard.tsx` → Progress tab
+- `BreathingProtocols.tsx` → Recovery (Body tab)
+- `HRZoneTraining.tsx` → Cardio
+- `OneRepMaxCalc.tsx` → sheet from exercise detail (e1RM is already computed inline)
+
+Deleted in v2.12.0 (unreachable or never imported): CircuitBuilder, SplitAnalyzer,
+FightersMind, PlateCalculator (MiniPlateCalc in ActiveWorkout stays), CommunityShare,
+ExerciseProfiler, WellnessXPDashboard(+Overlay), CornerCoachInfo, AutoThrottleInfo,
+ProgressCharts, ExerciseDetail, WeeklyMomentum, InsightCard, DashboardInsights,
+StatusBar, CoachCue — and lib/dashboard-insights.ts.
+

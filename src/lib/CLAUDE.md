@@ -136,7 +136,6 @@ Block lifecycle: `active` → `completed` (via `completeMesocycle`, requires ≥
 - `female-athlete.ts` — Cycle tracking, phase-based adjustments
 
 ### Analytics
-- `dashboard-insights.ts` — Surfaces analysis engine data as ranked dashboard insight tiles (ACWR, fatigue, strength, volume, plateaus, PRs, recovery). Pure functions, used by `DashboardInsights.tsx`.
 - `progress-analytics.ts` — 1RM trends, volume heatmaps
 - `weekly-synthesis.ts` — Weekly performance summary
 - `mesocycle-report.ts` — End-of-block reports

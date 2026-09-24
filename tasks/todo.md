@@ -1,4 +1,11 @@
-# ACTIVE: Train Tab Rework — Today-First (2026-06-09)
+# ACTIVE: Workouts / Swap / Live / UX overhaul (2026-09-24)
+
+Plan: `tasks/plan-2026-09-24-workouts-ux.md` · Audit: `tasks/audit-2026-09-24-workouts.md`
+Next up: Phase 0 → PR 1 (test harness), PR 2 (delete unreachable UI).
+
+---
+
+# DONE: Train Tab Rework — Today-First (2026-06-09)
 
 Goal: open Train → know what to do today in <1s → start in one tap. Mesocycle lifecycle
 (switch / continue / stop / queue / history) lives in ONE place. Ruthless de-cluttering.

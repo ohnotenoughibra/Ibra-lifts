@@ -3,6 +3,29 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.12.0] - 2026-09-24
+
+**Guardrails and demolition: tests that pin the known bugs, and ~8,500 lines of UI nobody could reach.**
+
+Phase 0 of the workouts/swap/live/UX overhaul (`tasks/plan-2026-09-24-workouts-ux.md`).
+
+### Added
+- **Exercise-id integrity tests.** Engines reference library exercises by string id, and a typo doesn't throw — the lookup just finds nothing. Exact lookups (benchmarks, recommender, plyo pairings, every session-template spec) must hit a real id; fuzzy injury tokens must match at least one exercise, or they protect nobody.
+- **Seeded generator invariants.** `Math.random` is pinned to a seeded PRNG so a generated block is reproducible. Across 4 profiles × 5 seeds: well-formed sessions, real ids only, no exercise twice in a session. Two `it.fails` tests document known bugs — exercises re-randomised every week, and a 60-minute hypertrophy week with zero isolation work — and will flip when they're fixed.
+- **Live workout E2E** (`e2e/live-workout.spec.ts`): start → check-in → log → rest → undo → swap → finish. Shared `onboard()` moved to `e2e/helpers.ts`.
+
+### Fixed
+- **Combat benchmarks never matched a single log.** They were keyed on `barbell-bench-press`, `barbell-squat`, `barbell-deadlift`, `barbell-overhead-press`; the library ids are `bench-press`, `back-squat`, `deadlift`, `overhead-press`.
+- **Incline bench wasn't avoided for chest injuries.** The avoid token `incline-press` matched no exercise; it's now `incline-bench`. Likewise `bent-row` (matched nothing) → `pendlay-row` for upper/lower back, and the shoulder risk check's `dips` → `dip`.
+- Insight alternatives in `exercise-recommender` pointed at five ids that don't exist.
+
+### Removed
+- **17 components that no entry point could open** (or that nothing imported): CircuitBuilder, SplitAnalyzer, FightersMind, PlateCalculator (the in-workout MiniPlateCalc stays), CommunityShare, ExerciseProfiler, WellnessXP dashboard + overlay, CornerCoachInfo, AutoThrottleInfo, ProgressCharts, ExerciseDetail, WeeklyMomentum, InsightCard, DashboardInsights, StatusBar, CoachCue — plus `lib/dashboard-insights.ts`. Overlay ids 58 → 40. Shipped JS chunks 6.6 MB → 6.2 MB.
+- **The "Worth it? 👍/👎" toast** after closing a tool. Product analytics isn't the athlete's job.
+
+### Parked
+- PhotoProgress, TrainingLoadDashboard, BreathingProtocols, HRZoneTraining, OneRepMaxCalc are unwired but kept — they get merged into their new homes in the tab restructure (see `src/components/CLAUDE.md`).
+
 ## [2.11.1] - 2026-08-24
 
 **Carryover headlines the weight on the bar, and old logs get their units back.**

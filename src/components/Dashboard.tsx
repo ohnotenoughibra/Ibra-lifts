@@ -15,8 +15,6 @@ import {
   Star,
   Zap,
   Compass,
-  ThumbsUp,
-  ThumbsDown,
   Settings,
   Play,
   Timer,
@@ -79,7 +77,6 @@ const WearableIntegration = dynamic(() => import('./WearableIntegration'), { loa
 const CompetitionPrep = dynamic(() => import('./CompetitionPrep'), { loading: () => <OverlaySkeleton /> });
 const MobilityWorkouts = dynamic(() => import('./MobilityWorkouts'), { loading: () => <OverlaySkeleton /> });
 const WeeklyCoach = dynamic(() => import('./WeeklyCoach'), { loading: () => <OverlaySkeleton /> });
-const ExerciseProfiler = dynamic(() => import('./ExerciseProfiler'), { loading: () => <OverlaySkeleton /> });
 const StrengthAnalysis = dynamic(() => import('./StrengthAnalysis'), { loading: () => <OverlaySkeleton /> });
 const PeriodizationCalendar = dynamic(() => import('./PeriodizationCalendar'), { loading: () => <OverlaySkeleton /> });
 const RecoveryDashboard = dynamic(() => import('./RecoveryDashboard'), { loading: () => <OverlaySkeleton /> });
@@ -98,12 +95,9 @@ const SparringTracker = dynamic(() => import('./SparringTracker'), { loading: ()
 const ToolsTab = dynamic(() => import('./ToolsTab'), { loading: () => null });
 const ProgressiveOverload = dynamic(() => import('./ProgressiveOverload'), { loading: () => <OverlaySkeleton /> });
 const CustomExerciseCreator = dynamic(() => import('./CustomExerciseCreator'), { loading: () => <OverlaySkeleton /> });
-const OneRepMaxCalc = dynamic(() => import('./OneRepMaxCalc'), { loading: () => <OverlaySkeleton /> });
-const HRZoneTraining = dynamic(() => import('./HRZoneTraining'), { loading: () => <OverlaySkeleton /> });
 const SessionTemplates = dynamic(() => import('./SessionTemplates'), { loading: () => <OverlaySkeleton /> });
 const VolumeHeatMap = dynamic(() => import('./VolumeHeatMap'), { loading: () => <OverlaySkeleton /> });
 const GrapplingTracker = dynamic(() => import('./GrapplingTracker'), { loading: () => <OverlaySkeleton /> });
-const CommunityShare = dynamic(() => import('./CommunityShare'), { loading: () => <OverlaySkeleton /> });
 const MesocycleReportView = dynamic(() => import('./MesocycleReport'), { loading: () => <OverlaySkeleton /> });
 const QuickActions = dynamic(() => import('./QuickActions'), { loading: () => <OverlaySkeleton /> });
 const GripStrengthModule = dynamic(() => import('./GripStrengthModule'), { loading: () => <OverlaySkeleton /> });
@@ -116,22 +110,12 @@ const CycleTracking = dynamic(() => import('./CycleTracking'), { loading: () => 
 const FatigueOverlay = dynamic(() => import('./FatigueOverlay'), { loading: () => <OverlaySkeleton /> });
 const FightCampNutrition = dynamic(() => import('./FightCampNutrition'), { loading: () => <OverlaySkeleton /> });
 const BadgeShowcase = dynamic(() => import('./BadgeShowcase'), { loading: () => <OverlaySkeleton /> });
-const AutoThrottleInfo = dynamic(() => import('./AutoThrottleInfo'), { loading: () => <OverlaySkeleton /> });
-const CornerCoachInfo = dynamic(() => import('./CornerCoachInfo'), { loading: () => <OverlaySkeleton /> });
-const TrainingLoadDashboard = dynamic(() => import('./TrainingLoadDashboard'), { loading: () => <OverlaySkeleton /> });
 const WarmUpInfo = dynamic(() => import('./WarmUpInfo'), { loading: () => <OverlaySkeleton /> });
-const PlateCalculator = dynamic(() => import('./PlateCalculator'), { loading: () => <OverlaySkeleton /> });
-const CircuitBuilder = dynamic(() => import('./CircuitBuilder'), { loading: () => <OverlaySkeleton /> });
-const PhotoProgress = dynamic(() => import('./PhotoProgress'), { loading: () => <OverlaySkeleton /> });
-const BreathingProtocols = dynamic(() => import('./BreathingProtocols'), { loading: () => <OverlaySkeleton /> });
-const SplitAnalyzer = dynamic(() => import('./SplitAnalyzer'), { loading: () => <OverlaySkeleton /> });
 const MovementLibrary = dynamic(() => import('./MovementLibrary'), { loading: () => <OverlaySkeleton /> });
 const ConditioningSession = dynamic(() => import('./ConditioningSession'), { loading: () => <OverlaySkeleton /> });
-const FightersMind = dynamic(() => import('./FightersMind'), { loading: () => <OverlaySkeleton /> });
 const TrainingJournal = dynamic(() => import('./TrainingJournal'), { loading: () => <OverlaySkeleton /> });
 const KnowledgeHub = dynamic(() => import('./KnowledgeHub'), { loading: () => <OverlaySkeleton /> });
 const ReadyForThis = dynamic(() => import('./ReadyForThis'), { loading: () => <OverlaySkeleton /> });
-const WellnessXPDashboardOverlay = dynamic(() => import('./WellnessXPDashboardOverlay'), { loading: () => <OverlaySkeleton /> });
 
 // Map overlay views to their required feature gate key (null = free)
 const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
@@ -140,30 +124,22 @@ const OVERLAY_FEATURE_MAP: Partial<Record<NonNullable<OverlayView>, string>> = {
   competition: 'competition-prep',
   mobility: 'mobility-routines',
   coach: 'ai-coach',
-  profiler: 'strength-analysis',
   strength: 'strength-analysis',
   injury: 'injury-illness',
   illness: 'injury-illness',
   custom_exercise: 'custom-exercises',
   templates: 'session-templates',
   grip_strength: 'grip-tracking',
-  recovery_coach: 'ai-coach',
-  // block_suggestion and program_browser are free — no gate
+  // program_browser is free — no gate
   volume_map: 'advanced-analytics',
   periodization: 'advanced-analytics',
   overload: 'advanced-analytics',
   recovery: 'advanced-analytics',
-  hr_zones: 'wearable-integration',
   cycle_tracking: 'advanced-analytics',
   fatigue: 'advanced-analytics',
   fight_camp: 'fight-camp-nutrition',
   grappling: 'competition-prep',
-  circuit_builder: 'advanced-analytics',
-  photo_progress: 'advanced-analytics',
-  breathing: 'advanced-analytics',
-  split_analyzer: 'advanced-analytics',
   conditioning: 'advanced-analytics',
-  fighters_mind: 'advanced-analytics',
   training_journal: 'advanced-analytics',
 };
 
@@ -330,11 +306,6 @@ export default function Dashboard({
       setShowMorningRitual(true);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const [feedbackOverlay, setFeedbackOverlay] = useState<string | null>(null);
-  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const feedbackShownThisSession = useRef(false);
-  const addFeatureFeedback = useAppStore(s => s.addFeatureFeedback);
-  const featureFeedback = useAppStore(s => s.featureFeedback);
 
   // ── Swipe-down-to-dismiss for overlays ──
   const [overlayDragY, setOverlayDragY] = useState(0);
@@ -372,12 +343,6 @@ export default function Dashboard({
     overlayDragging.current = false;
   }, [overlayDragY]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Routine overlays that never need feedback — these are core utilities
-  const ROUTINE_OVERLAYS = new Set([
-    'quick_actions', 'nutrition', 'profile_settings', 'builder', 'injury',
-    'user_guide', 'plate_calc', 'one_rm', 'wearable',
-  ]);
-
   const setOverlayView = (view: OverlayView, context?: string) => {
     if (view !== null) {
       // Check feature gate before opening pro overlays
@@ -399,19 +364,6 @@ export default function Dashboard({
     } else {
       // Closing — clear the back stack since user explicitly chose to exit
       setOverlayHistory([]);
-    }
-    // Smart feedback — only ask when it's actually useful
-    if (view === null && overlayView && !ROUTINE_OVERLAYS.has(overlayView) && !feedbackShownThisSession.current) {
-      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      const alreadyRatedRecently = featureFeedback.some(
-        f => f.feature === overlayView && new Date(f.timestamp).getTime() > weekAgo
-      );
-      if (!alreadyRatedRecently) {
-        feedbackShownThisSession.current = true;
-        setFeedbackOverlay(overlayView);
-        if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
-        feedbackTimerRef.current = setTimeout(() => setFeedbackOverlay(null), 4000);
-      }
     }
     setOverlayViewRaw(view);
     setOverlayContext(view !== null ? context : undefined);
@@ -668,7 +620,6 @@ export default function Dashboard({
       competition: <CompetitionPrep onClose={closeOverlay} />,
       mobility: <MobilityWorkouts onClose={closeOverlay} />,
       coach: <WeeklyCoach onClose={closeOverlay} />,
-      profiler: <ExerciseProfiler onClose={closeOverlay} />,
       strength: <StrengthAnalysis onClose={closeOverlay} />,
       periodization: <PeriodizationCalendar onClose={closeOverlay} />,
       recovery: <RecoveryHubView onClose={closeOverlay} initialTab="analytics" />,
@@ -686,37 +637,20 @@ export default function Dashboard({
       sparring_tracker: <SparringTracker onClose={closeOverlay} />,
       overload: <ProgressiveOverload onClose={closeOverlay} />,
       custom_exercise: <CustomExerciseCreator onClose={closeOverlay} />,
-      one_rm: <OneRepMaxCalc onClose={closeOverlay} />,
-      hr_zones: <HRZoneTraining onClose={closeOverlay} />,
       templates: <SessionTemplates onClose={closeOverlay} />,
       volume_map: <VolumeHeatMap onClose={closeOverlay} />,
       grappling: <GrapplingTracker onClose={closeOverlay} />,
-      community_share: <CommunityShare onClose={closeOverlay} />,
       quick_actions: <QuickActions onClose={closeOverlay} />,
       grip_strength: <GripStrengthModule onClose={closeOverlay} />,
-      recovery_coach: <RecoveryHubView onClose={closeOverlay} />,
-      recovery_hub: <RecoveryHubView onClose={closeOverlay} />,
-      block_suggestion: <ProgramBrowserView onClose={closeOverlay} onNavigate={setOverlayView} />,
       program_browser: <ProgramBrowserView onClose={closeOverlay} onNavigate={setOverlayView} />,
-      user_guide: <NewUserGuide onComplete={closeOverlay} />,
       illness: <IllnessLogger onClose={closeOverlay} />,
       cycle_tracking: <CycleTracking onClose={closeOverlay} />,
       fatigue: <RecoveryHubView onClose={closeOverlay} initialTab="deload" />,
       fight_camp: <FightCampNutrition onClose={closeOverlay} />,
       badge_showcase: <BadgeShowcase onClose={closeOverlay} />,
-      wellness_xp: <WellnessXPDashboardOverlay onClose={closeOverlay} />,
-      auto_throttle: <AutoThrottleInfo onClose={closeOverlay} />,
-      corner_coach: <CornerCoachInfo onClose={closeOverlay} />,
-      training_load: <TrainingLoadDashboard onClose={closeOverlay} />,
       warm_up: <WarmUpInfo onClose={closeOverlay} />,
-      plate_calc: <PlateCalculator onClose={closeOverlay} />,
-      circuit_builder: <CircuitBuilder onClose={closeOverlay} />,
-      photo_progress: <PhotoProgress onClose={closeOverlay} />,
-      breathing: <BreathingProtocols onClose={closeOverlay} />,
-      split_analyzer: <SplitAnalyzer onClose={closeOverlay} />,
       movement_library: <MovementLibrary onClose={closeOverlay} />,
       conditioning: <ConditioningSession onClose={closeOverlay} />,
-      fighters_mind: <FightersMind onClose={closeOverlay} />,
       training_journal: <TrainingJournal onClose={closeOverlay} />,
       knowledge_hub: <KnowledgeHub onClose={closeOverlay} initialCategory={overlayContext as ContentCategory | undefined} onNavigate={setOverlayView} />,
       profile_settings: <ProfileSettings onClose={closeOverlay} onNavigate={setOverlayView} />,
@@ -1270,45 +1204,6 @@ export default function Dashboard({
             level={levelUpDisplay}
             onDismiss={() => setLevelUpDisplay(null)}
           />
-        )}
-      </AnimatePresence>
-
-      {/* Was This Worth It — Overlay Feedback Toast */}
-      <AnimatePresence>
-        {feedbackOverlay && (
-          <motion.div
-            className="fixed top-16 left-1/2 -translate-x-1/2 z-50 safe-area-top"
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-          >
-            <div className="flex items-center gap-3 bg-grappler-800 border border-grappler-700/50 rounded-lg px-4 py-2.5 shadow-2xl">
-              <span className="text-xs text-grappler-400 whitespace-nowrap">Worth it?</span>
-              <button
-                onClick={() => {
-                  hapticLight();
-                  addFeatureFeedback(feedbackOverlay, 'up');
-                  setFeedbackOverlay(null);
-                }}
-                className="p-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-90 transition-all"
-                aria-label="Thumbs up"
-              >
-                <ThumbsUp className="w-4 h-4 text-emerald-400" />
-              </button>
-              <button
-                onClick={() => {
-                  hapticLight();
-                  addFeatureFeedback(feedbackOverlay, 'down');
-                  setFeedbackOverlay(null);
-                }}
-                className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 active:scale-90 transition-all"
-                aria-label="Thumbs down"
-              >
-                <ThumbsDown className="w-4 h-4 text-red-400" />
-              </button>
-            </div>
-          </motion.div>
         )}
       </AnimatePresence>
 

@@ -108,7 +108,7 @@ export interface RSIEntry {
 // Exercise Library
 // ---------------------------------------------------------------------------
 
-const PLYO_LIBRARY: PlyoExercise[] = [
+export const PLYO_LIBRARY: PlyoExercise[] = [
   // ── Extensive (low intensity, high volume) ────────────────────────────
   { id: 'pogo-jumps',          name: 'Pogo Jumps',                category: 'extensive', bodyFocus: 'lower', sets: 3, reps: 20, contactsPerSet: 20, restSeconds: 60, loadGuidance: 'bodyweight, stiff ankles', cues: ['Tiny bounces 2-3 inches', 'Land on balls of feet', 'Stiff ankle, springy', 'Quality > height'], videoSearch: 'pogo jumps plyometric', intensityScore: 2 },
   { id: 'ankle-hops',          name: 'Ankle Hops',                category: 'extensive', bodyFocus: 'lower', sets: 3, reps: 15, contactsPerSet: 15, restSeconds: 60, loadGuidance: 'bodyweight', cues: ['Drive ankles only', 'No knee bend', 'Quick contact'], videoSearch: 'ankle hops plyometric', intensityScore: 2 },

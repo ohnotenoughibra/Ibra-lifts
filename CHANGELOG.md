@@ -3,6 +3,17 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.15.0] - 2026-09-25
+
+**A power primer for the mat, accessories for the mirror, and an app that remembers where you were.**
+
+### Added
+- **Power primer** — "+ Power primer · 8–10 min" on the overview or ⚡ Primer mid-workout adds 2–3 jumps/throws first in the session (hips, rotation, push). It shrinks or skips itself on low-readiness days, heavy mat weeks and near hard sparring, never auto-programs depth jumps, rotates drills, and can be undone.
+- **Athletic + Aesthetic** (Settings → Training) — 1–2 low-fatigue accessories per session for delts, arms, chest and lats on every goal; isolation picks no longer stack one muscle.
+
+### Fixed
+- **Leave and come back:** a reload or app resume returns you to the same tab and tool; the rest timer survives pausing (with −15/+15 s and service-worker notifications); mat-session logging starts from your last session and keeps what you typed; a half-built workout is kept for 24 h; tools remember their last tab/filter.
+
 ## [2.14.0] - 2026-09-24
 
 **The weight in the box is now the right one, carries are timed, and Whoop stays fresh on its own.**

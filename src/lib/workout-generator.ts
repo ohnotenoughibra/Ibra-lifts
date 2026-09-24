@@ -489,6 +489,7 @@ interface GeneratorOptions {
   includeDeload?: boolean;  // Default true. Set false when fatigue is low (autoregulated deload)
   splitType?: SplitType;    // Template override (e.g. PPL at 3 days); default derives from days/identity
   excludeExerciseIds?: string[]; // Athlete's "never recommend" list — never selected
+  aestheticAccessories?: boolean; // "Athletic + Aesthetic": accessory work for delts/arms/chest/lats on every goal
 }
 
 /** An exercise picked for a session slot, with its base (pre-wave) set count. */
@@ -667,6 +668,7 @@ function selectExercisesForType(
   splitDayRole: SplitDayRole = 'full_body',
   splitOverride?: SplitType,
   exclude?: Set<string>,
+  aesthetic = false,
 ): Exercise[] {
   // Use granular equipment filtering when available, fallback to tier-only
   const allAvailable = getExercisesByGranularEquipment(equipment, availableEquipment)
@@ -805,11 +807,38 @@ function selectExercisesForType(
   grapplingExercises.forEach(e => { usedExerciseIds.add(e.id); trackMuscles(e); });
 
   // Add isolation exercises — prefer ones covering muscles NOT yet hit by compounds
-  if (goalFocus === 'hypertrophy' || goalFocus === 'balanced') {
-    const isolations = weightedShuffle(
+  const volumeGoal = goalFocus === 'hypertrophy' || goalFocus === 'balanced';
+  if (volumeGoal || aesthetic) {
+    // Greedy, one pick at a time, re-scored after each so isolation work
+    // spreads across muscles (was: 4 curls on one day). "Athletic + Aesthetic"
+    // adds accessory slots even on strength/power days, weighted to the
+    // muscles that show (side/rear delts, arms, upper chest, lats) and to
+    // low-fatigue cable/machine options.
+    const SHOW = new Set(['shoulders', 'biceps', 'triceps', 'chest', 'back']);
+    const count = volumeGoal ? priorities.isolation + (aesthetic ? 1 : 0) : 2;
+    const pool = weightedShuffle(
       availableExercises.filter(e => e.category === 'isolation' && !usedExerciseIds.has(e.id)),
       scoreExercise
-    ).slice(0, priorities.isolation);
+    );
+    const isoMuscles = new Set<string>();
+    const isolations: Exercise[] = [];
+    for (let k = 0; k < count && pool.length > 0; k++) {
+      let bestIdx = 0;
+      let bestScore = -Infinity;
+      pool.forEach((e, i) => {
+        let sc = pool.length - i; // keep weightedShuffle order as the base
+        if (e.primaryMuscles.some(m => isoMuscles.has(m))) sc -= 100;
+        if (aesthetic) {
+          sc += e.aestheticValue * 3;
+          if (e.primaryMuscles.some(m => SHOW.has(m))) sc += 15;
+          if ((e.equipmentTypes ?? []).some(t => t === 'cable' || t === 'machine')) sc += 5;
+        }
+        if (sc > bestScore) { bestScore = sc; bestIdx = i; }
+      });
+      const [pick] = pool.splice(bestIdx, 1);
+      isolations.push(pick);
+      pick.primaryMuscles.forEach(m => isoMuscles.add(m));
+    }
     selected.push(...isolations);
     isolations.forEach(e => { usedExerciseIds.add(e.id); trackMuscles(e); });
   }
@@ -843,12 +872,13 @@ function generateWorkoutSession(
   splitOverride?: SplitType,
   locked?: LockedPick[],
   exclude?: Set<string>,
+  aesthetic = false,
 ): WorkoutSession {
   // Locked picks (weeks 2..N of a block) keep week 1's exercises AND base set
   // counts, so week-over-week progression compares like with like.
   const selectedExercises = locked
     ? locked.map(l => l.exercise)
-    : selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport, sessionsPerWeek, splitDayRole, splitOverride, exclude);
+    : selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport, sessionsPerWeek, splitDayRole, splitOverride, exclude, aesthetic);
   const config = getSexAdjustedPrescription(type, sex);
   const expMod = EXPERIENCE_MODIFIERS[experienceLevel || 'intermediate'];
   const sexMod = SEX_MODIFIERS[sex || 'male'];
@@ -1097,6 +1127,7 @@ function generateMesocycleWeek(
   locked?: LockedPick[][],
   capture?: LockedPick[][],
   exclude?: Set<string>,
+  aesthetic = false,
 ): MesocycleWeek {
   // Determine workout types based on periodization strategy
   let workoutTypes: WorkoutType[];
@@ -1212,6 +1243,7 @@ function generateMesocycleWeek(
       splitOverride,
       locked?.[index],
       exclude,
+      aesthetic,
     );
     if (capture) {
       capture[index] = session.exercises.map(e => ({ exercise: e.exercise, sets: e.sets }));
@@ -1323,6 +1355,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
         i === 1 ? undefined : picks,
         i === 1 ? picks : undefined,
         exclude,
+        !!options.aestheticAccessories,
       )
     );
   }

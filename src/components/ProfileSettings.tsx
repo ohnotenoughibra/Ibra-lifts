@@ -938,6 +938,23 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
           </div>
 
 
+          {/* Athletic + Aesthetic */}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm text-grappler-100">Athletic + Aesthetic</p>
+              <p className="text-xs text-grappler-400">Adds 1–2 low-fatigue accessories per session for delts, arms, chest and lats — on every goal. Applies to your next block.</p>
+            </div>
+            <button
+              role="switch"
+              aria-checked={!!user?.aestheticEmphasis}
+              aria-label="Athletic + Aesthetic emphasis"
+              onClick={() => updateUser({ aestheticEmphasis: !user?.aestheticEmphasis })}
+              className={cn('relative w-12 h-7 rounded-full transition-colors flex-shrink-0', user?.aestheticEmphasis ? 'bg-primary-500' : 'bg-grappler-700')}
+            >
+              <span className={cn('absolute top-1 w-5 h-5 rounded-full bg-white transition-all', user?.aestheticEmphasis ? 'left-6' : 'left-1')} />
+            </button>
+          </div>
+
           {/* Hidden exercises ("don't recommend") */}
           <HiddenExercisesSetting />
 

@@ -155,3 +155,27 @@ describe('timed and distance work is prescribed in seconds / metres', () => {
     }
   });
 });
+
+describe('Athletic + Aesthetic accessories', () => {
+  const SHOW = ['shoulders', 'biceps', 'triceps', 'chest', 'back'];
+  it('strength blocks get show-muscle accessory work every session when enabled', () => {
+    for (const seed of SEEDS) {
+      const m = seeded(seed, () => generateMesocycle({ ...base, goalFocus: 'strength', sessionsPerWeek: 3, aestheticAccessories: true }));
+      for (const s of trainingWeeks(m)[0].sessions) {
+        const iso = s.exercises.filter(e => e.exercise.category === 'isolation');
+        expect(iso.length).toBeGreaterThanOrEqual(1);
+        expect(iso.some(e => e.exercise.primaryMuscles.some(mu => SHOW.includes(mu)))).toBe(true);
+      }
+    }
+  });
+  it('isolation picks within a session target different muscles (no 4 curls)', () => {
+    for (const seed of SEEDS) {
+      const m = seeded(seed, () => generateMesocycle({ ...base, aestheticAccessories: true }));
+      for (const s of trainingWeeks(m)[0].sessions) {
+        const firsts = s.exercises.filter(e => e.exercise.category === 'isolation' && !(e.notes ?? '').startsWith('Added'))
+          .map(e => e.exercise.primaryMuscles[0]);
+        expect(new Set(firsts).size).toBe(firsts.length);
+      }
+    }
+  });
+});

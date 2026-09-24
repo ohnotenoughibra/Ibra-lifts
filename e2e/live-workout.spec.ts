@@ -139,4 +139,17 @@ test.describe('Live workout', () => {
     await page.getByRole('button', { name: 'Complete Set' }).click();
     await expect(pills(page).first()).toHaveAccessibleName(/2\/\d+$/);
   });
+
+  test('power primer can be added in one tap and undone', async ({ page }) => {
+    const before = await pills(page).count();
+    const firstBefore = await pills(page).first().innerText();
+    await page.getByRole('button', { name: 'Add power primer' }).first().click();
+    await expect(page.getByText(/Power primer added/)).toBeVisible();
+    const after = await pills(page).count();
+    expect(after).toBeGreaterThan(before);
+    // primer goes first (the old first exercise moved down)
+    expect(await pills(page).first().innerText()).not.toBe(firstBefore);
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect(pills(page)).toHaveCount(before);
+  });
 });

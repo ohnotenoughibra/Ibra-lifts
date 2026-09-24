@@ -117,6 +117,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { resolveWeightUnit } from './units';
 import type { ThrottleResult } from './readiness-throttle';
 import { suggestNextLoad } from './next-load';
+import { buildPowerPrimer, PRIMER_DRILL_IDS, type PrimerFocus } from './power-primer';
 
 
 /**
@@ -489,6 +490,8 @@ interface AppState {
   /** Returns the index of the exercise the athlete should continue on. */
   swapExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => number | void;
   undoSwap: () => boolean;
+  /** Insert a readiness/mat-load-aware power primer; returns the index to continue at (null if skipped). */
+  addPowerPrimer: () => { index: number; reason: string } | null;
   addBonusExercise: (exercise: Exercise, sets: number, reps: number) => void;
   swapProgramExercise: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
   adaptWorkoutToProfile: (profile: EquipmentProfileName) => void;
@@ -1542,6 +1545,7 @@ export const useAppStore = create<AppState>()(
           baselineLifts: baselineLifts || undefined,
           muscleEmphasis: overrides?.muscleEmphasis ?? (muscleEmphasis || undefined),
           excludeExerciseIds: get().hiddenExercises?.ids,
+          aestheticAccessories: !!user.aestheticEmphasis,
           sessionDurationMinutes: duration,
           trainingIdentity: user.trainingIdentity,
           combatSport: user.combatSport,
@@ -2409,6 +2413,61 @@ export const useAppStore = create<AppState>()(
           },
         });
         return continueAt;
+      },
+
+      addPowerPrimer: () => {
+        const { activeWorkout, trainingSessions, workoutLogs, user, hiddenExercises } = get();
+        if (!activeWorkout) return null;
+        const now = Date.now();
+        const sessions = (trainingSessions ?? []).filter(t => !t._deleted);
+        const matCats = new Set(['grappling', 'mma', 'striking']);
+        const matThisWeek = sessions.filter(t => matCats.has(t.category) && now - new Date(t.date).getTime() < 7 * 864e5).length;
+        const hardNear = sessions.some(t => matCats.has(t.category)
+          && Math.abs(now - new Date(t.date).getTime()) < 24 * 36e5
+          && (t.actualIntensity ?? t.plannedIntensity) === 'hard_sparring');
+        const legs = new Set(['quadriceps', 'hamstrings', 'glutes', 'calves']);
+        const muscles = activeWorkout.session.exercises.flatMap(e => e.exercise.primaryMuscles);
+        const legShare = muscles.length ? muscles.filter(m => legs.has(m)).length / muscles.length : 0.5;
+        const focus: PrimerFocus = legShare >= 0.6 ? 'lower' : legShare <= 0.2 ? 'upper' : 'full';
+        const primerIds = PRIMER_DRILL_IDS;
+        const lastLog = [...workoutLogs].reverse().find(l => l.exercises.some(e => primerIds.has(e.exerciseId)));
+        const primer = buildPowerPrimer({
+          readiness: activeWorkout.throttle?.config.level as never,
+          matSessionsThisWeek: matThisWeek,
+          hardSparringNear: hardNear,
+          focus,
+          availableEquipment: user?.availableEquipment?.length ? user.availableEquipment : get().getActiveEquipment(),
+          recentIds: lastLog?.exercises.map(e => e.exerciseId).filter(id => primerIds.has(id)),
+          hiddenIds: hiddenExercises?.ids,
+        });
+        if (!primer) return null;
+
+        // Insert before the current exercise if it hasn't started, else after it.
+        const pos = activeWorkout.position?.exerciseIndex ?? 0;
+        const started = activeWorkout.exerciseLogs[pos]?.sets.some(st => st.completed) ?? false;
+        const at = started ? pos + 1 : pos;
+        const newLogs: ExerciseLog[] = primer.exercises.map(p => ({
+          exerciseId: p.exerciseId, exerciseName: p.exercise.name, personalRecord: false,
+          sets: Array.from({ length: p.sets }, (_, i) => ({
+            setNumber: i + 1,
+            weight: plannedLoad(p.exercise, p.prescription.targetReps, p.prescription.rpe, workoutLogs, user, get().baselineLifts),
+            reps: p.prescription.targetReps, rpe: p.prescription.rpe, rpeSource: 'prefill' as const, completed: false,
+          })),
+        }));
+        const exercises = [...activeWorkout.session.exercises];
+        const logs = [...activeWorkout.exerciseLogs];
+        exercises.splice(at, 0, ...primer.exercises);
+        logs.splice(at, 0, ...newLogs);
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            swapUndo: { session: activeWorkout.session, exerciseLogs: activeWorkout.exerciseLogs },
+            session: { ...activeWorkout.session, exercises },
+            exerciseLogs: logs,
+            position: { exerciseIndex: at, setIndex: 0 },
+          },
+        });
+        return { index: at, reason: primer.reason };
       },
 
       undoSwap: () => {

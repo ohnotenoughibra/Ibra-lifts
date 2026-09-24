@@ -162,7 +162,7 @@ export default function ActiveWorkout() {
   const {
     activeWorkout, user, updateExerciseLog, completeWorkout, cancelWorkout, pauseWorkout,
     setPreCheckIn, updateExerciseFeedback, swapExercise, addBonusExercise, adaptWorkoutToProfile,
-    applyReadinessThrottle, setWorkoutPosition, markWorkoutOverviewDone, undoSwap,
+    applyReadinessThrottle, setWorkoutPosition, markWorkoutOverviewDone, undoSwap, addPowerPrimer,
     activeEquipmentProfile, latestWhoopData, wearableHistory, applyWhoopAdjustment,
     baselineLifts
   } = useAppStore(
@@ -172,7 +172,7 @@ export default function ActiveWorkout() {
       setPreCheckIn: s.setPreCheckIn, updateExerciseFeedback: s.updateExerciseFeedback,
       swapExercise: s.swapExercise, addBonusExercise: s.addBonusExercise, adaptWorkoutToProfile: s.adaptWorkoutToProfile,
       applyReadinessThrottle: s.applyReadinessThrottle, setWorkoutPosition: s.setWorkoutPosition,
-      markWorkoutOverviewDone: s.markWorkoutOverviewDone, undoSwap: s.undoSwap,
+      markWorkoutOverviewDone: s.markWorkoutOverviewDone, undoSwap: s.undoSwap, addPowerPrimer: s.addPowerPrimer,
       activeEquipmentProfile: s.activeEquipmentProfile, latestWhoopData: s.latestWhoopData,
       wearableHistory: s.wearableHistory, applyWhoopAdjustment: s.applyWhoopAdjustment,
       baselineLifts: s.baselineLifts,
@@ -877,6 +877,21 @@ export default function ActiveWorkout() {
     };
     updateExerciseFeedback(feedbackExerciseIndex, fb);
     setShowExerciseFeedback(false);
+  };
+
+  const hasPrimer = activeWorkout?.session.exercises.some(e => (e.notes ?? '').startsWith('Power primer')) ?? false;
+  const handleAddPowerPrimer = () => {
+    const from = { ex: currentExerciseIndex, set: currentSetIndex };
+    const r = addPowerPrimer();
+    if (!r) {
+      showToast('Power primer skipped — readiness is red today. Recover first.', 'warning');
+      return;
+    }
+    goToExercise(r.index);
+    showToast(`Power primer added. ${r.reason}`, 'success', {
+      label: 'Undo',
+      onClick: () => { if (undoSwap()) { setCurrentExerciseIndex(from.ex); setCurrentSetIndex(from.set); } },
+    });
   };
 
   const handleSwapExercise = (newExerciseId: string, newExerciseName: string) => {
@@ -2187,9 +2202,20 @@ export default function ActiveWorkout() {
 
               {/* Exercise List */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-grappler-300 uppercase tracking-wide px-1">
-                  Exercise Plan
-                </h3>
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-sm font-semibold text-grappler-300 uppercase tracking-wide">
+                    Exercise Plan
+                  </h3>
+                  {!hasPrimer && (
+                    <button
+                      onClick={handleAddPowerPrimer}
+                      className="flex items-center gap-1 text-xs font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 min-h-[36px]"
+                      aria-label="Add power primer"
+                    >
+                      <Zap className="w-3.5 h-3.5" /> + Power primer · 8–10 min
+                    </button>
+                  )}
+                </div>
                 {activeWorkout.session.exercises.map((ex, i) => {
                   const prevPerf = getExerciseHistory(ex.exerciseId);
                   const exIdLower = ex.exerciseId.toLowerCase();
@@ -3130,6 +3156,16 @@ export default function ActiveWorkout() {
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
+            {!hasPrimer && (
+              <button
+                onClick={handleAddPowerPrimer}
+                className="h-6 px-2 rounded-full bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 flex items-center gap-1 text-xs font-semibold transition-colors"
+                title="Add power primer"
+                aria-label="Add power primer"
+              >
+                <Zap className="w-3 h-3" /> Primer
+              </button>
+            )}
           </div>
           <button
             onClick={() => {

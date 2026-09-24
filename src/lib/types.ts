@@ -56,6 +56,8 @@ export interface UserProfile {
   sessionsPerWeek: SessionsPerWeek;
   sessionDurationMinutes: number;
   weightUnit: WeightUnit;
+  /** "Athletic + Aesthetic": accessory work for the muscles that show, on every goal. */
+  aestheticEmphasis?: boolean;
   trainingIdentity: TrainingIdentity;
   combatSport?: CombatSport;
   combatSports?: CombatSport[]; // Multiple sports (e.g., BJJ + Muay Thai)

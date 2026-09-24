@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAppStore } from '@/lib/store';
+import { useAppStore, type ActiveWorkoutThrottle } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { useSwipe } from '@/lib/use-swipe';
 import { useRestTimer } from '@/hooks/useRestTimer';
@@ -158,6 +158,7 @@ export default function ActiveWorkout() {
   const {
     activeWorkout, user, updateExerciseLog, completeWorkout, cancelWorkout, pauseWorkout,
     setPreCheckIn, updateExerciseFeedback, swapExercise, addBonusExercise, adaptWorkoutToProfile,
+    applyReadinessThrottle, setWorkoutPosition, markWorkoutOverviewDone,
     activeEquipmentProfile, latestWhoopData, wearableHistory, applyWhoopAdjustment,
     baselineLifts
   } = useAppStore(
@@ -166,6 +167,8 @@ export default function ActiveWorkout() {
       completeWorkout: s.completeWorkout, cancelWorkout: s.cancelWorkout, pauseWorkout: s.pauseWorkout,
       setPreCheckIn: s.setPreCheckIn, updateExerciseFeedback: s.updateExerciseFeedback,
       swapExercise: s.swapExercise, addBonusExercise: s.addBonusExercise, adaptWorkoutToProfile: s.adaptWorkoutToProfile,
+      applyReadinessThrottle: s.applyReadinessThrottle, setWorkoutPosition: s.setWorkoutPosition,
+      markWorkoutOverviewDone: s.markWorkoutOverviewDone,
       activeEquipmentProfile: s.activeEquipmentProfile, latestWhoopData: s.latestWhoopData,
       wearableHistory: s.wearableHistory, applyWhoopAdjustment: s.applyWhoopAdjustment,
       baselineLifts: s.baselineLifts,
@@ -190,8 +193,17 @@ export default function ActiveWorkout() {
   const injuryLog = useAppStore(s => s.injuryLog);
   const injuryAdaptations = useMemo(() => getActiveInjuryAdaptations(injuryLog), [injuryLog]);
   const hasActiveInjuries = injuryAdaptations.classifications.length > 0;
-  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
-  const [currentSetIndex, setCurrentSetIndex] = useState(0);
+  // Position + overview state are persisted on activeWorkout so pausing
+  // ("Pause & Browse" unmounts this component) or a reload resumes in place.
+  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(
+    () => useAppStore.getState().activeWorkout?.position?.exerciseIndex ?? 0,
+  );
+  const [currentSetIndex, setCurrentSetIndex] = useState(
+    () => useAppStore.getState().activeWorkout?.position?.setIndex ?? 0,
+  );
+  useEffect(() => {
+    setWorkoutPosition(currentExerciseIndex, currentSetIndex);
+  }, [currentExerciseIndex, currentSetIndex, setWorkoutPosition]);
   // Re-entry guard for completeSet — kills double-tap from skipping a set.
   const completingSetRef = useRef(false);
   // Ref to the active-set container so we can scrollIntoView on advance.
@@ -227,7 +239,7 @@ export default function ActiveWorkout() {
   const showDraftRecovery = activeModal === 'draft_recovery';
   const setShowDraftRecovery = (v: boolean) => setActiveModal(v ? 'draft_recovery' : null);
 
-  const [showOverview, setShowOverview] = useState(true);
+  const [showOverview, setShowOverview] = useState(() => !useAppStore.getState().activeWorkout?.overviewDone);
   const [feeling, setFeeling] = useState<'great' | 'good' | 'okay' | 'rough'>('good');
   const [showCheckInDetail, setShowCheckInDetail] = useState(false);
   const [showExerciseFeedback, setShowExerciseFeedback] = useState(false);
@@ -246,8 +258,13 @@ export default function ActiveWorkout() {
   const [undoInfo, setUndoInfo] = useState<{ exerciseIndex: number; setIndex: number; previousSets: SetLog[]; previousPR: boolean; previousE1RM: number } | null>(null);
 
   // ── Readiness Auto-Throttle state ──
-  const [throttleResult, setThrottleResult] = useState<ThrottleResult | null>(null);
-  const [throttleApplied, setThrottleApplied] = useState(false);
+  const [throttleResult, setThrottleResult] = useState<ActiveWorkoutThrottle | null>(
+    () => useAppStore.getState().activeWorkout?.throttle ?? null,
+  );
+  const [throttleApplied, setThrottleApplied] = useState(() => {
+    const t = useAppStore.getState().activeWorkout?.throttle;
+    return !!t && t.config.level !== 'green';
+  });
   const [throttleDismissed, setThrottleDismissed] = useState(false);
 
   // ── Corner Coach state ──
@@ -881,18 +898,14 @@ export default function ActiveWorkout() {
           quickLogs,
           preCheckIn: checkIn,
         });
-        const result = applyThrottle(activeWorkout.session, fullReadiness);
-        setThrottleResult(result);
-
-        // Auto-apply if not green (green = no changes)
-        if (result.config.level !== 'green') {
-          useAppStore.setState({
-            activeWorkout: {
-              ...activeWorkout,
-              session: result.adjustedSession,
-            },
-          });
-          setThrottleApplied(true);
+        // Throttle exactly once per workout. The store action is idempotent
+        // and re-aligns logs to the adjusted exercise list by exerciseId.
+        if (!activeWorkout.throttle) {
+          const result = applyThrottle(activeWorkout.session, fullReadiness);
+          applyReadinessThrottle(result);
+          const { adjustedSession: _adjusted, ...meta } = result;
+          setThrottleResult(meta);
+          setThrottleApplied(result.config.level !== 'green');
         }
       } catch {
         // Graceful fallback — don't block the workout if readiness calc fails
@@ -2278,6 +2291,7 @@ export default function ActiveWorkout() {
               <button
                 onClick={() => {
                   submitPreCheckIn();
+                  markWorkoutOverviewDone();
                   setShowOverview(false);
                 }}
                 className="btn btn-primary btn-lg w-full gap-2"

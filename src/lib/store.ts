@@ -113,6 +113,52 @@ import { calculateCompositeWellnessScore } from './wellness-score';
 import { calculateEnhancedACWR } from './fatigue-metrics';
 import { v4 as uuidv4 } from 'uuid';
 import { resolveWeightUnit } from './units';
+import type { ThrottleResult } from './readiness-throttle';
+
+/** Throttle outcome persisted on the active workout (the adjusted session is the workout itself). */
+export type ActiveWorkoutThrottle = Omit<ThrottleResult, 'adjustedSession'>;
+
+/**
+ * Re-align per-exercise logs with a changed exercise list (throttle dropped
+ * exercises / changed set counts). Logs are matched by exerciseId — never by
+ * array index — so a dropped exercise can't shift the next one's sets onto
+ * the wrong lift. Completed sets are never discarded; pending sets are
+ * trimmed or extended to the new prescription.
+ */
+export function reconcileLogsToExercises(
+  logs: ExerciseLog[],
+  exercises: WorkoutSession['exercises'],
+): ExerciseLog[] {
+  const pool = logs.map((log, i) => ({ log, i }));
+  const used = new Set<number>();
+  return exercises.map(ex => {
+    const match = pool.find(p => !used.has(p.i) && p.log.exerciseId === ex.exerciseId);
+    if (!match) {
+      return {
+        exerciseId: ex.exerciseId,
+        exerciseName: ex.exercise.name,
+        sets: Array.from({ length: ex.sets }, (_, i) => ({
+          setNumber: i + 1, weight: 0, reps: ex.prescription.targetReps,
+          rpe: ex.prescription.rpe, completed: false,
+        })),
+        personalRecord: false,
+      };
+    }
+    used.add(match.i);
+    const sets = match.log.sets;
+    const completed = sets.filter(s => s.completed).length;
+    const target = Math.max(ex.sets, completed);
+    let next = sets.slice(0, target);
+    if (next.length < target) {
+      const template = sets[sets.length - 1];
+      for (let n = next.length; n < target; n++) {
+        next.push({ ...template, setNumber: n + 1, completed: false });
+      }
+    }
+    next = next.map((st, i) => ({ ...st, setNumber: i + 1 }));
+    return { ...match.log, sets: next };
+  });
+}
 
 // Block-level undo: snapshot of everything a block action can touch.
 // Object references only (store state is immutable) — cheap to hold, never persisted.
@@ -165,6 +211,12 @@ interface AppState {
     preCheckIn?: PreWorkoutCheckIn;
     pausedAt?: Date;
     totalPausedMs?: number;
+    // Readiness throttle is applied exactly once per workout; its presence
+    // means "already evaluated" so a remount/resume can't throttle twice.
+    throttle?: ActiveWorkoutThrottle;
+    // Session position + overview state survive pause/minimize/reload.
+    overviewDone?: boolean;
+    position?: { exerciseIndex: number; setIndex: number };
   } | null;
   workoutMinimized: boolean; // When true, workout is paused and user can browse app
   workoutLogs: WorkoutLog[];
@@ -385,6 +437,9 @@ interface AppState {
   // Workout actions
   startWorkout: (session: WorkoutSession, force?: boolean) => false | void;
   setPreCheckIn: (checkIn: PreWorkoutCheckIn) => void;
+  applyReadinessThrottle: (result: ThrottleResult) => void;
+  setWorkoutPosition: (exerciseIndex: number, setIndex: number) => void;
+  markWorkoutOverviewDone: () => void;
   updateExerciseLog: (exerciseIndex: number, log: ExerciseLog) => void;
   updateExerciseFeedback: (exerciseIndex: number, feedback: ExerciseFeedback) => void;
   swapExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => void;
@@ -2147,6 +2202,39 @@ export const useAppStore = create<AppState>()(
             preCheckIn: checkIn
           }
         });
+      },
+
+      applyReadinessThrottle: (result) => {
+        const { activeWorkout } = get();
+        if (!activeWorkout || activeWorkout.throttle) return; // once per workout
+        const { adjustedSession, ...meta } = result;
+        const changed = result.config.level !== 'green';
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            throttle: meta,
+            ...(changed
+              ? {
+                  session: adjustedSession,
+                  exerciseLogs: reconcileLogsToExercises(activeWorkout.exerciseLogs, adjustedSession.exercises),
+                }
+              : {}),
+          },
+        });
+      },
+
+      setWorkoutPosition: (exerciseIndex, setIndex) => {
+        const { activeWorkout } = get();
+        if (!activeWorkout) return;
+        const p = activeWorkout.position;
+        if (p && p.exerciseIndex === exerciseIndex && p.setIndex === setIndex) return;
+        set({ activeWorkout: { ...activeWorkout, position: { exerciseIndex, setIndex } } });
+      },
+
+      markWorkoutOverviewDone: () => {
+        const { activeWorkout } = get();
+        if (!activeWorkout || activeWorkout.overviewDone) return;
+        set({ activeWorkout: { ...activeWorkout, overviewDone: true } });
       },
 
       updateExerciseLog: (exerciseIndex, log) => {

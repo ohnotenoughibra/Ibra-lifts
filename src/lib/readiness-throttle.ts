@@ -296,7 +296,7 @@ export function getThrottleInsights(readiness: ReadinessScore): ThrottleInsight[
 /**
  * Get a concise summary for the throttle banner.
  */
-export function getThrottleSummary(result: ThrottleResult): string {
+export function getThrottleSummary(result: Omit<ThrottleResult, 'adjustedSession'>): string {
   const { config, originalSetCount, adjustedSetCount, droppedExercises } = result;
   const parts: string[] = [];
 

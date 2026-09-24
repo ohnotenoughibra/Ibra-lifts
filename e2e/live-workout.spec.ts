@@ -74,4 +74,21 @@ test.describe('Live workout', () => {
     await expect(page.getByRole('button', { name: 'Complete Set' })).not.toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('tab', { name: 'Today' })).toBeVisible({ timeout: 10_000 });
   });
+
+  test('pausing and resuming keeps your place and skips the overview', async ({ page }) => {
+    await logSet(page, '60', '5');
+    await page.getByRole('button', { name: 'Next exercise' }).click();
+    const secondName = (await pills(page).nth(1).innerText()).replace(/\s*\d+\/\d+$/, '').trim();
+    // Pause & Browse lives behind the cancel/leave confirm
+    await page.getByRole('button', { name: 'Cancel workout' }).click();
+    await page.getByRole('button', { name: /Pause & Browse/ }).click();
+    await expect(page.getByRole('button', { name: 'Complete Set' })).not.toBeVisible();
+    await page.getByRole('button', { name: /^Resume/ }).first().click();
+    // Back in the logger — not the check-in overview — on the same exercise
+    await expect(page.getByRole('button', { name: 'Complete Set' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Good', exact: true })).not.toBeVisible();
+    await expect(pills(page).first()).toHaveAccessibleName(/1\/\d+$/);
+    expect(secondName).not.toBe('');
+    await expect(page.getByRole('heading', { name: secondName, exact: true })).toBeVisible();
+  });
 });

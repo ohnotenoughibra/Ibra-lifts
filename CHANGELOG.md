@@ -3,6 +3,14 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.16.0] - 2026-09-25
+
+**Rest that doesn't take over the screen, and leaving a workout that you can come straight back to.**
+
+### Changed
+- **Rest is a slim bottom bar**: countdown, −15/+15, Skip, one-tap "How hard was that set?" (RPE 7–10 in half steps), and what's next with the load and plates. Tap it to expand.
+- **Leave a workout any time** with "↓ Leave" — everything is kept. A resume bar on every tab shows the exercise, set and rest left; one tap puts you back exactly there. The X always asks before discarding.
+
 ## [2.15.0] - 2026-09-25
 
 **A power primer for the mat, accessories for the mirror, and an app that remembers where you were.**

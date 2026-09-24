@@ -180,4 +180,19 @@ test.describe('Live workout', () => {
     await expect(page.getByRole('button', { name: 'Complete Set' })).toBeVisible();
     await expect(pills(page).first()).toHaveAccessibleName(/1\/\d+$/);
   });
+
+  test('correcting a logged set saves immediately, to that set', async ({ page }) => {
+    await logSet(page, '60', '5');
+    // go back to set 1 and fix the weight — no blur, no extra taps (iOS-like)
+    await page.getByRole('button', { name: /^Set 1 \(done/ }).click();
+    await expect(page.getByText(/Set logged · edits save instantly/)).toBeVisible();
+    await page.getByRole('spinbutton', { name: 'Weight' }).fill('70');
+    // the set button reflects the saved value right away
+    await expect(page.getByRole('button', { name: /^Set 1 \(done: 70 × 5\)/ })).toBeVisible();
+    // moving to set 2 must not carry the edit over; coming back shows it saved
+    await page.getByRole('button', { name: /^Set 2/ }).click();
+    await expect(page.getByRole('spinbutton', { name: 'Weight' })).not.toHaveValue('70');
+    await page.getByRole('button', { name: /^Set 1 \(done/ }).click();
+    await expect(page.getByRole('spinbutton', { name: 'Weight' })).toHaveValue('70');
+  });
 });

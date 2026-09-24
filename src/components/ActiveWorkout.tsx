@@ -536,13 +536,20 @@ export default function ActiveWorkout() {
   };
 
   const setExactValue = (field: 'weight' | 'reps' | 'rpe' | 'duration', value: number) => {
-    const newSets = [...currentLog.sets];
+    // Read the live log (not the render closure) so rapid edits can't clobber each other.
+    const liveLog = useAppStore.getState().activeWorkout?.exerciseLogs[currentExerciseIndex] ?? currentLog;
+    const newSets = [...liveLog.sets];
     newSets[currentSetIndex] = {
       ...newSets[currentSetIndex],
       [field]: Math.max(0, value),
       ...(field === 'rpe' ? { rpeSource: 'user' as const } : {}),
     };
-    updateExerciseLog(currentExerciseIndex, { ...currentLog, sets: newSets });
+    // Correcting a logged set: keep the session's e1RM honest.
+    const done = newSets.filter(st => st.completed && st.weight > 0 && st.reps > 0);
+    const e1 = !isTimeBased && !isDistance && done.length
+      ? Math.max(...done.map(st => calculate1RM(st.weight, st.reps)))
+      : liveLog.estimated1RM;
+    updateExerciseLog(currentExerciseIndex, { ...liveLog, sets: newSets, estimated1RM: e1 });
   };
 
   // ── Tempo metronome controls ──
@@ -3485,6 +3492,8 @@ export default function ActiveWorkout() {
               <button
                 key={i}
                 onClick={() => setCurrentSetIndex(i)}
+                aria-label={`Set ${i + 1}${set.completed ? ` (done: ${set.weight} × ${set.reps}) — tap to edit` : set.skipped ? ' (skipped)' : ''}`}
+                aria-current={i === currentSetIndex ? 'step' : undefined}
                 className={cn(
                   'w-11 h-11 rounded-xl font-semibold text-sm transition-all active:scale-95',
                   i === currentSetIndex
@@ -3596,6 +3605,7 @@ export default function ActiveWorkout() {
                   <Minus className="w-6 h-6 text-grappler-300" />
                 </button>
                 <BufferedNumberInput
+                  key={`w-${currentExerciseIndex}-${currentSetIndex}`}
                   value={currentSet.weight}
                   onCommit={(v) => setExactValue('weight', v)}
                   kind="float"
@@ -3692,6 +3702,7 @@ export default function ActiveWorkout() {
                       <Minus className="w-6 h-6 text-grappler-300" />
                     </button>
                     <BufferedNumberInput
+                      key={`r-${currentExerciseIndex}-${currentSetIndex}`}
                       value={currentValue}
                       onCommit={(v) => setExactValue(field, v)}
                       kind="int"
@@ -4010,7 +4021,7 @@ export default function ActiveWorkout() {
               )}
             >
               <Check className="w-5 h-5" />
-              {currentSet.completed ? 'Set Completed' : 'Complete Set'}
+              {currentSet.completed ? 'Set logged · edits save instantly' : 'Complete Set'}
             </button>
           )}
         </div>

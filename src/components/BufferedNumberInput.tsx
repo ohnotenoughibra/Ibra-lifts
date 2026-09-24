@@ -8,7 +8,10 @@
  * store update -> re-render`), every keystroke can race with parent re-renders
  * triggered by other store slices (rest timer ticks, coach messages, etc.) —
  * the typed-but-uncommitted value can get wiped mid-edit. Local draft state
- * eliminates that whole class of volatility.
+ * eliminates that whole class of volatility. Parseable values are ALSO
+ * committed on every change, so nothing depends on blur firing (iOS).
+ * Give each logical field its own `key` so a draft can't follow the user to
+ * a different set.
  *
  * Contract:
  *   - `value`     canonical (committed) number from the store
@@ -68,7 +71,14 @@ export function BufferedNumberInput({
         editingRef.current = true;
         e.target.select();
       }}
-      onChange={(e) => setDraft(e.target.value)}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        // Save as you type. Waiting for blur lost edits on iOS, where tapping
+        // a button often doesn't blur the field — the value then landed on
+        // whatever set was current when blur finally fired.
+        const parsed = kind === 'int' ? parseInt(e.target.value, 10) : parseFloat(e.target.value);
+        if (Number.isFinite(parsed)) onCommit(parsed);
+      }}
       onBlur={commit}
       onKeyDown={(e) => {
         if (e.key === 'Enter') {

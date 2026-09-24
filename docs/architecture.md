@@ -96,7 +96,7 @@ This is intentional: local-first means the client is the source of truth. The se
 | Integration | Protocol | Files |
 |-------------|----------|-------|
 | **Whoop** | OAuth2 → REST API | `whoop.ts`, `useWhoopSync.ts`, `app/api/whoop/*` |
-| **Claude AI** | REST API (`@anthropic-ai/sdk`) | `ai-coach-client.ts`, `app/api/ai-coach/route.ts` |
+| **Claude AI** | REST API (`@anthropic-ai/sdk`) | `app/api/ai-coach/route.ts` (no client caller since v2.12.0) |
 | **Google Fit** | OAuth2 → REST API | `health-import.ts`, `app/api/google-fit/route.ts` |
 | **Web Push** | VAPID (`web-push`) | `push-subscription.ts`, `app/api/push/route.ts` |
 | **OpenFoodFacts** | REST API | `barcode-lookup.ts` (cached) |

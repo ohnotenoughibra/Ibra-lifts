@@ -113,7 +113,7 @@ npm test             # Vitest tests (586 tests)
 
 - When the user sends images (logos, screenshots), keep file reads minimal to stay within context limits
 - Use grep/search to find specific code rather than reading entire large files
-- The rule-based AI coach (`ai-coach.ts`) is the offline fallback; Claude-powered coaching is via `/api/ai-coach` + `ai-coach-client.ts` (rate-limited 3/day)
+- The rule-based AI coach (`ai-coach.ts`) powers coaching UI. The `/api/ai-coach` route (Claude, rate-limited 3/day) exists but has no client caller since v2.12.0
 - Check `docs/map.md` before searching — it tells you exactly where things are
 - Read the relevant `CLAUDE.md` in subdirectories when working on a module
 - For store changes, consult `store.context.md` for section index and line ranges

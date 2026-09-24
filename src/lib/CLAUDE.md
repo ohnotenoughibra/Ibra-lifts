@@ -119,11 +119,9 @@ Block lifecycle: `active` → `completed` (via `completeMesocycle`, requires ≥
 ### Gamification
 - `gamification.ts` — 52 badges, XP/levels, streaks, challenges
 - `engagement-engine.ts` — Variable-ratio rewards, churn prevention
-- `nudge-engine.ts` — Contextual push notifications
 
 ### Coaching & Knowledge
 - `ai-coach.ts` — Rule-based weekly recommendations (fallback when API unavailable)
-- `ai-coach-client.ts` — Client-side helper for Claude-powered coaching (calls `/api/ai-coach`)
 - `daily-directive.ts` — "What to do today" planner
 - `one-thing.ts` — Time-aware single directive ("The One Thing") — changes by hour, readiness, nutrition, training status
 - `corner-coach.ts` — Between-set hype/tactics messaging
@@ -143,7 +141,7 @@ Block lifecycle: `active` → `completed` (via `completeMesocycle`, requires ≥
 
 ### Auth & Sync
 - `auth.ts` / `auth.config.ts` — NextAuth setup
-- `db.ts` / `db-init.ts` — Vercel Postgres helpers
+- `db-init.ts` — Vercel Postgres schema init
 - `db-sync.ts` — Conflict resolution, union merge
 - `useDbSync.ts` — Sync orchestration hook
 - `data-safety.ts` — Sync failure tracking
@@ -152,7 +150,6 @@ Block lifecycle: `active` → `completed` (via `completeMesocycle`, requires ≥
 - `whoop.ts` — Whoop API calls
 - `useWhoopSync.ts` — Background Whoop sync hook
 - `subscription.ts` — Feature gates (free/pro)
-- `monetization-engine.ts` — Usage analytics, upgrade prompts
 - `notifications.ts` — Push notification scheduling
 - `push-subscription.ts` — Web push subscription management (VAPID key exchange, subscribe/unsubscribe)
 - `health-import.ts` — Apple Health XML + Google Fit data import and normalization

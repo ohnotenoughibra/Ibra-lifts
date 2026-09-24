@@ -112,11 +112,10 @@ Living map of how the pieces connect. When you need to change something, look he
 |-------|------|---------|
 | Core engine | `src/lib/gamification.ts` | 52 badges, XP/levels, weekly challenges, streak tracking |
 | Engagement | `src/lib/engagement-engine.ts` | Variable-ratio rewards, disengagement detection, nudges |
-| Nudges | `src/lib/nudge-engine.ts` | Contextual push notifications, churn prevention |
 | Wellness score | `src/lib/wellness-score.ts` | Multi-domain wellness multiplier (1.0-1.5x XP) |
 | State | `src/lib/store.ts` lines 2091-2657 | Gamification slice: points, badges, streaks, challenges |
 
-**Flow**: User completes workout → `gamification` awards points + checks 52 badge conditions → `wellness-score` applies multiplier → `engagement-engine` determines variable rewards → `nudge-engine` schedules retention notifications
+**Flow**: User completes workout → `gamification` awards points + checks 52 badge conditions → `wellness-score` applies multiplier → `engagement-engine` determines variable rewards
 
 ---
 
@@ -140,7 +139,6 @@ Living map of how the pieces connect. When you need to change something, look he
 | Knowledge base | `src/lib/knowledge.ts` | ~300 articles/tips indexed by category |
 | Knowledge engine | `src/lib/knowledge-engine.ts` | Contextual insight picker with spaced repetition |
 | AI coach (rule-based) | `src/lib/ai-coach.ts` | Rule-based weekly recommendations (offline fallback) |
-| AI coach (Claude) | `src/lib/ai-coach-client.ts` | Client helper for Claude-powered coaching via `/api/ai-coach` |
 | AI coach API | `src/app/api/ai-coach/route.ts` | Claude API integration, rate-limited 3/day per user |
 | Daily directive | `src/lib/daily-directive.ts` | "What to do today" combining readiness + schedule + fight camp |
 | The One Thing | `src/lib/one-thing.ts` + `src/components/OneThingBanner.tsx` | Time-aware single directive that changes by hour, shown on HomeTab |
@@ -169,7 +167,6 @@ Living map of how the pieces connect. When you need to change something, look he
 | Auth config | `src/lib/auth.config.ts` | Edge-safe NextAuth config (Google, Apple, magic link) |
 | Auth server | `src/lib/auth.ts` | Full auth with Credentials provider, lockout logic |
 | Middleware | `src/middleware.ts` | Edge route protection |
-| DB | `src/lib/db.ts` | Vercel Postgres query helpers |
 | DB init | `src/lib/db-init.ts` | Schema creation (tables, migrations) |
 | DB sync | `src/lib/db-sync.ts` | Conflict resolution, richness scoring, union merge |
 | Sync hook | `src/lib/useDbSync.ts` | React hook orchestrating load/save/conflict UI |
@@ -197,7 +194,6 @@ Living map of how the pieces connect. When you need to change something, look he
 | Piece | File | Purpose |
 |-------|------|---------|
 | Subscription | `src/lib/subscription.ts` | Feature gates (free/pro), tier resolution |
-| Monetization | `src/lib/monetization-engine.ts` | Usage analytics, upgrade prompts, conversion funnels |
 | Feature access | `src/lib/useFeatureAccess.ts` | React hook for subscription gating |
 | Checkout API | `src/app/api/subscription/checkout/` | PayPal subscription creation |
 | Status API | `src/app/api/subscription/status/` | Tier checking |

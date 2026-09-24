@@ -173,3 +173,21 @@
 | 7 UX shell | 15–16 | 2.18–2.19 | ☐ |
 
 Rough total: ~6–8 focused weeks. Phases 0–1 (~1 week) remove every known data-corruption bug.
+
+## Phase 6 addendum — live-workout quality of life (from 2026-09-24 session)
+Grounded in observed behaviour; build order ★ first.
+1. ★ Rest = slim bottom bar (countdown, −15/+15, Skip, "Next: X · set n · W×R"), not a full-screen overlay that blocks navigation.
+2. ★ Rate RPE during rest (7…10 in half steps, one tap) → rpeSource 'user'.
+3. Plate breakdown for the next set in the rest bar (reuse MiniPlateCalc); DB pairs.
+4. ★ Wake Lock + SW rest-end notification + vibrate.
+5. ★ Per-set "Last: 100×5 @8" + today's target "→ 102.5×5" inline.
+6. Unit-aware ± quick-adjust (kg −2.5 −1.25 +1.25 +2.5 +5; lbs −5 −2.5 +2.5 +5 +10); drop +25.
+7. Tempo control only when tempo is deliberately prescribed (generator defaults 2-1-X-0 on all hypertrophy).
+8. Set row gestures: swipe-left delete, swipe-right duplicate, long-press note (note resurfaces next time).
+9. Sticky per-exercise setup note (seat/grip/belt).
+10. Warm-up ramp as real "W" sets on first compound (warmup-generator output currently never shown).
+11. Header ETA ("~18:42 · 22 min left"), amber when over session budget.
+12. ★ Two-tap start: remove "Let's Go / Skip next time" intro; check-in = inline chip row (Whoop default).
+13. PR = small banner "e1RM 118 → 121"; pre-set hint "Beat 118 for a PR".
+14. Remove "Got extra time?" interstitial → summary line.
+15. Finish summary: per-lift delta vs last time, PRs, volume vs last session, time.

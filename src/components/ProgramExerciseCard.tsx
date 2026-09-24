@@ -33,9 +33,14 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
   const removeExercise = useAppStore((s) => s.removeExerciseFromSession);
 
   // Scoring the ~250-exercise database is too heavy to redo on every render
+  const hiddenIds = useAppStore((s) => s.hiddenExercises?.ids);
   const alternatives: ExerciseRecommendation[] = useMemo(
-    () => (showAlternatives && ex.exerciseId ? getRecommendedAlternatives(ex.exerciseId, userEquipment, 8) : []),
-    [showAlternatives, ex.exerciseId, userEquipment]
+    () => (showAlternatives && ex.exerciseId
+      ? getRecommendedAlternatives(ex.exerciseId, userEquipment, 40)
+          .filter(r => !(hiddenIds ?? []).includes(r.exercise.id))
+          .slice(0, 8)
+      : []),
+    [showAlternatives, ex.exerciseId, userEquipment, hiddenIds]
   );
 
   // Last performance per exercise from ONE reverse pass over the logs — the old

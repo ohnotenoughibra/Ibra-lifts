@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore, type ActiveWorkoutThrottle } from '@/lib/store';
 import { useToast } from './Toast';
+import ExerciseSwapSheet from './ExerciseSwapSheet';
 import { useShallow } from 'zustand/react/shallow';
 import { useSwipe } from '@/lib/use-swipe';
 import { useRestTimer } from '@/hooks/useRestTimer';
@@ -245,7 +246,6 @@ export default function ActiveWorkout() {
   const [feeling, setFeeling] = useState<'great' | 'good' | 'okay' | 'rough'>('good');
   const [showCheckInDetail, setShowCheckInDetail] = useState(false);
   const [showExerciseFeedback, setShowExerciseFeedback] = useState(false);
-  const [swapShowAll, setSwapShowAll] = useState(false);
   const [addExerciseSearch, setAddExerciseSearch] = useState('');
   const [addExerciseFilter, setAddExerciseFilter] = useState<string>('all');
   const [feedbackExerciseIndex, setFeedbackExerciseIndex] = useState(0);
@@ -1077,13 +1077,6 @@ export default function ActiveWorkout() {
     profileEquipment
   ) : [];
 
-  // Enhanced recommendations with scores and reasons
-  const recommendations: ExerciseRecommendation[] = user ? getRecommendedAlternatives(
-    currentExercise.exerciseId,
-    user.equipment,
-    8,
-    profileEquipment
-  ) : [];
 
   // Filtered exercises for Add Exercise modal
   const addExerciseList = useMemo(() => {
@@ -2340,282 +2333,37 @@ export default function ActiveWorkout() {
 
       {/* Overview Exercise Swap Modal — swap before starting workout */}
       <AnimatePresence>
-        {overviewSwapIndex !== null && (() => {
-          const targetEx = activeWorkout.session.exercises[overviewSwapIndex];
-          if (!targetEx) return null;
-          const overviewRecs: ExerciseRecommendation[] = user ? getRecommendedAlternatives(
-            targetEx.exerciseId,
-            user.equipment,
-            8,
-            profileEquipment
-          ) : [];
-          const handleOverviewSwap = (newExerciseId: string, newExerciseName: string) => {
-            swapExercise(overviewSwapIndex, newExerciseId, newExerciseName);
-            setOverviewSwapIndex(null);
-            showToast(`Swapped to ${newExerciseName}`, 'success', { label: 'Undo', onClick: () => { undoSwap(); } });
-          };
-          return (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[60] bg-black/70 flex items-end sm:items-center justify-center p-4"
-              role="dialog"
-              aria-modal="true"
-              onClick={(e) => { if (e.target === e.currentTarget) setOverviewSwapIndex(null); }}
-            >
-              <motion.div
-                initial={{ y: 100, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 100, opacity: 0 }}
-                className="card p-6 w-full max-w-md max-h-[85vh] overflow-y-auto"
-              >
-                <h2 className="text-lg font-bold text-grappler-50 mb-1">Swap Exercise</h2>
-                <p className="text-xs text-grappler-400 mb-1">
-                  Replace <span className="text-grappler-200 font-medium">{targetEx.exercise.name}</span>
-                </p>
-                <div className="flex items-center gap-2 mb-4">
-                  <p className="text-xs text-grappler-400">
-                    Sorted by match score — how well each exercise replaces the current one
-                  </p>
-                  {activeEquipmentProfile !== 'gym' && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/25 whitespace-nowrap flex-shrink-0">
-                      {DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === activeEquipmentProfile)?.label || activeEquipmentProfile}
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  {overviewRecs.length > 0 ? overviewRecs.map((rec) => (
-                    <button
-                      key={rec.exercise.id}
-                      onClick={() => handleOverviewSwap(rec.exercise.id, rec.exercise.name)}
-                      className="w-full p-3 rounded-xl border border-grappler-700 hover:border-primary-500 text-left transition-all group"
-                    >
-                      <div className="flex items-start justify-between mb-1">
-                        <p className="font-semibold text-grappler-100 group-hover:text-primary-300 transition-colors">
-                          {rec.exercise.name}
-                        </p>
-                        <span className={cn(
-                          'text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ml-2',
-                          rec.matchScore >= 80 ? 'bg-green-500/20 text-green-400' :
-                          rec.matchScore >= 60 ? 'bg-yellow-500/20 text-yellow-400' :
-                          'bg-grappler-700 text-grappler-400'
-                        )}>
-                          {rec.matchScore}%
-                        </span>
-                      </div>
-                      {rec.reasons.length > 0 && (
-                        <p className="text-xs text-grappler-400 mb-1.5">
-                          {rec.reasons[0]}
-                        </p>
-                      )}
-                      <div className="flex flex-wrap gap-1 mb-1.5">
-                        {rec.tags.slice(0, 4).map((tag, ti) => (
-                          <span key={ti} className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/80 text-grappler-300">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                      <p className="text-xs text-grappler-400 mt-1">
-                        {rec.exercise.primaryMuscles.join(', ')}
-                        {rec.exercise.secondaryMuscles.length > 0 && (
-                          <span> + {rec.exercise.secondaryMuscles.slice(0, 2).join(', ')}</span>
-                        )}
-                      </p>
-                    </button>
-                  )) : (
-                    <div className="text-center py-6">
-                      <p className="text-sm text-grappler-400 mb-3">
-                        No alternatives match your {DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === activeEquipmentProfile)?.label || 'current'} equipment
-                      </p>
-                      {activeEquipmentProfile !== 'gym' && (() => {
-                        const allRecs = user ? getRecommendedAlternatives(targetEx.exerciseId, user.equipment, 8) : [];
-                        if (allRecs.length === 0) return null;
-                        return (
-                          <>
-                            <p className="text-xs text-yellow-400/70 mb-2">These require additional equipment:</p>
-                            <div className="space-y-2 text-left">
-                              {allRecs.map((rec) => (
-                                <button
-                                  key={rec.exercise.id}
-                                  onClick={() => handleOverviewSwap(rec.exercise.id, rec.exercise.name)}
-                                  className="w-full p-3 rounded-xl border border-yellow-500/30 hover:border-primary-500 text-left transition-all group"
-                                >
-                                  <div className="flex items-start justify-between mb-1">
-                                    <p className="font-semibold text-grappler-100 group-hover:text-primary-300 transition-colors">
-                                      {rec.exercise.name}
-                                    </p>
-                                    <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 flex-shrink-0 ml-2">
-                                      Needs equipment
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-grappler-400 mt-1">
-                                    {rec.exercise.primaryMuscles.join(', ')}
-                                  </p>
-                                </button>
-                              ))}
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => setOverviewSwapIndex(null)}
-                  className="btn btn-secondary btn-md w-full mt-4"
-                >
-                  Keep Current Exercise
-                </button>
-              </motion.div>
-            </motion.div>
-          );
-        })()}
+        {overviewSwapIndex !== null && activeWorkout.session.exercises[overviewSwapIndex] && (
+          <ExerciseSwapSheet
+            currentExercise={activeWorkout.session.exercises[overviewSwapIndex].exercise}
+            sessionExerciseIds={activeWorkout.session.exercises.map(e => e.exerciseId)}
+            equipment={user?.equipment ?? 'full_gym'}
+            availableEquipment={profileEquipment}
+            weightUnit={weightUnit}
+            getHistory={getAltHistory}
+            onPick={(newExerciseId, newExerciseName) => {
+              swapExercise(overviewSwapIndex, newExerciseId, newExerciseName);
+              setOverviewSwapIndex(null);
+              showToast(`Swapped to ${newExerciseName}`, 'success', { label: 'Undo', onClick: () => { undoSwap(); } });
+            }}
+            onClose={() => setOverviewSwapIndex(null)}
+          />
+        )}
       </AnimatePresence>
 
       {/* Exercise Swap Modal */}
       <AnimatePresence>
         {showSwapModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-          >
-            <motion.div
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              className="card p-6 w-full max-w-md max-h-[85vh] overflow-y-auto"
-            >
-              <h2 className="text-lg font-bold text-grappler-50 mb-1">Swap Exercise</h2>
-              <p className="text-xs text-grappler-400 mb-1">
-                Replace <span className="text-grappler-200 font-medium">{currentExercise.exercise.name}</span>
-              </p>
-              <div className="flex items-center gap-2 mb-4">
-                <p className="text-xs text-grappler-400">
-                  Sorted by match score — how well each exercise replaces the current one
-                </p>
-                {activeEquipmentProfile !== 'gym' && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/25 whitespace-nowrap flex-shrink-0">
-                    {DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === activeEquipmentProfile)?.label || activeEquipmentProfile}
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                {recommendations.length > 0 ? recommendations.map((rec) => {
-                  const altHistory = getAltHistory(rec.exercise.id);
-                  return (
-                    <button
-                      key={rec.exercise.id}
-                      onClick={() => handleSwapExercise(rec.exercise.id, rec.exercise.name)}
-                      className="w-full p-3 rounded-xl border border-grappler-700 hover:border-primary-500 text-left transition-all group"
-                    >
-                      <div className="flex items-start justify-between mb-1">
-                        <p className="font-semibold text-grappler-100 group-hover:text-primary-300 transition-colors">
-                          {rec.exercise.name}
-                        </p>
-                        <span className={cn(
-                          'text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ml-2',
-                          rec.matchScore >= 80 ? 'bg-green-500/20 text-green-400' :
-                          rec.matchScore >= 60 ? 'bg-yellow-500/20 text-yellow-400' :
-                          'bg-grappler-700 text-grappler-400'
-                        )}>
-                          {rec.matchScore}%
-                        </span>
-                      </div>
-
-                      {/* Reason */}
-                      {rec.reasons.length > 0 && (
-                        <p className="text-xs text-grappler-400 mb-1.5">
-                          {rec.reasons[0]}
-                        </p>
-                      )}
-
-                      {/* Tags */}
-                      <div className="flex flex-wrap gap-1 mb-1.5">
-                        {rec.tags.slice(0, 4).map((tag, i) => (
-                          <span key={i} className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/80 text-grappler-300">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Previous performance if available */}
-                      {altHistory && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <TrendingUp className="w-3 h-3 text-primary-400" />
-                          <p className="text-xs text-primary-400">
-                            You did {altHistory.weight} {weightUnit} x {altHistory.reps} on {altHistory.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Muscle info */}
-                      <p className="text-xs text-grappler-400 mt-1">
-                        {rec.exercise.primaryMuscles.join(', ')}
-                        {rec.exercise.secondaryMuscles.length > 0 && (
-                          <span> + {rec.exercise.secondaryMuscles.slice(0, 2).join(', ')}</span>
-                        )}
-                      </p>
-                    </button>
-                  );
-                }) : (
-                  <div className="text-center py-6">
-                    <p className="text-sm text-grappler-400 mb-3">
-                      No alternatives match your {DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === activeEquipmentProfile)?.label || 'current'} equipment
-                    </p>
-                    {activeEquipmentProfile !== 'gym' && (
-                      <button
-                        onClick={() => {
-                          // Temporarily show unfiltered results
-                          setSwapShowAll(true);
-                        }}
-                        className="text-xs text-primary-400 hover:text-primary-300 underline transition-colors"
-                      >
-                        Show all exercises (ignoring equipment)
-                      </button>
-                    )}
-                  </div>
-                )}
-                {/* Show-all unfiltered results when user clicks fallback */}
-                {recommendations.length === 0 && swapShowAll && (() => {
-                  const allRecs = user ? getRecommendedAlternatives(currentExercise.exerciseId, user.equipment, 8) : [];
-                  return allRecs.map((rec) => (
-                    <button
-                      key={rec.exercise.id}
-                      onClick={() => handleSwapExercise(rec.exercise.id, rec.exercise.name)}
-                      className="w-full p-3 rounded-xl border border-yellow-500/30 hover:border-primary-500 text-left transition-all group"
-                    >
-                      <div className="flex items-start justify-between mb-1">
-                        <p className="font-semibold text-grappler-100 group-hover:text-primary-300 transition-colors">
-                          {rec.exercise.name}
-                        </p>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 flex-shrink-0 ml-2">
-                          Needs equipment
-                        </span>
-                      </div>
-                      <p className="text-xs text-grappler-400 mt-1">
-                        {rec.exercise.primaryMuscles.join(', ')}
-                      </p>
-                    </button>
-                  ));
-                })()}
-              </div>
-
-              <button
-                onClick={() => { setShowSwapModal(false); setSwapShowAll(false); }}
-                className="btn btn-secondary btn-md w-full mt-4"
-              >
-                Keep Current Exercise
-              </button>
-            </motion.div>
-          </motion.div>
+          <ExerciseSwapSheet
+            currentExercise={currentExercise.exercise}
+            sessionExerciseIds={activeWorkout.session.exercises.map(e => e.exerciseId)}
+            equipment={user?.equipment ?? 'full_gym'}
+            availableEquipment={profileEquipment}
+            weightUnit={weightUnit}
+            getHistory={getAltHistory}
+            onPick={handleSwapExercise}
+            onClose={() => setShowSwapModal(false)}
+          />
         )}
       </AnimatePresence>
 

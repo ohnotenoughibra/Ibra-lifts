@@ -52,16 +52,33 @@ test.describe('Live workout', () => {
 
   test('swap sheet lists alternatives and swapping replaces the exercise', async ({ page }) => {
     const second = pills(page).nth(1);
-    const before = ((await second.getAttribute('aria-label')) ?? (await second.innerText())).replace(/\s*\d+\/\d+$/, '').trim();
+    const before = (await second.innerText()).replace(/\s*\d+\/\d+$/, '').trim();
     await page.getByRole('button', { name: 'Next exercise' }).click();
     await page.getByRole('button', { name: 'Swap exercise' }).last().click();
-    const options = page.getByRole('button', { name: /\d+%/ });
+    const options = page.getByRole('button', { name: /^Swap to / });
     await expect(options.first()).toBeVisible();
-    expect(await options.count()).toBeGreaterThan(0);
-    const choice = (await options.first().innerText()).split(/\d+%/)[0].trim();
+    const choice = ((await options.first().getAttribute('aria-label')) ?? '').replace(/^Swap to /, '');
     expect(choice).not.toBe(before);
     await options.first().click();
     await expect(pills(page).nth(1)).toHaveAccessibleName(new RegExp(`^${choice.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+  });
+
+  test('swap search covers the whole library and hidden exercises stay out of suggestions', async ({ page }) => {
+    await page.getByRole('button', { name: 'Swap exercise' }).last().click();
+    const search = page.getByRole('searchbox', { name: 'Search exercises' });
+    await search.fill('farmer');
+    await expect(page.getByRole('button', { name: /^Swap to Farmer/ }).first()).toBeVisible();
+    await search.fill('');
+    // Hide the top suggestion — it must disappear from suggestions
+    const top = page.getByRole('button', { name: /^Swap to / }).first();
+    const topName = ((await top.getAttribute('aria-label')) ?? '').replace(/^Swap to /, '');
+    await page.getByRole('button', { name: `Don't recommend ${topName}` }).click();
+    await expect(page.getByRole('button', { name: `Swap to ${topName}`, exact: true })).toHaveCount(0);
+    // ...but a deliberate search still finds it, marked hidden, with unhide
+    await search.fill(topName);
+    await expect(page.getByRole('button', { name: `Unhide ${topName}` })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(search).not.toBeVisible();
   });
 
   test('finishing saves the workout and returns to the app', async ({ page }) => {
@@ -104,7 +121,7 @@ test.describe('Live workout', () => {
     const before = await pills(page).count();
     await logSet(page, '60', '5');
     await page.getByRole('button', { name: 'Swap exercise' }).last().click();
-    await page.getByRole('button', { name: /\d+%/ }).first().click();
+    await page.getByRole('button', { name: /^Swap to / }).first().click();
     // performed set stays on the original lift; the new lift is inserted after it
     await expect(pills(page)).toHaveCount(before + 1);
     await expect(pills(page).first()).toHaveAccessibleName(/1\/1$/);

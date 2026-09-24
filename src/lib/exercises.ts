@@ -16,11 +16,44 @@ export function getAllExercises(): Exercise[] {
   return [...exercises, ..._customExercises];
 }
 
-/** Search exercises by name substring (case-insensitive). Returns built-in + custom. */
-export function searchExercises(query: string): Exercise[] {
+/**
+ * Search the whole library (built-in + custom). Every word must match the
+ * name, a muscle, the movement pattern or an equipment type — so "db row",
+ * "hamstring", "landmine press" and "kettlebell hinge" all work. Ranked: name
+ * prefix > whole-word name match > name contains > muscle/pattern/equipment.
+ */
+export function searchExercises(query: string, limit = 60): Exercise[] {
   const q = query.toLowerCase().trim();
   if (!q) return [];
-  return getAllExercises().filter(e => e.name.toLowerCase().includes(q));
+  const ALIASES: Record<string, string> = {
+    db: 'dumbbell', bb: 'barbell', kb: 'kettlebell', bw: 'bodyweight', ohp: 'overhead press',
+    rdl: 'romanian deadlift', quads: 'quadriceps', quad: 'quadriceps', hams: 'hamstrings',
+    hamstring: 'hamstrings', glute: 'glutes', lats: 'back', lat: 'back', abs: 'core', delts: 'shoulders',
+    bicep: 'biceps', tricep: 'triceps', calf: 'calves', band: 'resistance_band',
+  };
+  const words = q.split(/\s+/).flatMap(w => (ALIASES[w] ?? w).split(' '));
+  const scored: { e: Exercise; score: number }[] = [];
+  for (const e of getAllExercises()) {
+    const name = e.name.toLowerCase();
+    const meta = [
+      ...e.primaryMuscles, ...e.secondaryMuscles, e.movementPattern, e.category,
+      ...(e.equipmentTypes ?? []).map(t => t.replace('_', ' ')), ...(e.equipmentTypes ?? []),
+    ].join(' ').toLowerCase();
+    let score = 0;
+    let ok = true;
+    for (const w of words) {
+      if (name.startsWith(w)) score += 6;
+      else if (new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(name)) score += 4;
+      else if (name.includes(w)) score += 3;
+      else if (meta.includes(w)) score += 1;
+      else { ok = false; break; }
+    }
+    if (ok) scored.push({ e, score: score + (e.primaryMuscles.some(m => words.includes(m)) ? 1 : 0) });
+  }
+  return scored
+    .sort((a, b) => b.score - a.score || a.e.name.localeCompare(b.e.name))
+    .slice(0, limit)
+    .map(x => x.e);
 }
 
 /**
@@ -4584,13 +4617,15 @@ export function getRecommendedAlternatives(
   limit: number = 12,
   availableEquipment?: EquipmentType[]
 ): ExerciseRecommendation[] {
-  const exercise = exercises.find(e => e.id === exerciseId);
+  // Built-in + custom: custom exercises can be swapped in AND out.
+  const pool = getAllExercises();
+  const exercise = pool.find(e => e.id === exerciseId);
   if (!exercise) return [];
 
   const allMuscles = [...exercise.primaryMuscles, ...exercise.secondaryMuscles];
   const relatedPatterns = RELATED_PATTERNS[exercise.movementPattern] || [];
 
-  return exercises
+  return pool
     .filter(e => {
       if (e.id === exerciseId) return false;
       if (!e.equipmentRequired.includes(equipment)) return false;

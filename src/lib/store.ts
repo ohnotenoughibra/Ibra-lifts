@@ -323,6 +323,8 @@ interface AppState {
 
   // Muscle emphasis for mesocycle customization
   muscleEmphasis: MuscleGroupConfig | null;
+  // Athlete's "don't recommend" list — never generated or suggested, still searchable.
+  hiddenExercises: { ids: string[]; updatedAt: string };
 
   // Active equipment profile for quick-switching gym/home/travel
   activeEquipmentProfile: EquipmentProfileName;
@@ -417,6 +419,8 @@ interface AppState {
 
   // Muscle emphasis actions
   setMuscleEmphasis: (config: MuscleGroupConfig) => void;
+  hideExercise: (exerciseId: string) => void;
+  unhideExercise: (exerciseId: string) => void;
 
   // Mesocycle actions
   generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number, periodizationStyle?: 'linear' | 'undulating' | 'block' | 'conjugate', overrides?: BlockOverrides) => void;
@@ -875,6 +879,7 @@ export const useAppStore = create<AppState>()(
       },
       bodyComposition: [],
       muscleEmphasis: null,
+      hiddenExercises: { ids: [], updatedAt: new Date(0).toISOString() },
       activeEquipmentProfile: 'gym' as EquipmentProfileName,
       homeGymEquipment: DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === 'home')?.equipment || ['barbell', 'dumbbell', 'bench', 'pull_up_bar', 'kettlebell', 'resistance_band', 'ab_wheel'] as EquipmentType[],
       competitions: [],
@@ -1058,6 +1063,17 @@ export const useAppStore = create<AppState>()(
 
       // Muscle emphasis actions
       setMuscleEmphasis: (config) => set({ muscleEmphasis: config }),
+
+      hideExercise: (id) => {
+        const cur = get().hiddenExercises?.ids ?? [];
+        if (cur.includes(id)) return;
+        set({ hiddenExercises: { ids: [...cur, id], updatedAt: new Date().toISOString() }, _syncUrgent: true });
+      },
+      unhideExercise: (id) => {
+        const cur = get().hiddenExercises?.ids ?? [];
+        if (!cur.includes(id)) return;
+        set({ hiddenExercises: { ids: cur.filter(x => x !== id), updatedAt: new Date().toISOString() }, _syncUrgent: true });
+      },
 
       // Equipment profile actions
       setActiveEquipmentProfile: (profile) => {
@@ -1500,6 +1516,7 @@ export const useAppStore = create<AppState>()(
           weeks,
           baselineLifts: baselineLifts || undefined,
           muscleEmphasis: overrides?.muscleEmphasis ?? (muscleEmphasis || undefined),
+          excludeExerciseIds: get().hiddenExercises?.ids,
           sessionDurationMinutes: duration,
           trainingIdentity: user.trainingIdentity,
           combatSport: user.combatSport,
@@ -4617,7 +4634,7 @@ export const useAppStore = create<AppState>()(
           'bodyWeightLog', 'injuryLog', 'rehabStates', 'benchmarkResults', 'activePlyoBlock', 'rsiHistory', 'techniqueLog', 'sparringRounds', 'customExercises', 'sessionTemplates',
           'hrSessions', 'trainingSessions', 'themeMode', 'colorTheme', 'meals', 'macroTargets',
           'waterLog', 'activeDietPhase', 'dietPhaseHistory', 'weeklyCheckIns', 'bodyComposition',
-          'muscleEmphasis', 'competitions', 'quickLogs',
+          'muscleEmphasis', 'competitions', 'quickLogs', 'hiddenExercises',
           'gripTests', 'gripExerciseLogs', 'activeEquipmentProfile',
           'notificationPreferences', 'workoutSkips', 'illnessLogs', 'cycleLogs',
           'mealReminders', 'dailyLoginBonus', 'lastSyncAt',
@@ -4834,6 +4851,7 @@ export const useAppStore = create<AppState>()(
           },
           bodyComposition: [],
           muscleEmphasis: null,
+          hiddenExercises: { ids: [], updatedAt: new Date(0).toISOString() },
           competitions: [],
           weightCutPlans: [],
           combatNutritionProfile: null,
@@ -5222,6 +5240,7 @@ export const useAppStore = create<AppState>()(
         notificationPreferences: state.notificationPreferences,
         dailyLoginBonus: state.dailyLoginBonus,
         muscleEmphasis: state.muscleEmphasis,
+        hiddenExercises: state.hiddenExercises,
         combatNutritionProfile: state.combatNutritionProfile,
         nutritionPeriodPlan: state.nutritionPeriodPlan,
         mealReminders: state.mealReminders,

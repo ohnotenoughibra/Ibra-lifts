@@ -46,6 +46,7 @@ import {
   TrendingUp,
   Lock,
 } from 'lucide-react';
+import HiddenExercisesSetting from './HiddenExercisesSetting';
 import { cn, formatNumber } from '@/lib/utils';
 import { useComputedGamification } from '@/lib/computed-gamification';
 import { APP_VERSION, VERSION_HISTORY } from '@/lib/app-version';
@@ -361,7 +362,7 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
             'gamificationStats', 'bodyWeightLog', 'injuryLog', 'customExercises',
             'sessionTemplates', 'hrSessions', 'trainingSessions', 'themeMode',
             'meals', 'macroTargets', 'waterLog', 'activeDietPhase', 'weeklyCheckIns',
-            'bodyComposition', 'muscleEmphasis', 'competitions',
+            'bodyComposition', 'muscleEmphasis', 'competitions', 'hiddenExercises',
             'quickLogs', 'gripTests', 'gripExerciseLogs', 'activeEquipmentProfile',
             'notificationPreferences', 'workoutSkips', 'illnessLogs', 'cycleLogs',
             'mealReminders', 'dailyLoginBonus', 'featureFeedback',
@@ -936,6 +937,9 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
             </AnimatePresence>
           </div>
 
+
+          {/* Hidden exercises ("don't recommend") */}
+          <HiddenExercisesSetting />
 
           {/* Combat Sport Type */}
           {(user?.combatSport || user?.combatSports?.length) && (

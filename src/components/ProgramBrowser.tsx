@@ -225,6 +225,7 @@ export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserPr
         weeks: program.defaultWeeks,
         baselineLifts: baselineLifts || undefined,
         muscleEmphasis: muscleEmphasis || undefined,
+        excludeExerciseIds: useAppStore.getState().hiddenExercises?.ids,
         sessionDurationMinutes: user.sessionDurationMinutes ?? 60,
         trainingIdentity: user.trainingIdentity,
         combatSport: user.combatSport,

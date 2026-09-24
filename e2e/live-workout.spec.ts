@@ -112,4 +112,14 @@ test.describe('Live workout', () => {
     await expect(pills(page)).toHaveCount(before);
     await expect(pills(page).first()).toHaveAccessibleName(/1\/\d+$/);
   });
+
+  test('jumping to another exercise and back resumes at the next open set', async ({ page }) => {
+    await logSet(page, '60', '5');
+    await expect(pills(page).first()).toHaveAccessibleName(/1\/\d+$/);
+    await page.getByRole('button', { name: 'Next exercise' }).click();
+    await pills(page).first().click();
+    // Completing now must log set 2 — not overwrite set 1
+    await page.getByRole('button', { name: 'Complete Set' }).click();
+    await expect(pills(page).first()).toHaveAccessibleName(/2\/\d+$/);
+  });
 });

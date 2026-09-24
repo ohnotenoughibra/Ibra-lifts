@@ -312,20 +312,28 @@ export default function ActiveWorkout() {
   const weightUnit: WeightUnit = resolveWeightUnit(user?.weightUnit);
   const weightIncrement = getWeightIncrement(weightUnit);
 
+  // Move to an exercise and land on its first set that isn't done yet
+  // (last set if all are done) — never blindly on set 1, which made you
+  // re-log or overwrite work after jumping between exercises.
+  const goToExercise = useCallback((index: number) => {
+    const log = useAppStore.getState().activeWorkout?.exerciseLogs[index];
+    const firstOpen = log ? log.sets.findIndex(s => !s.completed && !s.skipped) : 0;
+    setCurrentExerciseIndex(index);
+    setCurrentSetIndex(firstOpen >= 0 ? firstOpen : Math.max(0, (log?.sets.length ?? 1) - 1));
+  }, []);
+
   // Swipe between exercises
   const swipeHandlers = useSwipe({
     onSwipeLeft: useCallback(() => {
       if (activeWorkout && currentExerciseIndex < activeWorkout.session.exercises.length - 1) {
-        setCurrentExerciseIndex(prev => prev + 1);
-        setCurrentSetIndex(0);
+        goToExercise(currentExerciseIndex + 1);
       }
-    }, [activeWorkout, currentExerciseIndex]),
+    }, [activeWorkout, currentExerciseIndex, goToExercise]),
     onSwipeRight: useCallback(() => {
       if (currentExerciseIndex > 0) {
-        setCurrentExerciseIndex(prev => prev - 1);
-        setCurrentSetIndex(0);
+        goToExercise(currentExerciseIndex - 1);
       }
-    }, [currentExerciseIndex]),
+    }, [currentExerciseIndex, goToExercise]),
     threshold: 50,
     preventScroll: true,
   });
@@ -793,8 +801,7 @@ export default function ActiveWorkout() {
 
       // Move to next exercise
       if (currentExerciseIndex < activeWorkout.session.exercises.length - 1) {
-        setCurrentExerciseIndex(currentExerciseIndex + 1);
-        setCurrentSetIndex(0);
+        goToExercise(currentExerciseIndex + 1);
         setWeightSuggestion(null); // Clear stale suggestion from previous exercise
       }
     } else {
@@ -892,8 +899,7 @@ export default function ActiveWorkout() {
     updateExerciseLog(currentExerciseIndex, { ...currentLog, sets: skippedSets });
     // Move to next exercise if not on last one
     if (currentExerciseIndex < activeWorkout.session.exercises.length - 1) {
-      setCurrentExerciseIndex(currentExerciseIndex + 1);
-      setCurrentSetIndex(0);
+      goToExercise(currentExerciseIndex + 1);
     }
     setIsResting(false);
   };
@@ -3370,8 +3376,7 @@ export default function ActiveWorkout() {
           <button
             onClick={() => {
               if (currentExerciseIndex > 0) {
-                setCurrentExerciseIndex(currentExerciseIndex - 1);
-                setCurrentSetIndex(0);
+                goToExercise(currentExerciseIndex - 1);
               }
             }}
             disabled={currentExerciseIndex === 0}
@@ -3400,8 +3405,7 @@ export default function ActiveWorkout() {
           <button
             onClick={() => {
               if (currentExerciseIndex < activeWorkout.session.exercises.length - 1) {
-                setCurrentExerciseIndex(currentExerciseIndex + 1);
-                setCurrentSetIndex(0);
+                goToExercise(currentExerciseIndex + 1);
               }
             }}
             disabled={currentExerciseIndex === activeWorkout.session.exercises.length - 1}
@@ -3424,7 +3428,7 @@ export default function ActiveWorkout() {
               return (
                 <button
                   key={i}
-                  onClick={() => { setCurrentExerciseIndex(i); setCurrentSetIndex(0); }}
+                  onClick={() => goToExercise(i)}
                   className={cn(
                     'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all active:scale-95',
                     i === currentExerciseIndex
@@ -4125,7 +4129,7 @@ export default function ActiveWorkout() {
               return (
                 <button
                   key={i}
-                  onClick={() => { setCurrentExerciseIndex(i); setCurrentSetIndex(0); }}
+                  onClick={() => goToExercise(i)}
                   className={cn(
                     'w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left transition-all',
                     isCurrent && 'bg-primary-500/10 border border-primary-500/30',

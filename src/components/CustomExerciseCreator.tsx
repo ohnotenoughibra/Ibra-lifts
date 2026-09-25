@@ -167,7 +167,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
           <div className="flex items-center gap-3">
             <button aria-label="Go back"
               onClick={onClose}
-              className="p-2 rounded-lg bg-grappler-800 text-grappler-300 hover:text-grappler-100 transition-colors"
+              className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>

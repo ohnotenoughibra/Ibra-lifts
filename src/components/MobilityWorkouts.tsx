@@ -647,8 +647,8 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
       {/* Header */}
       <div className="sticky top-0 z-30 bg-grappler-900 border-b border-grappler-800 p-4">
         <div className="flex items-center gap-3">
-          <button onClick={onClose} aria-label="Go back" className="btn btn-secondary btn-sm">
-            <ChevronLeft className="w-4 h-4" />
+          <button onClick={onClose} aria-label="Go back" className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
+            <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
             <h1 className="text-xl font-bold text-grappler-50">Mobility & Recovery</h1>

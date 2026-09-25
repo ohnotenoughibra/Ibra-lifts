@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { badges as allBadges, getBadgesByCategory } from '@/lib/gamification';
-import { ArrowLeft, Trophy, Lock, Share2 } from 'lucide-react';
+import { Trophy, Lock, Share2, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BadgeCategory } from '@/lib/types';
 
@@ -44,8 +44,8 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800">
         <div className="flex items-center gap-3 p-4">
-          <button onClick={onClose} aria-label="Go back" className="p-2 -ml-2 hover:bg-grappler-800 rounded-lg transition-colors">
-            <ArrowLeft className="w-5 h-5 text-grappler-300" />
+          <button onClick={onClose} aria-label="Go back" className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
+            <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-grappler-100 flex items-center gap-2">

@@ -258,7 +258,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
       >
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <button aria-label="Go back" onClick={onClose} className="btn btn-secondary btn-sm">
+          <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
@@ -293,7 +293,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
     >
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button aria-label="Go back" onClick={onClose} className="btn btn-secondary btn-sm">
+        <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>

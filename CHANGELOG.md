@@ -3,6 +3,62 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.19.0] - 2026-09-25
+
+**Full-app audit: data you can trust, science that checks out, and screens without fake numbers.**
+
+### Fixed
+- **Deleted workouts stay deleted.** A deleted session (e.g. a 200 kg typo) still pre-filled next session's weight and counted toward PRs, XP, streak, volume and training load. It no longer does.
+- **Your newest workouts are the ones kept.** Recalculating PRs re-sorted history newest-first, so the phone kept the 30 *oldest* workouts and autoregulation read the oldest three.
+- **Sync stops undoing you.** Edits to past workouts, meals, sessions and templates no longer revert on the next sync; deleted templates, plans, grip tests, supplements, check-ins and un-bookmarks no longer come back. Rehab, benchmarks, plyo block, RSI, technique log and sparring rounds are now backed up. A stale offline push can no longer overwrite newer settings.
+- **Load table.** RPE × reps → %1RM now follows the RTS chart (Helms 2016). The old table made heavy days after volume days ~5 % too heavy; 20-rep targets got a 12-rep load.
+- **Weight-cut safety.** The water-cut ceiling now follows weigh-in → compete time: none with < 3 h, 2 % < 12 h, 3 % < 24 h, 5 % otherwise (was a flat 6 %, and same-day weigh-ins counted as "safe"). The generic "hot bath tonight for passive water loss" tip is gone.
+- **Calories, protein, recovery.** Session burn uses net METs with realistic BJJ values (90 min hard no-gi was ~1,400 kcal); aggressive-cut protein 2.8 g/kg; readiness uses your real body weight.
+- **Injuries.** Severe (and moderate ligament/bone/nerve) injuries say "get it assessed" and are never auto-cleared for sparring by the calendar.
+- **Training-load warning** needs 3 weeks of history (one session read "3.0 — danger zone") and is described as a trend flag, not an injury prediction.
+- Contrast/PAP pairs rest 4–6 min; the deload card no longer promises a "+7 % strength bounce"; smaller unit-correct weight steps after "too easy/too hard".
+
+### Changed
+- **No numbers without data.** Today shows "—" and *Log sleep / Connect Whoop* until there is a real readiness signal (a fresh profile read "98 — Send it"); injury risk waits for a week of training.
+- **Less repetition.** Train and Progress no longer repeat Mission Control; RPE is asked once (after the set); session RPE pre-fills from your set ratings; Level up is a small banner, not a modal over your summary; Home says "Resume your workout" while one is running.
+- Crews asks you to sign in instead of showing "Unauthorized"; "Log Mat Session" opens the form; one protein target everywhere; Cycle hidden for male profiles; the "Rootsler" tag on every exercise and a literal "\u00b7" in onboarding are gone.
+
+### Security
+- Whoop tokens are no longer copied in plaintext into the synced store document; the encrypted token table is the only server copy.
+
+## [2.18.0] - 2026-09-25
+
+**Air bike & sprints — conditioning that knows what it's training.**
+
+### Added
+- **Air Bike & Sprints** (Tools, and "For Fighters"): 8 sessions by energy system — Alactic Power 8 × 8 s, Repeated Sprints 2 × 6 × 6 s, Scramble Repeats 10 × 15/45, Sprint Intervals 5 × 30 s, Norwegian 4 × 4, Fight Rounds 5 × 5 min with surges, a 10-min EMOM finisher and a Zone 2 flush — each with what it's for, how to ride it and why it works.
+- **Full-screen interval timer** — colour by phase, 3-2-1 beeps and vibration, screen stays on, pause/skip/end; leave or reload and it's still on the right second.
+- **Logging that counts**: session RPE plus calories, watts and heart rate from the monitor; saved as a cardio session that feeds the same RPE × minutes load model.
+- **Finisher** on the finish screen, picked for the day: Zone 2 when readiness is low, short sprints on heavy leg days or before mats, nothing when you're wrecked.
+
+### Fixed
+- "Repeated Sprint Ability" was 10 × 30 s all-out (that's sprint-interval training) → 2 × 6 × 6 s. Cardio templates no longer log every session as RPE 7.
+
+## [2.17.0] - 2026-09-25
+
+**A live workout with no friction: two taps to start, real numbers per set, and nothing that blocks your next set.**
+
+### Changed
+- **Two-tap start** — the "Ready for this?" intro is gone. "Got extra time?" no longer stops you at Finish; it's an optional line on the last session of the week.
+- **Per set: "Last: 70 × 8 @9 → Today: 72.5 × 8 @8".**
+- **PRs** show as a small banner ("Est. 1RM 118 → 121") instead of full-screen confetti, with a live "100 kg × 6 would be a PR".
+- **± buttons land on real loads** — plate pairs on a bar, the next dumbbell or bell size (no more +25).
+- **Header ETA** — "~22 min left · done ~18:42", amber when you're running long.
+- **Tempo** only when a tempo is actually prescribed.
+
+### Added
+- Warm-up ramp chip on the first set of compound lifts; screen stays awake; Add set / Remove set; a sticky setup note per exercise (seat height, grip…); finish sheet shows each lift vs last time.
+
+### Fixed
+- Editing a logged set now saves instantly, to that set.
+- "Deload recommended" only appears when your rated effort says so, and can be snoozed for a week.
+- Hold-to-pin on Tools works.
+
 ## [2.16.0] - 2026-09-25
 
 **Rest that doesn't take over the screen, and leaving a workout that you can come straight back to.**

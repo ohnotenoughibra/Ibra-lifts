@@ -93,6 +93,43 @@ export function normalizeWorkoutLogs(data: Record<string, unknown>): Record<stri
  *   - Object fields (waterLog): ALWAYS deep merge (keep all date keys from both sides)
  *   - Scalar fields: prefer whichever side has the newer lastSyncAt
  */
+/**
+ * Deletion registry for arrays that hard-delete (templates, grip tests, plans,
+ * bookmarks …). Union-by-id merging resurrected those on every sync; each
+ * delete now records `field:id → {at, dead}` here, the registry merges
+ * last-write-wins per key, and merged arrays drop dead keys. `dead: false`
+ * records a re-add (e.g. re-bookmarking) so an old deletion can't win.
+ */
+export type TombstoneMap = Record<string, { at: number; dead: boolean }>;
+const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+
+export function mergeTombstones(a?: TombstoneMap | null, b?: TombstoneMap | null, now = Date.now()): TombstoneMap {
+  const out: TombstoneMap = {};
+  for (const src of [a, b]) {
+    if (!src || typeof src !== 'object') continue;
+    for (const [k, v] of Object.entries(src)) {
+      if (!v || typeof v.at !== 'number' || now - v.at > TOMBSTONE_TTL_MS) continue;
+      if (!out[k] || v.at > out[k].at) out[k] = v;
+    }
+  }
+  return out;
+}
+
+/** Drop entries whose registry key is dead (objects revive only if edited after the deletion). */
+export function applyTombstones<T>(field: string, arr: T[], tombs: TombstoneMap): T[] {
+  if (!Object.keys(tombs).length) return arr;
+  return arr.filter(item => {
+    const isObj = item !== null && typeof item === 'object';
+    const id = isObj ? (item as Record<string, unknown>).id : item;
+    if (id == null) return true;
+    const t = tombs[`${field}:${String(id)}`];
+    if (!t || !t.dead) return true;
+    if (!isObj) return false;
+    const edited = new Date(((item as Record<string, unknown>).updatedAt || 0) as string).getTime();
+    return edited > t.at;
+  });
+}
+
 export function resolveConflicts(
   local: Record<string, unknown>,
   remote: Record<string, unknown>
@@ -115,6 +152,8 @@ export function resolveConflicts(
     'mesocycleHistory', 'mesocycleQueue',
     'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles',
     'mealStamps',
+    // Were persisted locally but never synced (lost on reinstall / new phone):
+    'benchmarkResults', 'rsiHistory', 'techniqueLog', 'sparringRounds',
   ];
 
   for (const field of arrayFields) {
@@ -181,7 +220,9 @@ export function resolveConflicts(
               // Neither or both resolved — prefer the newer entry
               const localDate = new Date((item.updatedAt || item.date || 0) as string).getTime();
               const remoteDate = new Date((existing.updatedAt || existing.date || 0) as string).getTime();
-              if (localDate > remoteDate) {
+              // Tie → local (the side making the change) wins; unstamped
+              // edits used to lose to the stale remote copy.
+              if (localDate >= remoteDate) {
                 map.set(key, item);
               }
             }
@@ -196,6 +237,15 @@ export function resolveConflicts(
       merged[field] = mergedArr;
     } else if (Array.isArray(localArr)) {
       merged[field] = localArr;
+    }
+  }
+
+  // ── Deletion registry: merge, then drop dead entries from every array ──
+  {
+    const tombs = mergeTombstones(local._tombstones as TombstoneMap, remote._tombstones as TombstoneMap);
+    merged._tombstones = tombs;
+    for (const field of arrayFields) {
+      if (Array.isArray(merged[field])) merged[field] = applyTombstones(field, merged[field] as unknown[], tombs);
     }
   }
 
@@ -415,7 +465,7 @@ export function resolveConflicts(
   // ── Scalar fields: prefer whichever side synced last ──
   const specialFields = new Set([
     ...arrayFields, ...objectFields, ...updatedAtFields,
-    'lastSyncAt', 'user', 'gamificationStats', 'baselineLifts',
+    'lastSyncAt', 'user', 'gamificationStats', 'baselineLifts', '_tombstones', '_whoopTokens',
   ]);
   if (localSync > remoteSync) {
     for (const key of Object.keys(local)) {
@@ -424,6 +474,12 @@ export function resolveConflicts(
       }
     }
   }
+
+  // Server keeps the NEWEST sync stamp — it stayed at the first push forever,
+  // so every later (even stale, queued) push looked newer and won scalars.
+  merged.lastSyncAt = Math.max(localSync, remoteSync) || merged.lastSyncAt;
+  // Legacy plaintext Whoop token copy — purge it from the store document.
+  delete merged._whoopTokens;
 
   return normalizeWorkoutLogs(merged);
 }

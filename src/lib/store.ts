@@ -84,7 +84,7 @@ import { stripLegacyDefaultTempos, stripLegacyDefaultTemposFromSession } from '.
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards, calculateStreak, defaultWellnessStats, calculateWellnessMultiplier, updateWellnessStreaks, calculateWellnessXP, checkWellnessBadges } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
 import { isBodyweightLoadedExercise, backfillBodyweightInLogs, estimate1RM, estimateFirstTimeWeight } from './weight-estimator';
-import { safeDayKey, isValidDate, localDayKey, localMondayKey, parseLocalDate } from './utils';
+import { safeDayKey, isValidDate, localDayKey, localMondayKey, parseLocalDate, chrono, newestN } from './utils';
 
 /**
  * Resolve the initial logged weight for a set. Prefers a real suggested/history
@@ -132,12 +132,17 @@ function clearLiveRest() {
   try { if (typeof window !== 'undefined') window.localStorage.removeItem('live:rest'); } catch { /* ignore */ }
 }
 
+/** Registry entry for a hard delete (or a re-add when dead=false) — see db-sync. */
+function tomb(state: { _tombstones?: Record<string, { at: number; dead: boolean }> }, field: string, id: string, dead = true) {
+  return { ...(state._tombstones ?? {}), [`${field}:${id}`]: { at: Date.now(), dead } };
+}
+
 function plannedLoad(
   exercise: Exercise, targetReps: number, targetRPE: number,
   logs: WorkoutLog[], user: UserProfile | null, baselineLifts: BaselineLifts | null,
 ): number {
   const unit = resolveWeightUnit(user?.weightUnit);
-  const next = suggestNextLoad({ exercise, logs, targetReps, targetRPE, unit });
+  const next = suggestNextLoad({ exercise, logs: chrono(logs), targetReps, targetRPE, unit });
   if (next && next.weight > 0) return next.weight;
   const fromBodyweight = resolveInitialSetWeight(exercise.id, null, user);
   if (fromBodyweight > 0) return fromBodyweight;
@@ -356,6 +361,8 @@ interface AppState {
   hiddenExercises: { ids: string[]; updatedAt: string };
   // Sticky per-exercise setup note (seat height, grip, belt) — shown every time.
   exerciseNotes: { notes: Record<string, string>; updatedAt: string };
+  // Deletion registry for hard-deleted array items (see db-sync applyTombstones).
+  _tombstones: import('./db-sync').TombstoneMap;
 
   // Active equipment profile for quick-switching gym/home/travel
   activeEquipmentProfile: EquipmentProfileName;
@@ -917,6 +924,7 @@ export const useAppStore = create<AppState>()(
       muscleEmphasis: null,
       hiddenExercises: { ids: [], updatedAt: new Date(0).toISOString() },
       exerciseNotes: { notes: {}, updatedAt: new Date(0).toISOString() },
+      _tombstones: {},
       activeEquipmentProfile: 'gym' as EquipmentProfileName,
       homeGymEquipment: DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === 'home')?.equipment || ['barbell', 'dumbbell', 'bench', 'pull_up_bar', 'kettlebell', 'resistance_band', 'ab_wheel'] as EquipmentType[],
       competitions: [],
@@ -1221,13 +1229,13 @@ export const useAppStore = create<AppState>()(
       updateWeightCutPlan: (id, updates) => {
         set({
           weightCutPlans: get().weightCutPlans.map(p =>
-            p.id === id ? { ...p, ...updates } : p
+            p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
           ),
         });
       },
 
       deleteWeightCutPlan: (id) => {
-        set({ weightCutPlans: get().weightCutPlans.filter(p => p.id !== id) });
+        set({ weightCutPlans: get().weightCutPlans.filter(p => p.id !== id), _tombstones: tomb(get(), 'weightCutPlans', id) });
       },
 
       addWeightCutDailyLog: (planId, log) => {
@@ -1269,13 +1277,13 @@ export const useAppStore = create<AppState>()(
       updateFightCampPlan: (id, updates) => {
         set({
           fightCampPlans: get().fightCampPlans.map(p =>
-            p.id === id ? { ...p, ...updates } : p
+            p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p
           ),
         });
       },
 
       deleteFightCampPlan: (id) => {
-        set({ fightCampPlans: get().fightCampPlans.filter(p => p.id !== id) });
+        set({ fightCampPlans: get().fightCampPlans.filter(p => p.id !== id), _tombstones: tomb(get(), 'fightCampPlans', id) });
       },
 
       // ── Supplement actions ────────────────────────────────────────────
@@ -1293,6 +1301,7 @@ export const useAppStore = create<AppState>()(
       removeActiveSupplement: (supplementId) => {
         set({
           activeSupplements: get().activeSupplements.filter(s => s.id !== supplementId),
+          _tombstones: tomb(get(), 'activeSupplements', supplementId),
         });
       },
 
@@ -1367,9 +1376,12 @@ export const useAppStore = create<AppState>()(
           ? meals.filter(m => m.id !== intake.mealEntryId)
           : meals;
 
+        let tombs = tomb(get(), 'supplementIntakes', intakeId);
+        if (intake?.mealEntryId) tombs = tomb({ _tombstones: tombs }, 'meals', intake.mealEntryId);
         set({
           supplementIntakes: supplementIntakes.filter(i => i.id !== intakeId),
           meals: updatedMeals,
+          _tombstones: tombs,
         });
       },
 
@@ -2203,7 +2215,7 @@ export const useAppStore = create<AppState>()(
         // Autoregulate: adjust session based on recent feedback (intermediate+ only)
         let activeSession = session;
         if (user && user.experienceLevel !== 'beginner' && workoutLogs.length >= 2) {
-          const recent = workoutLogs.slice(-3); // last 3 workouts
+          const recent = chrono(workoutLogs).slice(-3); // last 3 workouts by date, deleted excluded
           const { session: adjusted } = autoregulateSession(session, recent);
           activeSession = adjusted;
         }
@@ -2448,7 +2460,7 @@ export const useAppStore = create<AppState>()(
         const legShare = muscles.length ? muscles.filter(m => legs.has(m)).length / muscles.length : 0.5;
         const focus: PrimerFocus = legShare >= 0.6 ? 'lower' : legShare <= 0.2 ? 'upper' : 'full';
         const primerIds = PRIMER_DRILL_IDS;
-        const lastLog = [...workoutLogs].reverse().find(l => l.exercises.some(e => primerIds.has(e.exerciseId)));
+        const lastLog = chrono(workoutLogs).reverse().find(l => l.exercises.some(e => primerIds.has(e.exerciseId)));
         const primer = buildPowerPrimer({
           readiness: activeWorkout.throttle?.config.level as never,
           matSessionsThisWeek: matThisWeek,
@@ -3469,8 +3481,10 @@ export const useAppStore = create<AppState>()(
           return ex.sets.some(s => typeof s.duration === 'number' && s.duration > 0);
         };
 
-        // Process each log and update PR flags
+        // Process each log and update PR flags (deleted logs are tombstones:
+        // kept for sync, never counted — a deleted 200 kg typo is not a PR)
         const updatedLogs = sortedLogs.map(log => {
+          if (log._deleted) return log;
           const updatedExercises = log.exercises.map(ex => {
             const timeBased = exerciseIsTimeBased(ex);
 
@@ -3528,10 +3542,10 @@ export const useAppStore = create<AppState>()(
           return { ...log, exercises: updatedExercises };
         });
 
-        // Re-sort back to original order (newest first for display)
-        const finalLogs = updatedLogs.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
+        // Keep oldest-first: the rest of the app appends new logs and treats
+        // the array as chronological (re-sorting newest-first here made the
+        // persisted slice keep the OLDEST 30 and drop today's workout).
+        const finalLogs = updatedLogs;
 
         // Batch the workoutLogs update — gamification recalc runs on next tick
         // to avoid cascading set() calls that cause blank-screen re-render storms
@@ -3902,7 +3916,7 @@ export const useAppStore = create<AppState>()(
       updateWorkoutLog: (logId, updates) => {
         const { workoutLogs } = get();
         const updatedLogs = workoutLogs.map(log =>
-          log.id === logId ? { ...log, ...updates } : log
+          log.id === logId ? { ...log, ...updates, updatedAt: new Date().toISOString() } : log
         );
         set({ workoutLogs: updatedLogs });
 
@@ -4059,7 +4073,7 @@ export const useAppStore = create<AppState>()(
       },
       updateCycleLog: (id, updates) => {
         const { cycleLogs } = get();
-        set({ cycleLogs: cycleLogs.map(l => l.id === id ? { ...l, ...updates } : l) });
+        set({ cycleLogs: cycleLogs.map(l => l.id === id ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l) });
       },
       deleteCycleLog: (id) => {
         const { cycleLogs } = get();
@@ -4087,12 +4101,12 @@ export const useAppStore = create<AppState>()(
 
       deleteGripTest: (id) => {
         const { gripTests } = get();
-        set({ gripTests: gripTests.filter(t => t.id !== id) });
+        set({ gripTests: gripTests.filter(t => t.id !== id), _tombstones: tomb(get(), 'gripTests', id) });
       },
 
       deleteGripExerciseLog: (id) => {
         const { gripExerciseLogs } = get();
-        set({ gripExerciseLogs: gripExerciseLogs.filter(l => l.id !== id) });
+        set({ gripExerciseLogs: gripExerciseLogs.filter(l => l.id !== id), _tombstones: tomb(get(), 'gripExerciseLogs', id) });
       },
 
       // Injury actions
@@ -4177,7 +4191,7 @@ export const useAppStore = create<AppState>()(
 
       deleteBenchmarkResult: (id) => {
         const { benchmarkResults } = get();
-        set({ benchmarkResults: (benchmarkResults ?? []).filter(r => r.id !== id), _syncUrgent: true });
+        set({ benchmarkResults: (benchmarkResults ?? []).filter(r => r.id !== id), _tombstones: tomb(get(), 'benchmarkResults', id), _syncUrgent: true });
       },
 
       // Plyometric block actions
@@ -4198,7 +4212,7 @@ export const useAppStore = create<AppState>()(
 
       deleteTechniqueEntry: (id) => {
         const { techniqueLog } = get();
-        set({ techniqueLog: (techniqueLog ?? []).filter(e => e.id !== id), _syncUrgent: true });
+        set({ techniqueLog: (techniqueLog ?? []).filter(e => e.id !== id), _tombstones: tomb(get(), 'techniqueLog', id), _syncUrgent: true });
       },
 
       // Sparring round actions
@@ -4209,7 +4223,7 @@ export const useAppStore = create<AppState>()(
 
       deleteSparringRound: (id) => {
         const { sparringRounds } = get();
-        set({ sparringRounds: (sparringRounds ?? []).filter(r => r.id !== id), _syncUrgent: true });
+        set({ sparringRounds: (sparringRounds ?? []).filter(r => r.id !== id), _tombstones: tomb(get(), 'sparringRounds', id), _syncUrgent: true });
       },
 
       // Illness actions
@@ -4304,7 +4318,7 @@ export const useAppStore = create<AppState>()(
 
       deleteSkip: (skipId) => {
         const { workoutSkips } = get();
-        set({ workoutSkips: workoutSkips.filter(s => s.id !== skipId) });
+        set({ workoutSkips: workoutSkips.filter(s => s.id !== skipId), _tombstones: tomb(get(), 'workoutSkips', skipId) });
       },
 
       // Custom exercise actions
@@ -4323,7 +4337,7 @@ export const useAppStore = create<AppState>()(
       deleteCustomExercise: (id) => {
         const { customExercises } = get();
         const updated = customExercises.filter(e => e.id !== id);
-        set({ customExercises: updated });
+        set({ customExercises: updated, _tombstones: tomb(get(), 'customExercises', id) });
         registerCustomExercises(updated);
       },
 
@@ -4347,14 +4361,14 @@ export const useAppStore = create<AppState>()(
       updateTemplate: (id, name, session) => {
         set({
           sessionTemplates: get().sessionTemplates.map(t =>
-            t.id === id ? { ...t, name, session } : t
+            t.id === id ? { ...t, name, session, updatedAt: new Date().toISOString() } : t
           ),
         });
       },
 
       deleteTemplate: (id) => {
         const { sessionTemplates } = get();
-        set({ sessionTemplates: sessionTemplates.filter(t => t.id !== id) });
+        set({ sessionTemplates: sessionTemplates.filter(t => t.id !== id), _tombstones: tomb(get(), 'sessionTemplates', id) });
       },
 
       useTemplate: (id) => {
@@ -4455,7 +4469,7 @@ export const useAppStore = create<AppState>()(
         const { trainingSessions } = get();
         set({
           trainingSessions: trainingSessions.map(s =>
-            s.id === id ? { ...s, ...updates } : s
+            s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s
           )
         });
       },
@@ -4503,7 +4517,7 @@ export const useAppStore = create<AppState>()(
 
       updateMeal: (id, updates) => {
         const { meals } = get();
-        set({ meals: meals.map(m => m.id === id ? { ...m, ...updates } : m) });
+        set({ meals: meals.map(m => m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m) });
       },
 
       deleteMeal: (id) => {
@@ -4601,7 +4615,7 @@ export const useAppStore = create<AppState>()(
 
       deleteDietPhaseFromHistory: (id) => {
         const { dietPhaseHistory } = get();
-        set({ dietPhaseHistory: dietPhaseHistory.filter(p => p.id !== id) });
+        set({ dietPhaseHistory: dietPhaseHistory.filter(p => p.id !== id), _tombstones: tomb(get(), 'dietPhaseHistory', id) });
       },
 
       editDietPhaseInHistory: (id, updates) => {
@@ -4713,7 +4727,7 @@ export const useAppStore = create<AppState>()(
 
       deleteBodyComposition: (id) => {
         const { bodyComposition } = get();
-        set({ bodyComposition: bodyComposition.filter(e => e.id !== id) });
+        set({ bodyComposition: bodyComposition.filter(e => e.id !== id), _tombstones: tomb(get(), 'bodyComposition', id) });
       },
 
       // Online status
@@ -4745,7 +4759,7 @@ export const useAppStore = create<AppState>()(
           'activeSupplements', 'supplementStack', 'supplementIntakes', 'homeGymEquipment',
           'mentalCheckIns', 'confidenceLedger', 'featureFeedback',
           'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles', 'lastInsightDate',
-          'nutritionPeriodPlan', 'mealStamps',
+          'nutritionPeriodPlan', 'mealStamps', '_tombstones',
         ];
 
         if (resolution === 'local') {
@@ -4858,7 +4872,7 @@ export const useAppStore = create<AppState>()(
         get().awardWellnessXP('mental');
       },
       deleteMentalCheckIn: (id) => {
-        set({ mentalCheckIns: get().mentalCheckIns.filter(c => c.id !== id) });
+        set({ mentalCheckIns: get().mentalCheckIns.filter(c => c.id !== id), _tombstones: tomb(get(), 'mentalCheckIns', id) });
       },
       addConfidenceEntry: (entry) => {
         const full: ConfidenceLedgerEntry = { ...entry, id: crypto.randomUUID() };
@@ -4867,7 +4881,7 @@ export const useAppStore = create<AppState>()(
         get().awardPoints(pointRewards.confidenceEntry, 'Confidence evidence logged');
       },
       deleteConfidenceEntry: (id) => {
-        set({ confidenceLedger: get().confidenceLedger.filter(e => e.id !== id) });
+        set({ confidenceLedger: get().confidenceLedger.filter(e => e.id !== id), _tombstones: tomb(get(), 'confidenceLedger', id) });
       },
       addFeatureFeedback: (feature, rating) => {
         set({ featureFeedback: [...get().featureFeedback, { id: crypto.randomUUID(), feature, rating, timestamp: new Date().toISOString() }] });
@@ -4892,7 +4906,10 @@ export const useAppStore = create<AppState>()(
       },
       toggleBookmarkArticle: (id) => {
         const s = get().bookmarkedArticles;
-        set({ bookmarkedArticles: s.includes(id) ? s.filter(a => a !== id) : [...s, id] });
+        set({
+          bookmarkedArticles: s.includes(id) ? s.filter(a => a !== id) : [...s, id],
+          _tombstones: tomb(get(), 'bookmarkedArticles', id, s.includes(id)),
+        });
       },
       setLastInsightDate: (date) => set({ lastInsightDate: date }),
 
@@ -4956,6 +4973,7 @@ export const useAppStore = create<AppState>()(
           muscleEmphasis: null,
           hiddenExercises: { ids: [], updatedAt: new Date(0).toISOString() },
           exerciseNotes: { notes: {}, updatedAt: new Date(0).toISOString() },
+          _tombstones: {},
           competitions: [],
           weightCutPlans: [],
           combatNutritionProfile: null,
@@ -5045,7 +5063,7 @@ export const useAppStore = create<AppState>()(
               const pruneAndSave = () => {
                 console.warn('[storage] Data approaching localStorage limit — pruning old entries.');
                 if (data?.state?.workoutLogs?.length > 50) {
-                  data.state.workoutLogs = data.state.workoutLogs.slice(-50);
+                  data.state.workoutLogs = newestN(data.state.workoutLogs, 50);
                 }
                 if (data?.state?.meals?.length > 200) {
                   data.state.meals = data.state.meals.slice(-200);
@@ -5104,7 +5122,7 @@ export const useAppStore = create<AppState>()(
                 // CRITICAL: Pruning MUST wait for backup to prevent data loss.
                 const emergencyPruneAndSave = () => {
                   if (data?.state) {
-                    if (data.state.workoutLogs?.length > 20) data.state.workoutLogs = data.state.workoutLogs.slice(-20);
+                    if (data.state.workoutLogs?.length > 20) data.state.workoutLogs = newestN(data.state.workoutLogs, 20);
                     if (data.state.meals?.length > 50) data.state.meals = data.state.meals.slice(-50);
                     if (data.state.mesocycleHistory?.length > 3) data.state.mesocycleHistory = data.state.mesocycleHistory.slice(-3);
                     if (data.state.bodyComposition?.length > 30) data.state.bodyComposition = data.state.bodyComposition.slice(-30);
@@ -5357,6 +5375,7 @@ export const useAppStore = create<AppState>()(
         muscleEmphasis: state.muscleEmphasis,
         hiddenExercises: state.hiddenExercises,
         exerciseNotes: state.exerciseNotes,
+        _tombstones: state._tombstones,
         combatNutritionProfile: state.combatNutritionProfile,
         nutritionPeriodPlan: state.nutritionPeriodPlan,
         mealReminders: state.mealReminders,
@@ -5375,14 +5394,14 @@ export const useAppStore = create<AppState>()(
         lastInsightDate: state.lastInsightDate,
 
         // ── Trimmed arrays (full data syncs from server) ──
-        workoutLogs: state.workoutLogs?.slice(-30) ?? [],
+        workoutLogs: newestN(state.workoutLogs, 30),
         meals: state.meals?.filter(m => {
           const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
           return new Date(m.date).getTime() > weekAgo;
         }) ?? [],
-        bodyWeightLog: state.bodyWeightLog?.slice(-30) ?? [],
+        bodyWeightLog: newestN(state.bodyWeightLog, 30),
         mesocycleHistory: state.mesocycleHistory?.slice(-3) ?? [],
-        trainingSessions: state.trainingSessions?.slice(-30) ?? [],
+        trainingSessions: newestN(state.trainingSessions, 30),
         quickLogs: state.quickLogs?.slice(-50) ?? [],
         mealStamps: state.mealStamps?.slice(-50) ?? [],
         supplementIntakes: state.supplementIntakes?.slice(-50) ?? [],

@@ -154,11 +154,24 @@ describe('calculateEnhancedACWR', () => {
     expect(result.ratio).toBeLessThanOrEqual(3.0);
   });
 
-  it('should handle single workout gracefully', () => {
+  it('a single workout has no chronic baseline yet → no_data, not "danger zone"', () => {
     const logs: WorkoutLog[] = [makeWorkoutLog(0)];
     const result = calculateEnhancedACWR(logs);
-    expect(result.status).not.toBe('no_data');
-    expect(result.acute).toBeGreaterThan(0);
+    expect(result.status).toBe('no_data');
+  });
+
+  it('deleted logs are ignored', () => {
+    const steady = [0, 3, 7, 10, 14, 17, 21, 24, 27].map(d => makeWorkoutLog(d));
+    const spike = { ...makeWorkoutLog(1), id: 'typo', duration: 240, overallRPE: 10, _deleted: true } as WorkoutLog;
+    expect(calculateEnhancedACWR([...steady, spike]).ratio).toBe(calculateEnhancedACWR(steady).ratio);
+  });
+
+  it('steady training reads ~1.0 and acute ÷ chronic matches the ratio', () => {
+    const logs = Array.from({ length: 10 }, (_, i) => makeWorkoutLog(i * 3));
+    const r = calculateEnhancedACWR(logs);
+    expect(r.ratio).toBeGreaterThan(0.8);
+    expect(r.ratio).toBeLessThan(1.3);
+    expect(Math.abs(r.acute / r.chronic - r.ratio)).toBeLessThan(0.05);
   });
 });
 

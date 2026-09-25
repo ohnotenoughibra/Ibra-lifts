@@ -11,7 +11,8 @@ import {
   WearableData,
   WeightUnit,
 } from './types';
-import { convertWeight } from './units';
+import { convertWeight, weightIncrement, smallWeightIncrement } from './units';
+import { chrono } from './utils';
 
 // RP-style auto-adjustment engine
 // Analyzes previous workout feedback and adjusts next workout parameters
@@ -490,8 +491,8 @@ export function getSuggestedWeight(
   previousLogs: WorkoutLog[],
   targetUnit?: WeightUnit,
 ): number | null {
-  // Find the most recent log containing this exercise (search from newest to oldest)
-  const sortedLogs = [...previousLogs].reverse();
+  // Most recent log containing this exercise — by date, deleted logs excluded
+  const sortedLogs = chrono(previousLogs).reverse();
   for (const log of sortedLogs) {
     const exerciseLog = log.exercises.find(e => e.exerciseId === exerciseId);
     if (exerciseLog && exerciseLog.sets.length > 0) {
@@ -504,13 +505,21 @@ export function getSuggestedWeight(
 
       // If they had feedback
       if (exerciseLog.feedback) {
+        // Unit-aware steps: 5 was a pound-sized jump (10 kg → 15 kg = +50 %).
+        const unit = targetUnit ?? log.weightUnit ?? 'kg';
+        const big = weightIncrement(unit);
+        const small = smallWeightIncrement(unit);
+        const roundTo = (w: number, inc: number) => Math.round(w / inc) * inc;
         switch (exerciseLog.feedback.difficulty) {
           case 'too_easy':
-            return maxWeight + Math.max(5, Math.round(maxWeight * 0.05 / 5) * 5);
-          case 'too_hard':
-            return Math.max(5, maxWeight - Math.max(5, Math.round(maxWeight * 0.07 / 5) * 5));
+            return maxWeight + Math.max(maxWeight >= 40 ? big : small, roundTo(maxWeight * 0.05, small));
+          case 'too_hard': {
+            const down = maxWeight - Math.max(maxWeight >= 40 ? big : small, roundTo(maxWeight * 0.07, small));
+            // Never suggest MORE than what felt too hard (old floor turned 4 → 5).
+            return Math.max(0, Math.min(maxWeight, down > 0 ? down : maxWeight - small));
+          }
           case 'challenging':
-            return maxWeight + Math.max(2.5, Math.round(maxWeight * 0.05 / 2.5) * 2.5);
+            return maxWeight + Math.max(maxWeight >= 40 ? big : small, roundTo(maxWeight * 0.05, small));
           default:
             return maxWeight;
         }
@@ -529,7 +538,7 @@ export function getPreviousSessionSets(
   previousLogs: WorkoutLog[],
   targetUnit?: WeightUnit,
 ): { weight: number; reps: number; duration?: number }[] | null {
-  const sortedLogs = [...previousLogs].reverse();
+  const sortedLogs = chrono(previousLogs).reverse();
   for (const log of sortedLogs) {
     const exerciseLog = log.exercises.find(e => e.exerciseId === exerciseId);
     if (exerciseLog && exerciseLog.sets.length > 0) {

@@ -13,6 +13,7 @@ import { useAppStore } from './store';
 import { useShallow } from 'zustand/react/shallow';
 import { calculateWorkoutPoints, calculateLevel, pointRewards } from './gamification';
 import type { WorkoutLog, TrainingSession, QuickLog, GamificationStats } from './types';
+import { live } from './utils';
 
 const DAY_MS = 86400000;
 
@@ -147,7 +148,7 @@ export interface ComputedGamification {
  * but streak/XP/level are always computed fresh.
  */
 export function useComputedGamification(): ComputedGamification {
-  const { workoutLogs, trainingSessions, quickLogs, gamificationStats, dailyLoginBonus } = useAppStore(
+  const { workoutLogs: rawWorkoutLogs, trainingSessions: rawTrainingSessions, quickLogs, gamificationStats, dailyLoginBonus } = useAppStore(
     useShallow(s => ({
       workoutLogs: s.workoutLogs,
       trainingSessions: s.trainingSessions,
@@ -158,6 +159,9 @@ export function useComputedGamification(): ComputedGamification {
   );
 
   return useMemo(() => {
+    // Deleted entries are sync tombstones — never XP, streak or volume.
+    const workoutLogs = live(rawWorkoutLogs);
+    const trainingSessions = live(rawTrainingSessions);
     // Build activity dates from all sources
     const activeDates = new Set<number>();
     for (const log of workoutLogs) {
@@ -219,5 +223,5 @@ export function useComputedGamification(): ComputedGamification {
       totalTrainingSessions,
       dualTrainingDays,
     };
-  }, [workoutLogs, trainingSessions, quickLogs, gamificationStats, dailyLoginBonus]);
+  }, [rawWorkoutLogs, rawTrainingSessions, quickLogs, gamificationStats, dailyLoginBonus]);
 }

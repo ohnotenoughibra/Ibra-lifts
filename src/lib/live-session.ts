@@ -94,6 +94,7 @@ export function personalBest(
   let best = 0;
   let hasHistory = false;
   for (const log of logs) {
+    if (log._deleted) continue;
     for (const ex of log.exercises) {
       if (ex.exerciseId !== exerciseId) continue;
       for (const s of ex.sets) {
@@ -127,7 +128,7 @@ export interface LastTimeSet { weight: number; reps: number; rpe?: number; durat
 
 /** Sets from the most recent session that included this exercise, in order. */
 export function lastTimeSets(exerciseId: string, logs: WorkoutLog[], unit: WeightUnit): LastTimeSet[] {
-  const sorted = [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sorted = logs.filter(l => !l._deleted).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   for (const log of sorted) {
     const ex = log.exercises.find(e => e.exerciseId === exerciseId);
     const sets = ex?.sets.filter(isRealSet) ?? [];

@@ -50,7 +50,7 @@ import {
   Pause,
   ArrowLeftRight,
 } from 'lucide-react';
-import { cn, formatTime } from '@/lib/utils';
+import { cn, formatTime, chrono } from '@/lib/utils';
 import { resolveWeightUnit, convertWeight, barWeight as getBarWeight } from '@/lib/units';
 import { carryOverLoad, prescribedPercentOf1RM } from '@/lib/load-model';
 import { BufferedNumberInput } from './BufferedNumberInput';
@@ -664,7 +664,7 @@ export default function ActiveWorkout() {
     }
 
     // Check for PR - compare against all previous logs for this exercise
-    const workoutLogs = useAppStore.getState().workoutLogs;
+    const workoutLogs = useAppStore.getState().workoutLogs.filter(l => !l._deleted);
     let isPR = false;
     let estimated1RM = 0;
     let bestDuration = 0;
@@ -1184,7 +1184,7 @@ export default function ActiveWorkout() {
 
   // Get previous performance for an alternative exercise
   const getAltHistory = (exerciseId: string) => {
-    const allLogs: WorkoutLog[] = useAppStore.getState().workoutLogs;
+    const allLogs: WorkoutLog[] = chrono(useAppStore.getState().workoutLogs);
     const sorted = [...allLogs].reverse();
     for (const log of sorted) {
       const ex = log.exercises.find(e => e.exerciseId === exerciseId);
@@ -1200,7 +1200,7 @@ export default function ActiveWorkout() {
 
   // Get per-exercise history from previous sessions
   const getExerciseHistory = (exerciseId: string) => {
-    const allLogs: WorkoutLog[] = useAppStore.getState().workoutLogs;
+    const allLogs: WorkoutLog[] = chrono(useAppStore.getState().workoutLogs);
     const sorted = [...allLogs].reverse();
     for (const log of sorted) {
       const ex = log.exercises.find(e => e.exerciseId === exerciseId);
@@ -1232,7 +1232,7 @@ export default function ActiveWorkout() {
 
   // Get full history for an exercise (last 5 sessions)
   const getExerciseFullHistory = (exerciseId: string) => {
-    const allLogs: WorkoutLog[] = useAppStore.getState().workoutLogs;
+    const allLogs: WorkoutLog[] = chrono(useAppStore.getState().workoutLogs);
     const sorted = [...allLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const results: { weight: number; reps: number; rpe: number; sets: number; date: Date; feedback?: ExerciseFeedback; estimated1RM?: number }[] = [];
     for (const log of sorted) {
@@ -1293,7 +1293,7 @@ export default function ActiveWorkout() {
   const extendedHistory = useMemo(() => {
     if (!showHistoryModal) return { sessions: [], allTimeBest: null, bestE1RM: 0 };
 
-    const allLogs: WorkoutLog[] = useAppStore.getState().workoutLogs;
+    const allLogs: WorkoutLog[] = chrono(useAppStore.getState().workoutLogs);
     const sorted = [...allLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const sessions: { weight: number; reps: number; rpe: number; sets: number; date: Date; estimated1RM: number }[] = [];
     let allTimeBest: { weight: number; reps: number; date: Date; estimated1RM: number } | null = null;

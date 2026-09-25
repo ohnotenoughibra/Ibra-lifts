@@ -20,7 +20,7 @@ import type {
   WhoopWorkout,
   ActivityCategory,
 } from './types';
-import { localDayKey } from './utils';
+import { localDayKey, live } from './utils';
 
 // ─── Exported Interfaces ────────────────────────────────────────────────────
 
@@ -163,6 +163,10 @@ export function calculateEnhancedACWR(
   // logging BJJ in grappling tracker AND as a completed workout)
   const seenSlots = new Set<string>();
 
+  // Deleted entries are sync tombstones, not training.
+  workoutLogs = live(workoutLogs);
+  trainingSessions = trainingSessions ? live(trainingSessions) : trainingSessions;
+
   workoutLogs.forEach(log => {
     const slot = `${new Date(log.date).toDateString()}-${log.duration || 60}`;
     seenSlots.add(slot);
@@ -182,6 +186,15 @@ export function calculateEnhancedACWR(
   if (totalLoad === 0) {
     return { acute: 0, chronic: 0, ratio: 0, status: 'no_data' };
   }
+  // A ratio needs a chronic baseline: with < 21 days of history one session
+  // reads as "3.0 — danger zone". Report no_data until the baseline exists.
+  const firstEver = Math.min(
+    ...workoutLogs.map(l => new Date(l.date).getTime()),
+    ...(trainingSessions ?? []).map(s => new Date(s.date).getTime()),
+  );
+  if (!Number.isFinite(firstEver) || now - firstEver < 21 * DAY_MS) {
+    return { acute: 0, chronic: 0, ratio: 0, status: 'no_data' };
+  }
 
   // EWMA calculation — iterate from oldest (day 27) to newest (day 0)
   const lambdaAcute = 2 / (7 + 1);   // 0.25
@@ -190,12 +203,13 @@ export function calculateEnhancedACWR(
   let ewmaAcute = 0;
   let ewmaChronic = 0;
 
-  // Seed with first day's value to avoid cold-start bias
-  const oldest = dailyLoad[27];
-  ewmaAcute = oldest;
-  ewmaChronic = oldest;
+  // Seed with the mean of the oldest week (Williams et al. 2017) — seeding with
+  // a single day let one session 27 days ago swing the ratio by ~±15 %.
+  const seed = dailyLoad.slice(21, 28).reduce((a, b) => a + b, 0) / 7;
+  ewmaAcute = seed;
+  ewmaChronic = seed;
 
-  for (let i = 26; i >= 0; i--) {
+  for (let i = 20; i >= 0; i--) {
     const load = dailyLoad[i];
     ewmaAcute = load * lambdaAcute + ewmaAcute * (1 - lambdaAcute);
     ewmaChronic = load * lambdaChronic + ewmaChronic * (1 - lambdaChronic);
@@ -215,17 +229,11 @@ export function calculateEnhancedACWR(
   else if (clampedRatio > 1.3) status = 'high';
   else status = 'low';
 
-  // Return acute as 7-day sum (for display compatibility) and chronic as weekly equivalent
-  const acute7dSum = dailyLoad.slice(0, 7).reduce((a, b) => a + b, 0);
-  const chronic28dSum = dailyLoad.reduce((a, b) => a + b, 0);
-  // Count actual 7-day windows that have training (max 4)
-  const activeWeeks = Math.max(1, [0, 1, 2, 3].filter(w =>
-    dailyLoad.slice(w * 7, (w + 1) * 7).some(d => d > 0)
-  ).length);
-
+  // Display both as weekly-equivalent EWMA load so acute ÷ chronic = ratio
+  // (the old 7-day sum vs 28-day average didn't divide to the shown ratio).
   return {
-    acute: Math.round(acute7dSum),
-    chronic: Math.round(chronic28dSum / activeWeeks),
+    acute: Math.round(ewmaAcute * 7),
+    chronic: Math.round(ewmaChronic * 7),
     ratio: clampedRatio,
     status,
   };

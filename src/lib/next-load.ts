@@ -15,6 +15,7 @@
 import type { Exercise, ExerciseFeedback, SetLog, WeightUnit, WorkoutLog } from './types';
 import { estimateE1RM, rpeToPercentage } from './load-model';
 import { convertWeight } from './units';
+import { live } from './utils';
 import { isBodyweightLoadedExercise } from './weight-estimator';
 
 // ── How an exercise is loaded ──────────────────────────────────────────────
@@ -123,7 +124,7 @@ export function suggestNextLoad({ exercise, logs, targetReps, targetRPE, unit, n
     // Carries/holds: progress load only when the last effort was rated easy; else repeat.
     return suggestRepeatLoad(exercise, logs, unit, profile);
   }
-  const sorted = [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sorted = live(logs).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   for (const log of sorted) {
     const exLog = log.exercises.find(e => e.exerciseId === exercise.id);
     if (!exLog) continue;
@@ -181,7 +182,7 @@ export function suggestNextLoad({ exercise, logs, targetReps, targetRPE, unit, n
 function suggestRepeatLoad(
   exercise: NextLoadInput['exercise'], logs: WorkoutLog[], unit: WeightUnit, profile: LoadProfile,
 ): NextLoadResult | null {
-  const sorted = [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sorted = live(logs).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   for (const log of sorted) {
     const exLog = log.exercises.find(e => e.exerciseId === exercise.id);
     const sets = exLog?.sets.filter(performed) ?? [];

@@ -34,6 +34,8 @@ const RESTORE_FIELDS = [
   'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles', 'lastInsightDate',
   // Nutrition planning / meal shortcuts (previously local-only)
   'nutritionPeriodPlan', 'mealStamps',
+  // Were persisted locally but never synced + the deletion registry
+  'rehabStates', 'benchmarkResults', 'activePlyoBlock', 'rsiHistory', 'techniqueLog', 'sparringRounds', '_tombstones',
 ];
 
 /**
@@ -94,15 +96,10 @@ function applyRemoteData(
       }
     }
 
-    // Restore Whoop tokens from DB backup if local tokens are missing
-    const whoopTokens = source._whoopTokens as Record<string, string> | undefined;
-    if (whoopTokens && typeof window !== 'undefined') {
-      if (!localStorage.getItem('whoop_access_token') && whoopTokens.accessToken) {
-        localStorage.setItem('whoop_access_token', whoopTokens.accessToken);
-        if (whoopTokens.refreshToken) localStorage.setItem('whoop_refresh_token', whoopTokens.refreshToken);
-        if (whoopTokens.tokenExpires) localStorage.setItem('whoop_token_expires', whoopTokens.tokenExpires);
-      }
-    }
+    // Whoop tokens are NOT synced through the store any more: the encrypted
+    // whoop_tokens table (/api/whoop/tokens) is the only server copy. A
+    // plaintext copy here restored stale single-use refresh tokens and
+    // undid "Disconnect".
 
     // Restore Quick Access pins from server if present
     const remotePins = source._quickAccessPins;
@@ -473,6 +470,8 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       meals: s.meals, macroTargets: s.macroTargets, waterLog: s.waterLog,
       activeDietPhase: s.activeDietPhase, weeklyCheckIns: s.weeklyCheckIns,
       bodyComposition: s.bodyComposition, muscleEmphasis: s.muscleEmphasis, hiddenExercises: s.hiddenExercises, exerciseNotes: s.exerciseNotes,
+      rehabStates: s.rehabStates, benchmarkResults: s.benchmarkResults, activePlyoBlock: s.activePlyoBlock,
+      rsiHistory: s.rsiHistory, techniqueLog: s.techniqueLog, sparringRounds: s.sparringRounds, _tombstones: s._tombstones,
       competitions: s.competitions,
       quickLogs: s.quickLogs, gripTests: s.gripTests, gripExerciseLogs: s.gripExerciseLogs,
       activeEquipmentProfile: s.activeEquipmentProfile,
@@ -567,6 +566,13 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       bodyComposition: store.bodyComposition,
       muscleEmphasis: store.muscleEmphasis,
       hiddenExercises: store.hiddenExercises,
+      rehabStates: store.rehabStates,
+      benchmarkResults: store.benchmarkResults,
+      activePlyoBlock: store.activePlyoBlock,
+      rsiHistory: store.rsiHistory,
+      techniqueLog: store.techniqueLog,
+      sparringRounds: store.sparringRounds,
+      _tombstones: store._tombstones,
       exerciseNotes: store.exerciseNotes,
       competitions: store.competitions,
       quickLogs: store.quickLogs,
@@ -607,16 +613,8 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
     };
 
-    // Backup Whoop tokens and Quick Access pins so they survive cache clears
+    // Backup Quick Access pins so they survive cache clears
     if (typeof window !== 'undefined') {
-      const whoopAccess = localStorage.getItem('whoop_access_token');
-      if (whoopAccess) {
-        syncData._whoopTokens = {
-          accessToken: whoopAccess,
-          refreshToken: localStorage.getItem('whoop_refresh_token') || '',
-          tokenExpires: localStorage.getItem('whoop_token_expires') || '',
-        };
-      }
       try {
         const pins = JSON.parse(localStorage.getItem('roots-explore-pinned') || '[]');
         if (Array.isArray(pins) && pins.length > 0) {
@@ -663,6 +661,13 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     store.bodyComposition,
     store.muscleEmphasis,
     store.hiddenExercises,
+    store.rehabStates,
+    store.benchmarkResults,
+    store.activePlyoBlock,
+    store.rsiHistory,
+    store.techniqueLog,
+    store.sparringRounds,
+    store._tombstones,
     store.exerciseNotes,
     store.competitions,
     store.quickLogs,

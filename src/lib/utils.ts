@@ -13,6 +13,24 @@ export function cn(...inputs: ClassValue[]) {
 // UTC midnight (i.e. "yesterday evening" locally). Always use these helpers
 // for day-scoped keys; reserve toISOString() for genuine sync timestamps.
 
+/** Records that still exist: soft-deleted (`_deleted`) entries are tombstones for sync only. */
+export function live<T extends { _deleted?: boolean }>(arr: readonly T[] | null | undefined): T[] {
+  return (arr ?? []).filter(x => !x._deleted);
+}
+
+/**
+ * Live records in date order, oldest first. Never trust array order — logs
+ * arrive via sync merges, imports and back-dated entries in any order.
+ */
+export function chrono<T extends { date: Date | string; _deleted?: boolean }>(arr: readonly T[] | null | undefined): T[] {
+  return live(arr).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+}
+
+/** The newest `n` records by date (keeps soft-deleted ones: they are tombstones sync needs). */
+export function newestN<T extends { date: Date | string }>(arr: readonly T[] | null | undefined, n: number): T[] {
+  return [...(arr ?? [])].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-n);
+}
+
 // YYYY-MM-DD key from LOCAL date components (defaults to now).
 export function localDayKey(d: Date = new Date()): string {
   const yyyy = d.getFullYear();

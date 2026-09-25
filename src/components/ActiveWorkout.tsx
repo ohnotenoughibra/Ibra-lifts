@@ -8,6 +8,9 @@ import { useToast } from './Toast';
 import ExerciseSwapSheet from './ExerciseSwapSheet';
 import { suggestNextLoad, getLoadProfile, formatLoad, nextLoadStep, roundForImplement } from '@/lib/next-load';
 import { useWakeLock } from '@/lib/use-wake-lock';
+import { recommendFinisher, totalSeconds as sprintTotalSeconds } from '@/lib/sprint-protocols';
+import dynamic from 'next/dynamic';
+const SprintTimer = dynamic(() => import('./SprintTimer'), { ssr: false });
 import { quickAdjustOptions, stepWeight, personalBest, repsToBeat, lastTimeSets, warmupRamp, sessionEta, sessionDeltas } from '@/lib/live-session';
 import { useShallow } from 'zustand/react/shallow';
 import { useSwipe } from '@/lib/use-swipe';
@@ -230,6 +233,8 @@ export default function ActiveWorkout() {
   // Warm-up ramp chip: expanded? + which rungs were ticked (per exercise).
   const [warmupOpen, setWarmupOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState<string | null>(null); // non-null = editing
+  const [showFinisher, setShowFinisher] = useState(false);
+  const [finisherLogged, setFinisherLogged] = useState(false);
   const [etaNow, setEtaNow] = useState(() => Date.now());
   useWakeLock(true); // screen stays on for the whole session
   useEffect(() => { const t = setInterval(() => setEtaNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
@@ -1351,6 +1356,23 @@ export default function ActiveWorkout() {
 
   return (
     <div className="min-h-screen bg-grappler-900 bg-mesh pb-24 safe-area-top">
+      {showFinisher && (() => {
+        const heavyLowerSets = activeWorkout.session.exercises.reduce((n, ex, i) => {
+          const lower = ex.exercise.movementPattern === 'squat' || ex.exercise.movementPattern === 'hinge';
+          const done = activeWorkout.exerciseLogs[i]?.sets.filter(st => st.completed).length ?? 0;
+          return n + (lower && ex.exercise.category === 'compound' ? done : 0);
+        }, 0);
+        const score = latestWhoopData?.recoveryScore ?? readiness?.score;
+        return (
+          <SprintTimer
+            mode="finisher"
+            recommendation={recommendFinisher({ readiness: typeof score === 'number' ? score : undefined, heavyLowerSets })}
+            onLogged={() => setFinisherLogged(true)}
+            onClose={() => { setShowFinisher(false); setShowFinishModal(true); }}
+          />
+        );
+      })()}
+
       {/* PR banner — informative, never blocks the next set */}
       <AnimatePresence>
         {prBanner && (
@@ -4448,6 +4470,41 @@ export default function ActiveWorkout() {
                       ))}
                     </ul>
                   </div>
+                );
+              })()}
+
+              {/* Conditioning finisher — picked for today's readiness and leg load */}
+              {(() => {
+                if (finisherLogged) {
+                  return (
+                    <p className="mb-5 text-xs text-green-400 flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5" /> Conditioning finisher logged
+                    </p>
+                  );
+                }
+                const heavyLowerSets = activeWorkout!.session.exercises.reduce((n, ex, i) => {
+                  const lower = ex.exercise.movementPattern === 'squat' || ex.exercise.movementPattern === 'hinge';
+                  const done = activeWorkout!.exerciseLogs[i]?.sets.filter(st => st.completed).length ?? 0;
+                  return n + (lower && ex.exercise.category === 'compound' ? done : 0);
+                }, 0);
+                const score = latestWhoopData?.recoveryScore ?? readiness?.score;
+                const pick = recommendFinisher({ readiness: typeof score === 'number' ? score : undefined, heavyLowerSets });
+                if (!pick) return null;
+                return (
+                  <button
+                    onClick={() => { setShowFinishModal(false); setShowFinisher(true); }}
+                    className="w-full mb-5 flex items-center justify-between gap-2 rounded-xl border border-grappler-700 bg-grappler-800/50 px-3 py-2.5 text-left"
+                    aria-label="Add conditioning finisher"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-xs font-semibold text-grappler-100">
+                        <Zap className="w-3.5 h-3.5 inline text-amber-400 mr-1" />
+                        Finisher: {pick.protocol.name} · ~{Math.round(sprintTotalSeconds(pick.protocol) / 60)} min
+                      </span>
+                      <span className="block text-[11px] text-grappler-400 mt-0.5">{pick.reason}</span>
+                    </span>
+                    <span className="text-xs font-semibold text-primary-400 flex-shrink-0">Start</span>
+                  </button>
                 );
               })()}
 

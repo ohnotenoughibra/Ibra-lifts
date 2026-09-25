@@ -112,6 +112,7 @@ const BadgeShowcase = dynamic(() => import('./BadgeShowcase'), { loading: () => 
 const WarmUpInfo = dynamic(() => import('./WarmUpInfo'), { loading: () => <OverlaySkeleton /> });
 const MovementLibrary = dynamic(() => import('./MovementLibrary'), { loading: () => <OverlaySkeleton /> });
 const ConditioningSession = dynamic(() => import('./ConditioningSession'), { loading: () => <OverlaySkeleton /> });
+const SprintTimer = dynamic(() => import('./SprintTimer'), { loading: () => <OverlaySkeleton /> });
 const TrainingJournal = dynamic(() => import('./TrainingJournal'), { loading: () => <OverlaySkeleton /> });
 const KnowledgeHub = dynamic(() => import('./KnowledgeHub'), { loading: () => <OverlaySkeleton /> });
 
@@ -587,6 +588,7 @@ export default function Dashboard({
       warm_up: <WarmUpInfo onClose={closeOverlay} />,
       movement_library: <MovementLibrary onClose={closeOverlay} />,
       conditioning: <ConditioningSession onClose={closeOverlay} />,
+      sprints: <SprintTimer onClose={closeOverlay} />,
       training_journal: <TrainingJournal onClose={closeOverlay} />,
       knowledge_hub: <KnowledgeHub onClose={closeOverlay} initialCategory={overlayContext as ContentCategory | undefined} onNavigate={setOverlayView} />,
       profile_settings: <ProfileSettings onClose={closeOverlay} onNavigate={setOverlayView} />,

@@ -986,6 +986,18 @@ export interface TrainingSession {
     zones?: { zone: number; minutes: number }[];
   };
   whoopWorkoutId?: string; // links back to the Whoop workout for dedup
+  // Interval / sprint sessions (air bike etc.) — what the timer ran + what the athlete logged.
+  intervalData?: {
+    protocolId: string;
+    modality: string;
+    reps: number;
+    workSeconds: number;
+    calories?: number;
+    avgWatts?: number;
+    peakWatts?: number;
+    avgHR?: number;
+    completed: boolean;
+  };
   _deleted?: boolean;
   _deletedAt?: number;
 }

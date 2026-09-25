@@ -129,6 +129,9 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
   const addTrainingSession = useAppStore((s) => s.addTrainingSession);
   // Guards against double-saving the same completed session on re-render.
   const savedRef = useRef(false);
+  const updateTrainingSession = useAppStore((s) => s.updateTrainingSession);
+  // Session RPE the athlete confirms on the completion screen (feeds RPE × minutes load).
+  const [sessionRpe, setSessionRpe] = useState<number | null>(null);
   const bodyweightKg = user?.bodyWeightKg ?? 80;
 
   // ---- Mode & selection state ----
@@ -484,10 +487,12 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
       date: new Date(),
       category: 'cardio',
       type: 'other',
-      plannedIntensity: 'moderate',
       duration: minutes,
       rounds: isAmrapType ? amrapRounds : getTotalRounds(),
-      perceivedExertion: 7,
+      // Default by what the session targets until the athlete rates it below —
+      // a flat 7 over-counted easy aerobic work and under-counted sprints.
+      perceivedExertion: tmpl.metabolicTarget === 'aerobic' ? 6 : tmpl.metabolicTarget === 'anaerobic' ? 8 : 7,
+      plannedIntensity: tmpl.metabolicTarget === 'aerobic' ? 'moderate' : 'hard_sparring',
       notes: `Conditioning · ${tmpl.name}`,
     });
   }, [phase, activeTemplate, totalElapsed, amrapRounds, getTotalRounds, addTrainingSession]);
@@ -496,6 +501,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
   const startSession = useCallback(() => {
     if (!activeTemplate) return;
     savedRef.current = false;
+    setSessionRpe(null);
     setMode('active');
     setPhase('warmup');
     setCurrentRound(1);
@@ -990,6 +996,27 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
             <div className="flex justify-between bg-grappler-900 rounded-xl p-4 border border-grappler-800">
               <span className="text-sm text-grappler-400">Calories (est.)</span>
               <span className="text-sm font-bold text-grappler-50">~{finalCals} kcal</span>
+            </div>
+          </div>
+
+          <div className="w-full max-w-xs mb-6">
+            <p className="text-xs text-grappler-400 mb-2">How hard was it? (session RPE)</p>
+            <div className="grid grid-cols-5 gap-1.5">
+              {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(v => (
+                <button
+                  key={v}
+                  onClick={() => {
+                    setSessionRpe(v);
+                    const sessions = useAppStore.getState().trainingSessions;
+                    const mine = [...sessions].reverse().find(t => t.notes === `Conditioning · ${activeTemplate.name}` && !t._deleted);
+                    if (mine) updateTrainingSession(mine.id, { perceivedExertion: v, plannedIntensity: v <= 4 ? 'light_flow' : v <= 7 ? 'moderate' : 'hard_sparring' });
+                  }}
+                  aria-pressed={sessionRpe === v}
+                  className={cn('min-h-[40px] rounded-lg text-sm font-semibold', sessionRpe === v ? 'bg-blue-500 text-white' : 'bg-grappler-900 text-grappler-300 border border-grappler-800')}
+                >
+                  {v}
+                </button>
+              ))}
             </div>
           </div>
 

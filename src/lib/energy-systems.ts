@@ -11,9 +11,9 @@
  *      4 × 4 min @ ~90-95% max HR (Zone 5) with 3 min active recovery
  *      Helgerud et al. 2007 — superior VO2max gains vs steady-state
  *
- *   3. Repeated Sprint Ability (RSA) — anaerobic capacity / combat-specific
- *      10 × 30s max effort with 30-90s rest (work:rest 1:1 to 1:3)
- *      Bishop et al. 2011 — most relevant for fight-pace recovery
+ *   3. Repeated Sprint Ability (RSA) — repeated-burst capacity / combat-specific
+ *      2 × 6 × 6 s all-out with 24 s easy (sprints ≤ 10 s, recovery < 60 s)
+ *      Bishop et al. 2011 — 30 s all-out efforts are SIT, not RSA
  *
  * Periodization: Base → Threshold → Peak (RSA), 4-6 weeks per phase.
  *
@@ -201,10 +201,10 @@ export const ENERGY_SYSTEM_PROTOCOLS: EnergySystemProtocol[] = [
     durationMinutes: 25,
     intervals: [
       {
-        description: '30s max effort sprint',
-        workSeconds: 30,
-        restSeconds: 90,
-        rounds: 10,
+        description: '6 s all-out sprint, 24 s easy — 2 sets of 6, 4 min easy between sets',
+        workSeconds: 6,
+        restSeconds: 24,
+        rounds: 12,
         targetHRZone: 5,
         rpe: 9,
       },

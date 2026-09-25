@@ -479,6 +479,8 @@ interface AppState {
   updateMesocycleInQueue: (id: string, updates: Partial<Omit<PlannedMesocycle, 'id' | 'createdAt'>>) => void;
   removeFromMesocycleQueue: (id: string) => void;
   reorderMesocycleQueue: (fromIndex: number, toIndex: number) => void;
+  /** Rename the current block (trimmed, max 40 chars). */
+  renameMesocycle: (name: string) => void;
   advanceMesocycleQueue: () => void;
   switchToQueuedBlock: () => void;
   migrateWorkoutLogsToMesocycle: (fromMesocycleId: string, toMesocycleId: string) => void;
@@ -1804,7 +1806,16 @@ export const useAppStore = create<AppState>()(
 
       updateMesocycleInQueue: (id, updates) => {
         const { mesocycleQueue } = get();
-        set({ mesocycleQueue: mesocycleQueue.map(b => b.id === id ? { ...b, ...updates } : b) });
+        // Stamp updatedAt so the sync merge prefers this edit over a stale cloud copy
+        const now = new Date().toISOString();
+        set({ mesocycleQueue: mesocycleQueue.map(b => b.id === id ? { ...b, ...updates, updatedAt: now } : b) });
+      },
+
+      renameMesocycle: (name) => {
+        const { currentMesocycle } = get();
+        const clean = name.replace(/\s+/g, ' ').trim().slice(0, 40);
+        if (!currentMesocycle || !clean || clean === currentMesocycle.name) return;
+        set({ currentMesocycle: { ...currentMesocycle, name: clean, updatedAt: new Date().toISOString() } });
       },
 
       removeFromMesocycleQueue: (id) => {
@@ -1822,7 +1833,8 @@ export const useAppStore = create<AppState>()(
         const { mesocycleQueue } = get();
         // UI indices refer to the LIVE (non-tombstoned) list — reorder live
         // entries only, keep tombstones appended for sync
-        const live = mesocycleQueue.filter(b => !b._deleted);
+        // Same order the UI shows (by position) — raw array order can differ after a sync merge
+        const live = mesocycleQueue.filter(b => !b._deleted).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         const dead = mesocycleQueue.filter(b => b._deleted);
         if (fromIndex < 0 || fromIndex >= live.length || toIndex < 0 || toIndex >= live.length) return;
         const updated = [...live];
@@ -1847,6 +1859,9 @@ export const useAppStore = create<AppState>()(
         if (next.sessionsPerWeek) overrides.sessionsPerWeek = next.sessionsPerWeek;
         set({ user: { ...user, ...overrides } });
         get().generateNewMesocycle(next.weeks, next.sessionDurationMinutes, next.periodization);
+        // The block you planned keeps the name you saw in the queue
+        const started = get().currentMesocycle;
+        if (started && next.name?.trim()) set({ currentMesocycle: { ...started, name: next.name.trim().slice(0, 40) } });
         // Restore original user settings and consume the queue entry in a single set().
         // Tombstone the consumed entry (not slice) — a hard-removed entry would
         // resurrect from the cloud copy on the next sync union merge.

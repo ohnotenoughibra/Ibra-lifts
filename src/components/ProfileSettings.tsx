@@ -55,6 +55,8 @@ import { BiologicalSex, WeightUnit, ExperienceLevel, GoalFocus, Equipment, Weara
 import type { ColorTheme } from '@/lib/types';
 import { useToast } from './Toast';
 import NotificationSettings from './NotificationSettings';
+import WeekLayoutSheet from './WeekLayoutSheet';
+import { WEEK_ORDER, DAY_SHORT } from '@/lib/plan-edit';
 import type { OverlayView } from './dashboard-types';
 import { hapticMedium, hapticHeavy, hapticLight } from '@/lib/haptics';
 import { resolveWeightUnit } from '@/lib/units';
@@ -258,6 +260,8 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
     hasMesocycle?: boolean; mesocycleHistory?: number; hasBaselineLifts?: boolean; badges?: number;
     source?: string; backupDate?: string | null;
   } | null>(null);
+  const setWeeklyLayout = useAppStore(s => s.setWeeklyLayout);
+  const [showLayout, setShowLayout] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string; message: string; confirmLabel: string; danger?: boolean; onConfirm: () => void;
   } | null>(null);
@@ -819,7 +823,7 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
 
           {/* Training days per week */}
           <div>
-            <p className="text-xs text-grappler-400 mb-2">Training Days / Week</p>
+            <p className="text-xs text-grappler-400 mb-2">Lifting sessions / week</p>
             <div className="flex gap-1.5">
               {([1, 2, 3, 4, 5, 6] as SessionsPerWeek[]).map(n => (
                 <button key={n} onClick={() => {
@@ -854,6 +858,35 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
               ))}
             </div>
           </div>
+
+          {/* Which days — lift + mat layout (no rebuild) */}
+          <button
+            onClick={() => setShowLayout(true)}
+            className="w-full flex items-center justify-between gap-3 rounded-xl bg-grappler-700/40 px-3 py-2.5 text-left"
+            data-testid="settings-week-layout"
+          >
+            <div className="min-w-0">
+              <p className="text-xs text-grappler-400">Lift & mat days</p>
+              <p className="text-sm font-semibold text-grappler-100 truncate">
+                {WEEK_ORDER.filter(d => user?.trainingDays?.includes(d)).map(d => DAY_SHORT[d]).join(' · ') || 'Not set'}
+                {(user?.combatTrainingDays?.length ?? 0) > 0 && (
+                  <span className="font-normal text-grappler-400"> · mats {WEEK_ORDER.filter(d => user?.combatTrainingDays?.some(c => c.day === d)).map(d => DAY_SHORT[d]).join(' ')}</span>
+                )}
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-primary-400 flex-shrink-0">Edit</span>
+          </button>
+          <AnimatePresence>
+            {showLayout && (
+              <WeekLayoutSheet
+                trainingDays={user?.trainingDays ?? []}
+                combatTrainingDays={user?.combatTrainingDays ?? []}
+                sessionsPerWeek={currentMesocycle ? Math.max(0, ...currentMesocycle.weeks.map(w => w.sessions.length)) : (user?.sessionsPerWeek ?? 0)}
+                onClose={() => setShowLayout(false)}
+                onSave={(lift, mat) => { setWeeklyLayout(lift, mat); setShowLayout(false); showToast('Week layout saved', 'success'); }}
+              />
+            )}
+          </AnimatePresence>
 
           {/* Equipment */}
           <div>

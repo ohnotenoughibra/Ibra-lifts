@@ -143,9 +143,28 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-grappler-50 truncate">{mesocycle.name}</h2>
-              <p className="text-xs text-grappler-400 capitalize">
-                {mesocycle.goalFocus.replace(/_/g, ' ')} · {mesocycle.weeks.length} weeks · {mesocycle.splitType.replace(/_/g, ' ')}
-              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center rounded-md bg-grappler-800" role="group" aria-label="Block length">
+                  <button
+                    onClick={handleRemoveWeek}
+                    disabled={mesocycle.weeks.length <= MIN_BLOCK_WEEKS}
+                    className="w-8 h-8 flex items-center justify-center text-grappler-400 hover:text-red-400 disabled:opacity-30"
+                    aria-label="Remove week"
+                    data-tight
+                  ><Minus className="w-3.5 h-3.5" /></button>
+                  <span className="text-xs font-bold text-grappler-100 px-1 tabular-nums" data-testid="block-length">{mesocycle.weeks.length} weeks</span>
+                  <button
+                    onClick={() => { addWeekToMesocycle(); onBlockAction('Week added'); }}
+                    disabled={mesocycle.weeks.length >= MAX_BLOCK_WEEKS}
+                    className="w-8 h-8 flex items-center justify-center text-grappler-400 hover:text-primary-300 disabled:opacity-30"
+                    aria-label="Add week"
+                    data-tight
+                  ><Plus className="w-3.5 h-3.5" /></button>
+                </div>
+                <p className="text-xs text-grappler-400 capitalize truncate">
+                  {mesocycle.goalFocus.replace(/_/g, ' ')} · {mesocycle.splitType.replace(/_/g, ' ')}
+                </p>
+              </div>
             </div>
             <button
               onClick={onClose}
@@ -159,6 +178,20 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
         </div>
 
         <div className="p-4 space-y-4">
+          {/* Removing a trained week needs a yes — shown right under the length control */}
+          {confirmRemoveWeek !== null && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+              <p className="text-xs text-grappler-300">
+                Every removable week has logged workouts. Removing one renumbers the
+                remaining weeks, so past sessions may show under a different week.
+                Your logs themselves are never deleted.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmRemoveWeek(null)} className="btn btn-secondary btn-sm flex-1">Keep week</button>
+                <button onClick={handleConfirmRemoveTrainedWeek} className="btn btn-sm flex-1 bg-amber-600 text-white hover:bg-amber-500">Remove anyway</button>
+              </div>
+            </div>
+          )}
           {/* Volume arc of the block */}
           {mesocycle.weeks.length >= 2 && (
             <VolumeWave
@@ -277,42 +310,6 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
             })}
           </div>
 
-          {/* Week add/remove — bounds mirror the store guards via shared constants */}
-          {confirmRemoveWeek !== null && (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
-              <p className="text-xs text-grappler-300">
-                Every removable week has logged workouts. Removing one renumbers the
-                remaining weeks, so past sessions may show under a different week.
-                Your logs themselves are never deleted.
-              </p>
-              <div className="flex gap-2">
-                <button onClick={() => setConfirmRemoveWeek(null)} className="btn btn-secondary btn-sm flex-1">Keep week</button>
-                <button onClick={handleConfirmRemoveTrainedWeek} className="btn btn-sm flex-1 bg-amber-600 text-white hover:bg-amber-500">Remove anyway</button>
-              </div>
-            </div>
-          )}
-          <div className="flex items-center justify-center gap-3 pt-1">
-            {mesocycle.weeks.length > MIN_BLOCK_WEEKS && (
-              <button
-                onClick={handleRemoveWeek}
-                className="btn btn-ghost btn-sm gap-1.5 text-grappler-400 hover:text-red-400"
-                data-tight
-              >
-                <Minus className="w-3.5 h-3.5" />
-                Remove week
-              </button>
-            )}
-            {mesocycle.weeks.length < MAX_BLOCK_WEEKS && (
-              <button
-                onClick={() => { addWeekToMesocycle(); onBlockAction('Week added'); }}
-                className="btn btn-ghost btn-sm gap-1.5 text-grappler-400 hover:text-primary-300"
-                data-tight
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add week
-              </button>
-            )}
-          </div>
         </div>
       </div>
 

@@ -71,8 +71,13 @@ test.describe('Train tab', () => {
     // Switch via the manager — old block becomes Stopped, queue empties
     await upNextRow.click();
     const manager = page.getByRole('dialog', { name: 'Manage blocks' });
-    await manager.getByRole('button', { name: 'Switch' }).click();
+    await manager.getByRole('button', { name: 'Start now' }).click();
+    // Switching stops the current block — it asks first
+    await expect(manager.getByTestId('confirm-switch')).toBeVisible();
+    await manager.getByRole('button', { name: 'Switch now' }).click();
     await expect(manager.getByText('Stopped', { exact: true })).toBeVisible();
+    // The block keeps the name it had in the queue
+    await expect(manager.getByTestId('rename-block')).toContainText('Hypertrophy');
     await expect(manager.getByText('Nothing queued', { exact: false })).toBeVisible();
   });
 
@@ -147,5 +152,58 @@ test.describe('Train tab — week planning', () => {
     const toggle = sheet.getByTestId('scope-toggle').first();
     await expect(toggle).toBeVisible();
     await expect(toggle.getByRole('radio', { name: /Rest of block/ })).toHaveAttribute('aria-checked', 'true');
+  });
+});
+
+test.describe('Train tab — organising blocks', () => {
+  test.beforeEach(async ({ page }) => {
+    await onboard(page);
+    await openTrainTab(page);
+  });
+
+  test('rename the current block', async ({ page }) => {
+    await page.getByRole('button', { name: 'Blocks', exact: true }).click();
+    const manager = page.getByRole('dialog', { name: 'Manage blocks' });
+    await manager.getByTestId('rename-block').click();
+    const input = manager.getByTestId('block-name-input');
+    await input.fill('Camp 1 — Strength');
+    await input.press('Enter');
+    await expect(manager.getByTestId('rename-block')).toContainText('Camp 1 — Strength');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: 'Open full block schedule' })).toContainText('Camp 1 — Strength');
+  });
+
+  test('queued blocks can be edited and reordered', async ({ page }) => {
+    for (const focus of ['Muscle', 'Endurance']) {
+      await page.getByRole('button', { name: 'New Block' }).click();
+      const composer = page.getByRole('dialog', { name: 'New block composer' });
+      await composer.getByRole('button', { name: focus, exact: true }).click();
+      await composer.getByRole('button', { name: 'Add block to queue' }).click();
+      await expect(composer).not.toBeVisible();
+    }
+    await page.getByRole('button', { name: 'Blocks', exact: true }).click();
+    const manager = page.getByRole('dialog', { name: 'Manage blocks' });
+    const names = manager.getByRole('button', { name: /^Edit / });
+    await expect(names).toHaveCount(2);
+    const firstBefore = (await names.first().getAttribute('aria-label'))!;
+    await manager.getByRole('button', { name: /later$/ }).first().click();
+    await expect(names.nth(1)).toHaveAttribute('aria-label', firstBefore);
+    // Edit length of the (new) first block
+    await names.first().click();
+    const editor = manager.getByTestId('queue-editor');
+    const before = parseInt(await editor.getByTestId('queue-weeks').innerText());
+    await editor.getByRole('button', { name: 'Longer' }).click();
+    await expect(editor.getByTestId('queue-weeks')).toHaveText(`${before + 1} weeks`);
+  });
+
+  test('block length is changed from the schedule header', async ({ page }) => {
+    await page.getByRole('button', { name: 'Open full block schedule' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Block schedule' });
+    const len = sheet.getByTestId('block-length');
+    const n = parseInt(await len.innerText());
+    await sheet.getByRole('button', { name: 'Add week' }).click();
+    await expect(len).toHaveText(`${n + 1} weeks`);
+    await sheet.getByRole('button', { name: 'Remove week' }).click();
+    await expect(len).toHaveText(`${n} weeks`);
   });
 });

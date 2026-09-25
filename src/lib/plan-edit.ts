@@ -146,3 +146,63 @@ export function editAcrossWeeks(
   });
   return { meso: { ...meso, weeks, updatedAt: new Date().toISOString() }, weeksChanged };
 }
+
+/**
+ * Move an exercise up/down in a session — this week, or every later week
+ * where the same lift sits at the same spot.
+ */
+export function moveExerciseAcrossWeeks(
+  meso: Mesocycle, weekIndex: number, sessionId: string, from: number, to: number, scope: EditScope,
+): { meso: Mesocycle; weeksChanged: number } {
+  const pos = meso.weeks[weekIndex]?.sessions.findIndex(s => s.id === sessionId) ?? -1;
+  const id = meso.weeks[weekIndex]?.sessions[pos]?.exercises[from]?.exerciseId;
+  if (pos < 0 || !id || from === to) return { meso, weeksChanged: 0 };
+  let weeksChanged = 0;
+  const weeks = meso.weeks.map((w, wi) => {
+    if (wi < weekIndex || (scope === 'week' && wi !== weekIndex)) return w;
+    const session = w.sessions[pos];
+    if (!session || session.exercises[from]?.exerciseId !== id || to < 0 || to >= session.exercises.length) return w;
+    const exercises = [...session.exercises];
+    const [moved] = exercises.splice(from, 1);
+    exercises.splice(to, 0, moved);
+    weeksChanged++;
+    return { ...w, sessions: w.sessions.map((s, si) => (si === pos ? { ...s, exercises } : s)) };
+  });
+  return { meso: { ...meso, weeks, updatedAt: new Date().toISOString() }, weeksChanged };
+}
+
+/** Sensible starting prescription for a lift added by hand. */
+export function defaultPrescription(ex: ExercisePrescription['exercise'], deload = false): ExercisePrescription {
+  const heavy = ex.category === 'compound' || ex.category === 'power';
+  const timed = ex.measurementType === 'time';
+  const [min, max] = timed ? [20, 40] : heavy ? [6, 10] : [10, 15];
+  return {
+    exerciseId: ex.id,
+    exercise: ex,
+    sets: deload ? 2 : 3,
+    prescription: {
+      targetReps: Math.round((min + max) / 2), minReps: min, maxReps: max,
+      rpe: deload ? 6 : 7.5,
+      restSeconds: heavy ? 150 : 90,
+    },
+    notes: 'Added by you',
+  };
+}
+
+/** Add a lift to the end of a session — this week or this week and every later week. */
+export function addExerciseAcrossWeeks(
+  meso: Mesocycle, weekIndex: number, sessionId: string, ex: ExercisePrescription['exercise'], scope: EditScope,
+): { meso: Mesocycle; weeksChanged: number } {
+  const pos = meso.weeks[weekIndex]?.sessions.findIndex(s => s.id === sessionId) ?? -1;
+  if (pos < 0) return { meso, weeksChanged: 0 };
+  let weeksChanged = 0;
+  const weeks = meso.weeks.map((w, wi) => {
+    if (wi < weekIndex || (scope === 'week' && wi !== weekIndex)) return w;
+    const session = w.sessions[pos];
+    if (!session || session.exercises.some(e => e.exerciseId === ex.id)) return w;
+    weeksChanged++;
+    const exercises = [...session.exercises, defaultPrescription(ex, !!w.isDeload)];
+    return { ...w, sessions: w.sessions.map((s, si) => (si === pos ? { ...s, exercises } : s)) };
+  });
+  return { meso: { ...meso, weeks, updatedAt: new Date().toISOString() }, weeksChanged };
+}

@@ -4,7 +4,8 @@ import { formatTarget, formatSetsTarget } from '@/lib/prescription-format';
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
-import { Video, Shuffle, Trash2, Minus, Plus, Pencil, TrendingUp } from 'lucide-react';
+import { Video, Shuffle, Trash2, Minus, Plus, Pencil, TrendingUp, MoreHorizontal, ArrowUp, ArrowDown } from 'lucide-react';
+import { useToast } from './Toast';
 import { cn } from '@/lib/utils';
 import { ExercisePrescription, Equipment } from '@/lib/types';
 import { getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
@@ -49,6 +50,14 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [showFormVideo, setShowFormVideo] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const moveExercise = useAppStore((s) => s.moveProgramExercise);
+  const { showToast } = useToast();
+  const move = (to: number) => {
+    setShowMenu(false);
+    const n = moveExercise(weekIndex, sessionId, index, to, 'remaining');
+    if (n > 1) showToast(`Order changed in ${n} weeks`, 'success');
+  };
   const workoutLogs = useAppStore((s) => s.workoutLogs);
   const weightUnit = useAppStore((s) => resolveWeightUnit(s.user?.weightUnit));
   const updatePrescriptionRaw = useAppStore((s) => s.updateExercisePrescription);
@@ -110,9 +119,13 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
       <div className="p-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-grappler-100">{ex.exercise?.name || 'Unknown Exercise'}</p>
+            <p className="font-medium text-grappler-100" data-testid="exercise-name">{ex.exercise?.name || 'Unknown Exercise'}</p>
             <p className="text-sm text-grappler-400">
               {ex.sets} × {ex.prescription ? formatTarget(ex.prescription.targetReps, ex.exercise) : '?'} @ RPE {ex.prescription?.rpe ?? '?'}
+            </p>
+            <p className="text-xs text-grappler-400">
+              Rest {Math.floor((ex.prescription?.restSeconds ?? 120) / 60)}:{((ex.prescription?.restSeconds ?? 120) % 60).toString().padStart(2, '0')}
+              {ex.prescription?.percentageOf1RM ? ` · ~${prescribedPercentOf1RM(ex.prescription.targetReps, ex.prescription.rpe)}% 1RM` : ''}
             </p>
             {lastPerf && lastPerf.weight > 0 && (
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -127,27 +140,10 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <div className="text-right">
-              <p className="text-xs text-grappler-400">
-                Rest: {Math.floor((ex.prescription?.restSeconds ?? 120) / 60)}:{((ex.prescription?.restSeconds ?? 120) % 60).toString().padStart(2, '0')}
-              </p>
-              {ex.prescription?.percentageOf1RM && (
-                <p className="text-xs text-grappler-400">
-                  ~{prescribedPercentOf1RM(ex.prescription.targetReps, ex.prescription.rpe)}% 1RM
-                </p>
-              )}
-            </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+
             <button
-              onClick={() => setShowFormVideo(true)}
-              className="p-2 rounded-lg transition-colors text-grappler-500 hover:text-primary-300 hover:bg-primary-500/15"
-              title="Check form"
-              aria-label="Check form video"
-            >
-              <Video className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => { setShowEditor(!showEditor); setShowAlternatives(false); }}
+              onClick={() => { setShowEditor(!showEditor); setShowAlternatives(false); setShowMenu(false); }}
               className={cn(
                 'p-2 rounded-lg transition-colors',
                 showEditor
@@ -160,7 +156,7 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
               <Pencil className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={() => { setShowAlternatives(!showAlternatives); setShowEditor(false); }}
+              onClick={() => { setShowAlternatives(!showAlternatives); setShowEditor(false); setShowMenu(false); }}
               className={cn(
                 'p-2 rounded-lg transition-colors',
                 showAlternatives
@@ -172,19 +168,48 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
             >
               <Shuffle className="w-3.5 h-3.5" />
             </button>
-            {totalExercises > 1 && (
+            <div>
               <button
-                onClick={() => onRemove ? onRemove(weekIndex, sessionId, index, ex) : removeExercise(weekIndex, sessionId, index)}
-                className="p-2 rounded-lg transition-colors text-grappler-500 hover:text-red-400 hover:bg-red-500/15"
-                title="Remove exercise"
-                aria-label="Remove exercise"
+                onClick={() => { setShowMenu(m => !m); setShowEditor(false); setShowAlternatives(false); }}
+                className={cn('p-2 rounded-lg transition-colors', showMenu ? 'bg-grappler-600 text-grappler-100' : 'text-grappler-500 hover:text-grappler-300 hover:bg-grappler-600/50')}
+                aria-label="More actions"
+                aria-expanded={showMenu}
+                data-testid="exercise-menu"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <MoreHorizontal className="w-3.5 h-3.5" />
               </button>
-            )}
+            </div>
           </div>
         </div>
       </div>
+
+      {showMenu && (
+        <div className="border-t border-grappler-600/50 px-2 py-1.5 grid grid-cols-4 gap-1" role="menu" data-testid="exercise-actions">
+          <button role="menuitem" onClick={() => { setShowMenu(false); setShowFormVideo(true); }} className="flex flex-col items-center justify-center gap-0.5 rounded-md py-2 min-h-[44px] text-[11px] font-medium text-grappler-200 hover:bg-grappler-600/50">
+            <Video className="w-3.5 h-3.5" /> Form
+          </button>
+          {index > 0 && (
+            <button role="menuitem" onClick={() => move(index - 1)} className="flex flex-col items-center justify-center gap-0.5 rounded-md py-2 min-h-[44px] text-[11px] font-medium text-grappler-200 hover:bg-grappler-600/50">
+              <ArrowUp className="w-3.5 h-3.5" /> Move up
+            </button>
+          )}
+          {index < totalExercises - 1 && (
+            <button role="menuitem" onClick={() => move(index + 1)} className="flex flex-col items-center justify-center gap-0.5 rounded-md py-2 min-h-[44px] text-[11px] font-medium text-grappler-200 hover:bg-grappler-600/50">
+              <ArrowDown className="w-3.5 h-3.5" /> Move down
+            </button>
+          )}
+          {totalExercises > 1 && (
+            <button
+              role="menuitem"
+              aria-label="Remove exercise"
+              onClick={() => { setShowMenu(false); if (onRemove) onRemove(weekIndex, sessionId, index, ex); else removeExercise(weekIndex, sessionId, index); }}
+              className="col-start-4 flex flex-col items-center justify-center gap-0.5 rounded-md py-2 min-h-[44px] text-[11px] font-medium text-red-400 hover:bg-red-500/10"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Remove
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Inline Prescription Editor */}
       <AnimatePresence>

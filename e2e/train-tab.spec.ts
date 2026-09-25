@@ -87,9 +87,10 @@ test.describe('Train tab', () => {
 
     // Expand the first session to reveal its exercises
     await sheet.getByRole('button', { name: /W1\/D1/ }).first().click();
-    await expect(sheet.getByRole('button', { name: 'Remove exercise' }).first()).toBeVisible();
+    await sheet.getByTestId('exercise-menu').first().click();
+    await expect(sheet.getByRole('menuitem', { name: 'Remove exercise' })).toBeVisible();
 
-    await sheet.getByRole('button', { name: 'Remove exercise' }).first().click();
+    await sheet.getByRole('menuitem', { name: 'Remove exercise' }).click();
     // The toast names what was removed — read it rather than guessing the DOM
     const toastLabel = page.locator('[role="status"]', { hasText: 'Removed' }).locator('span').first();
     await expect(toastLabel).toBeVisible();
@@ -205,5 +206,31 @@ test.describe('Train tab — organising blocks', () => {
     await expect(len).toHaveText(`${n + 1} weeks`);
     await sheet.getByRole('button', { name: 'Remove week' }).click();
     await expect(len).toHaveText(`${n} weeks`);
+  });
+});
+
+test.describe('Train tab — editing sessions', () => {
+  test.beforeEach(async ({ page }) => {
+    await onboard(page);
+    await openTrainTab(page);
+  });
+
+  test('add an exercise to a session and move it up', async ({ page }) => {
+    await page.locator('[data-testid^="agenda-session-"]').first().click();
+    const sheet = page.getByRole('dialog', { name: 'Block schedule' });
+    await sheet.getByTestId('add-exercise').click();
+    const panel = sheet.getByTestId('add-exercise-panel');
+    await panel.getByLabel('Search exercises').fill('face pull');
+    const pick = panel.getByRole('button', { name: /Face Pull/i }).first();
+    const name = (await pick.locator('span').first().innerText()).trim();
+    await pick.click();
+    await expect(page.getByText(new RegExp(`Added ${name}`))).toBeVisible();
+    const cards = sheet.locator('[data-testid="exercise-menu"]');
+    const last = (await cards.count()) - 1;
+    await cards.nth(last).click();
+    await sheet.getByRole('menuitem', { name: /Move up/ }).click();
+    // it now sits second-to-last
+    const names = sheet.getByTestId('exercise-name');
+    await expect(names.nth(last - 1)).toHaveText(name);
   });
 });

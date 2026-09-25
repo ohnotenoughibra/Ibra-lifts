@@ -82,7 +82,7 @@ import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
 import { stripLegacyDefaultTempos, stripLegacyDefaultTemposFromSession } from './live-session';
 import { matContext, planMatAdjustment } from './mat-aware';
-import { editAcrossWeeks, moveSessionAcrossWeeks } from './plan-edit';
+import { editAcrossWeeks, moveSessionAcrossWeeks, moveExerciseAcrossWeeks, addExerciseAcrossWeeks } from './plan-edit';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards, calculateStreak, defaultWellnessStats, calculateWellnessMultiplier, updateWellnessStreaks, calculateWellnessXP, checkWellnessBadges } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
 import { isBodyweightLoadedExercise, backfillBodyweightInLogs, estimate1RM, estimateFirstTimeWeight } from './weight-estimator';
@@ -502,6 +502,10 @@ interface AppState {
   /** Change lift + mat weekdays without regenerating the block. */
   setWeeklyLayout: (trainingDays: number[], combatTrainingDays: import('./types').CombatTrainingDay[]) => void;
   removeExerciseFromSession: (weekIndex: number, sessionId: string, exerciseIndex: number) => void;
+  /** Reorder a lift in a session; returns weeks changed. */
+  moveProgramExercise: (weekIndex: number, sessionId: string, from: number, to: number, scope?: import('./plan-edit').EditScope) => number;
+  /** Add a lift (by id) to the end of a session; returns weeks changed. */
+  addProgramExercise: (weekIndex: number, sessionId: string, exerciseId: string, scope?: import('./plan-edit').EditScope) => number;
   insertExerciseIntoSession: (weekIndex: number, sessionId: string, exerciseIndex: number, exercise: ExercisePrescription) => void;
   addWeekToMesocycle: () => void;
   removeWeekFromMesocycle: (weekIndex: number) => void;
@@ -2683,6 +2687,23 @@ export const useAppStore = create<AppState>()(
           });
         }
       }),
+
+      moveProgramExercise: (weekIndex, sessionId, from, to, scope = 'remaining') => {
+        const { currentMesocycle } = get();
+        if (!currentMesocycle) return 0;
+        const { meso, weeksChanged } = moveExerciseAcrossWeeks(currentMesocycle, weekIndex, sessionId, from, to, scope);
+        if (weeksChanged) set({ currentMesocycle: meso });
+        return weeksChanged;
+      },
+
+      addProgramExercise: (weekIndex, sessionId, exerciseId, scope = 'remaining') => {
+        const { currentMesocycle } = get();
+        const ex = getExerciseById(exerciseId);
+        if (!currentMesocycle || !ex) return 0;
+        const { meso, weeksChanged } = addExerciseAcrossWeeks(currentMesocycle, weekIndex, sessionId, ex, scope);
+        if (weeksChanged) set({ currentMesocycle: meso });
+        return weeksChanged;
+      },
 
       removeExerciseFromSession: (weekIndex, sessionId, exerciseIndex) => {
         const { currentMesocycle } = get();

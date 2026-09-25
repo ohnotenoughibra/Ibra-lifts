@@ -2,7 +2,7 @@
  * plan-edit — weekdays for sessions, moving them, and scoped block edits.
  */
 import { describe, it, expect } from 'vitest';
-import { plannedDays, weekAgenda, moveSession, moveSessionAcrossWeeks, editAcrossWeeks } from '@/lib/plan-edit';
+import { plannedDays, weekAgenda, moveSession, moveSessionAcrossWeeks, editAcrossWeeks, moveExerciseAcrossWeeks, addExerciseAcrossWeeks } from '@/lib/plan-edit';
 import { useAppStore } from '@/lib/store';
 import { getTodaysSession } from '@/lib/session-matching';
 import { getExerciseById } from '@/lib/exercises';
@@ -106,5 +106,26 @@ describe('store: scoped prescription edits', () => {
     useAppStore.setState({ currentMesocycle: meso(), user: { trainingDays: MON_WED_FRI } as any, blockUndoStack: [] });
     useAppStore.getState().moveSessionToDay(0, 'w1d1', 2);
     expect(useAppStore.getState().blockUndoStack.at(-1)?.label).toBe('Session moved');
+  });
+});
+
+describe('exercise order and additions', () => {
+  it('moves a lift down in this and later weeks where it sits in the same spot', () => {
+    const m0 = meso();
+    m0.weeks[3].sessions[0].exercises.reverse(); // week 4 already differs
+    const { meso: m, weeksChanged } = moveExerciseAcrossWeeks(m0, 0, 'w1d1', 0, 1, 'remaining');
+    expect(weeksChanged).toBe(3);
+    expect(m.weeks[0].sessions[0].exercises.map((e: any) => e.exerciseId)).toEqual(['bench-press', 'back-squat']);
+    expect(m.weeks[3].sessions[0].exercises.map((e: any) => e.exerciseId)).toEqual(['bench-press', 'back-squat']); // untouched
+  });
+  it('adds a lift to the rest of the block with a lighter deload version, never twice', () => {
+    const row = getExerciseById('pull-up')!;
+    const { meso: m, weeksChanged } = addExerciseAcrossWeeks(meso(), 1, 'w2d1', row, 'remaining');
+    expect(weeksChanged).toBe(3);
+    expect(m.weeks[0].sessions[0].exercises).toHaveLength(2);
+    const w4 = m.weeks[3].sessions[0].exercises.at(-1)!;
+    expect(w4.exerciseId).toBe('pull-up');
+    expect(w4.sets).toBe(2);
+    expect(addExerciseAcrossWeeks(m, 1, 'w2d1', row, 'week').weeksChanged).toBe(0);
   });
 });

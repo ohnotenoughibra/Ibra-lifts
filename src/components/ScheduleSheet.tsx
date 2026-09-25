@@ -14,7 +14,8 @@ import { VolumeWave } from './MesocycleTimeline';
 import ProgramExerciseCard from './ProgramExerciseCard';
 import { getWorkoutTypeUI } from './workout-type-ui';
 import { useToast } from './Toast';
-import { plannedDayOf, DAY_SHORT } from '@/lib/plan-edit';
+import { plannedDayOf, DAY_SHORT, type EditScope } from '@/lib/plan-edit';
+import { searchExercises } from '@/lib/exercises';
 
 interface ScheduleSheetProps {
   mesocycle: Mesocycle;
@@ -298,6 +299,7 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
                                     totalExercises={session.exercises.length}
                                   />
                                 ))}
+                                <AddExerciseRow weekIndex={weekIndex} sessionId={session.id} weeksLeft={mesocycle.weeks.length - weekIndex} />
                               </div>
                             )}
                           </div>
@@ -332,5 +334,70 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
         </div>
       )}
     </motion.div>
+  );
+}
+
+/** "+ Add exercise": search the whole library, add to this week or the rest of the block. */
+function AddExerciseRow({ weekIndex, sessionId, weeksLeft }: { weekIndex: number; sessionId: string; weeksLeft: number }) {
+  const addProgramExercise = useAppStore(s => s.addProgramExercise);
+  const hidden = useAppStore(s => s.hiddenExercises?.ids);
+  const { showToast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const [scope, setScope] = useState<EditScope>('remaining');
+  const results = useMemo(
+    () => (q.trim().length >= 2 ? searchExercises(q, 30).filter(e => !(hidden ?? []).includes(e.id)).slice(0, 8) : []),
+    [q, hidden],
+  );
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-grappler-600 py-2.5 text-xs font-semibold text-grappler-300 hover:text-grappler-100" data-testid="add-exercise">
+        <Plus className="w-3.5 h-3.5" /> Add exercise
+      </button>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-grappler-600 bg-grappler-900/60 p-2 space-y-2" data-testid="add-exercise-panel">
+      <div className="flex items-center gap-2">
+        <input
+          autoFocus
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          placeholder="Search lifts — e.g. rdl, db row, pull up"
+          className="flex-1 min-w-0 bg-grappler-800 border border-grappler-700 rounded-md px-2 py-2 text-sm text-grappler-50 outline-none focus:border-primary-500/50"
+          aria-label="Search exercises"
+        />
+        <button onClick={() => { setOpen(false); setQ(''); }} aria-label="Close add exercise" className="w-9 h-9 rounded-md bg-grappler-800 flex items-center justify-center text-grappler-400 flex-shrink-0">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      {weeksLeft > 1 && (
+        <div className="flex rounded-md bg-grappler-800 p-0.5 text-[11px]" role="radiogroup" aria-label="Add to">
+          {(['week', 'remaining'] as const).map(sc => (
+            <button key={sc} role="radio" aria-checked={scope === sc} onClick={() => setScope(sc)}
+              className={cn('flex-1 rounded py-1.5 font-medium', scope === sc ? 'bg-grappler-600 text-grappler-50' : 'text-grappler-400')}>
+              {sc === 'week' ? 'This week' : `Rest of block (${weeksLeft} wks)`}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="space-y-1">
+        {results.map(ex => (
+          <button
+            key={ex.id}
+            onClick={() => {
+              const n = addProgramExercise(weekIndex, sessionId, ex.id, scope);
+              showToast(n === 0 ? `${ex.name} is already in this session` : `Added ${ex.name}${n > 1 ? ` to ${n} weeks` : ''}`, n === 0 ? 'warning' : 'success');
+              if (n > 0) { setOpen(false); setQ(''); }
+            }}
+            className="w-full text-left rounded-md px-2 py-2 hover:bg-grappler-800"
+          >
+            <span className="block text-sm text-grappler-100">{ex.name}</span>
+            <span className="block text-[11px] text-grappler-400 capitalize">{ex.primaryMuscles.join(', ')} · {ex.category}</span>
+          </button>
+        ))}
+        {q.trim().length >= 2 && results.length === 0 && <p className="text-xs text-grappler-400 px-1">No matches.</p>}
+      </div>
+    </div>
   );
 }

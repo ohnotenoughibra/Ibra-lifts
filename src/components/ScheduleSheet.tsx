@@ -14,17 +14,21 @@ import { VolumeWave } from './MesocycleTimeline';
 import ProgramExerciseCard from './ProgramExerciseCard';
 import { getWorkoutTypeUI } from './workout-type-ui';
 import { useToast } from './Toast';
+import { plannedDayOf, DAY_SHORT, type EditScope } from '@/lib/plan-edit';
+import { searchExercises } from '@/lib/exercises';
 
 interface ScheduleSheetProps {
   mesocycle: Mesocycle;
   completedSessionIds: Set<string>;
   currentWeekIndex: number; // -1 if all done
   onClose: () => void;
-  onSwap: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
+  onSwap: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string, scope?: import('@/lib/plan-edit').EditScope) => void;
+  /** Open straight to this week + session (tapped from the week agenda). */
+  focus?: { weekIndex: number; sessionId: string } | null;
   onBlockAction: (label: string) => void; // surfaces the parent's undo toast
 }
 
-export default function ScheduleSheet({ mesocycle, completedSessionIds, currentWeekIndex, onClose, onSwap, onBlockAction }: ScheduleSheetProps) {
+export default function ScheduleSheet({ mesocycle, completedSessionIds, currentWeekIndex, focus, onClose, onSwap, onBlockAction }: ScheduleSheetProps) {
   const { startWorkout, user, addWeekToMesocycle, removeWeekFromMesocycle, removeExerciseFromSession, insertExerciseIntoSession } = useAppStore(
     useShallow(s => ({
       startWorkout: s.startWorkout, user: s.user,
@@ -35,8 +39,13 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
   );
   const { showToast } = useToast();
 
-  const [openWeek, setOpenWeek] = useState<number>(currentWeekIndex >= 0 ? currentWeekIndex : 0);
-  const [openSession, setOpenSession] = useState<string | null>(null);
+  const [openWeek, setOpenWeek] = useState<number>(focus ? focus.weekIndex : currentWeekIndex >= 0 ? currentWeekIndex : 0);
+  const [openSession, setOpenSession] = useState<string | null>(focus?.sessionId ?? null);
+  useEffect(() => {
+    if (!focus) return;
+    const t = setTimeout(() => document.querySelector(`[data-session-id="${focus.sessionId}"]`)?.scrollIntoView({ block: 'center' }), 50);
+    return () => clearTimeout(t);
+  }, [focus]);
   // Removing an exercise is destructive — keep it undoable like every other edit
   const [removedExercise, setRemovedExercise] = useState<{ weekIndex: number; sessionId: string; index: number; exercise: ExercisePrescription } | null>(null);
 
@@ -69,6 +78,11 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
     () => [...mesocycle.weeks].sort((a, b) => a.weekNumber - b.weekNumber),
     [mesocycle.weeks]
   );
+
+  const dayLabel = (week: Mesocycle['weeks'][number], id: string) => {
+    const d = plannedDayOf(week, id, user?.trainingDays);
+    return d === null ? 'Flexible' : DAY_SHORT[d];
+  };
 
   const handleStart = (session: WorkoutSession) => {
     if (startWorkout(session) === false) {
@@ -130,9 +144,28 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-grappler-50 truncate">{mesocycle.name}</h2>
-              <p className="text-xs text-grappler-400 capitalize">
-                {mesocycle.goalFocus.replace(/_/g, ' ')} · {mesocycle.weeks.length} weeks · {mesocycle.splitType.replace(/_/g, ' ')}
-              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center rounded-md bg-grappler-800" role="group" aria-label="Block length">
+                  <button
+                    onClick={handleRemoveWeek}
+                    disabled={mesocycle.weeks.length <= MIN_BLOCK_WEEKS}
+                    className="w-8 h-8 flex items-center justify-center text-grappler-400 hover:text-red-400 disabled:opacity-30"
+                    aria-label="Remove week"
+                    data-tight
+                  ><Minus className="w-3.5 h-3.5" /></button>
+                  <span className="text-xs font-bold text-grappler-100 px-1 tabular-nums" data-testid="block-length">{mesocycle.weeks.length} weeks</span>
+                  <button
+                    onClick={() => { addWeekToMesocycle(); onBlockAction('Week added'); }}
+                    disabled={mesocycle.weeks.length >= MAX_BLOCK_WEEKS}
+                    className="w-8 h-8 flex items-center justify-center text-grappler-400 hover:text-primary-300 disabled:opacity-30"
+                    aria-label="Add week"
+                    data-tight
+                  ><Plus className="w-3.5 h-3.5" /></button>
+                </div>
+                <p className="text-xs text-grappler-400 capitalize truncate">
+                  {mesocycle.goalFocus.replace(/_/g, ' ')} · {mesocycle.splitType.replace(/_/g, ' ')}
+                </p>
+              </div>
             </div>
             <button
               onClick={onClose}
@@ -146,6 +179,20 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
         </div>
 
         <div className="p-4 space-y-4">
+          {/* Removing a trained week needs a yes — shown right under the length control */}
+          {confirmRemoveWeek !== null && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+              <p className="text-xs text-grappler-300">
+                Every removable week has logged workouts. Removing one renumbers the
+                remaining weeks, so past sessions may show under a different week.
+                Your logs themselves are never deleted.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmRemoveWeek(null)} className="btn btn-secondary btn-sm flex-1">Keep week</button>
+                <button onClick={handleConfirmRemoveTrainedWeek} className="btn btn-sm flex-1 bg-amber-600 text-white hover:bg-amber-500">Remove anyway</button>
+              </div>
+            </div>
+          )}
           {/* Volume arc of the block */}
           {mesocycle.weeks.length >= 2 && (
             <VolumeWave
@@ -202,7 +249,7 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
                         const isCompleted = completedSessionIds.has(session.id);
                         const isExpanded = openSession === session.id;
                         return (
-                          <div key={session.id} className={cn('rounded-xl bg-grappler-800/50 overflow-hidden', isCompleted && 'opacity-60')}>
+                          <div key={session.id} data-session-id={session.id} className={cn('rounded-xl bg-grappler-800/50 overflow-hidden', isCompleted && 'opacity-60')}>
                             <div className="p-3 flex items-center gap-3">
                               <button
                                 onClick={() => setOpenSession(isExpanded ? null : session.id)}
@@ -221,6 +268,7 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
                                 <div className="min-w-0">
                                   <p className="text-sm font-medium text-grappler-100 truncate">{session.name}</p>
                                   <p className="text-xs text-grappler-400 flex items-center gap-2">
+                                    <span className="font-semibold text-grappler-300">{dayLabel(week, session.id)}</span>
                                     <span className="flex items-center gap-1"><Dumbbell className="w-3 h-3" />{session.exercises.length}</span>
                                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{session.estimatedDuration}m</span>
                                   </p>
@@ -251,6 +299,7 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
                                     totalExercises={session.exercises.length}
                                   />
                                 ))}
+                                <AddExerciseRow weekIndex={weekIndex} sessionId={session.id} weeksLeft={mesocycle.weeks.length - weekIndex} />
                               </div>
                             )}
                           </div>
@@ -263,42 +312,6 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
             })}
           </div>
 
-          {/* Week add/remove — bounds mirror the store guards via shared constants */}
-          {confirmRemoveWeek !== null && (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
-              <p className="text-xs text-grappler-300">
-                Every removable week has logged workouts. Removing one renumbers the
-                remaining weeks, so past sessions may show under a different week.
-                Your logs themselves are never deleted.
-              </p>
-              <div className="flex gap-2">
-                <button onClick={() => setConfirmRemoveWeek(null)} className="btn btn-secondary btn-sm flex-1">Keep week</button>
-                <button onClick={handleConfirmRemoveTrainedWeek} className="btn btn-sm flex-1 bg-amber-600 text-white hover:bg-amber-500">Remove anyway</button>
-              </div>
-            </div>
-          )}
-          <div className="flex items-center justify-center gap-3 pt-1">
-            {mesocycle.weeks.length > MIN_BLOCK_WEEKS && (
-              <button
-                onClick={handleRemoveWeek}
-                className="btn btn-ghost btn-sm gap-1.5 text-grappler-400 hover:text-red-400"
-                data-tight
-              >
-                <Minus className="w-3.5 h-3.5" />
-                Remove week
-              </button>
-            )}
-            {mesocycle.weeks.length < MAX_BLOCK_WEEKS && (
-              <button
-                onClick={() => { addWeekToMesocycle(); onBlockAction('Week added'); }}
-                className="btn btn-ghost btn-sm gap-1.5 text-grappler-400 hover:text-primary-300"
-                data-tight
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add week
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
@@ -321,5 +334,70 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
         </div>
       )}
     </motion.div>
+  );
+}
+
+/** "+ Add exercise": search the whole library, add to this week or the rest of the block. */
+function AddExerciseRow({ weekIndex, sessionId, weeksLeft }: { weekIndex: number; sessionId: string; weeksLeft: number }) {
+  const addProgramExercise = useAppStore(s => s.addProgramExercise);
+  const hidden = useAppStore(s => s.hiddenExercises?.ids);
+  const { showToast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const [scope, setScope] = useState<EditScope>('remaining');
+  const results = useMemo(
+    () => (q.trim().length >= 2 ? searchExercises(q, 30).filter(e => !(hidden ?? []).includes(e.id)).slice(0, 8) : []),
+    [q, hidden],
+  );
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-grappler-600 py-2.5 text-xs font-semibold text-grappler-300 hover:text-grappler-100" data-testid="add-exercise">
+        <Plus className="w-3.5 h-3.5" /> Add exercise
+      </button>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-grappler-600 bg-grappler-900/60 p-2 space-y-2" data-testid="add-exercise-panel">
+      <div className="flex items-center gap-2">
+        <input
+          autoFocus
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          placeholder="Search lifts — e.g. rdl, db row, pull up"
+          className="flex-1 min-w-0 bg-grappler-800 border border-grappler-700 rounded-md px-2 py-2 text-sm text-grappler-50 outline-none focus:border-primary-500/50"
+          aria-label="Search exercises"
+        />
+        <button onClick={() => { setOpen(false); setQ(''); }} aria-label="Close add exercise" className="w-9 h-9 rounded-md bg-grappler-800 flex items-center justify-center text-grappler-400 flex-shrink-0">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      {weeksLeft > 1 && (
+        <div className="flex rounded-md bg-grappler-800 p-0.5 text-[11px]" role="radiogroup" aria-label="Add to">
+          {(['week', 'remaining'] as const).map(sc => (
+            <button key={sc} role="radio" aria-checked={scope === sc} onClick={() => setScope(sc)}
+              className={cn('flex-1 rounded py-1.5 font-medium', scope === sc ? 'bg-grappler-600 text-grappler-50' : 'text-grappler-400')}>
+              {sc === 'week' ? 'This week' : `Rest of block (${weeksLeft} wks)`}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="space-y-1">
+        {results.map(ex => (
+          <button
+            key={ex.id}
+            onClick={() => {
+              const n = addProgramExercise(weekIndex, sessionId, ex.id, scope);
+              showToast(n === 0 ? `${ex.name} is already in this session` : `Added ${ex.name}${n > 1 ? ` to ${n} weeks` : ''}`, n === 0 ? 'warning' : 'success');
+              if (n > 0) { setOpen(false); setQ(''); }
+            }}
+            className="w-full text-left rounded-md px-2 py-2 hover:bg-grappler-800"
+          >
+            <span className="block text-sm text-grappler-100">{ex.name}</span>
+            <span className="block text-[11px] text-grappler-400 capitalize">{ex.primaryMuscles.join(', ')} · {ex.category}</span>
+          </button>
+        ))}
+        {q.trim().length >= 2 && results.length === 0 && <p className="text-xs text-grappler-400 px-1">No matches.</p>}
+      </div>
+    </div>
   );
 }

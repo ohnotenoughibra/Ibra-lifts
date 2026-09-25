@@ -4,20 +4,42 @@ import { formatTarget, formatSetsTarget } from '@/lib/prescription-format';
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
-import { Video, Shuffle, Trash2, Minus, Plus, Pencil, TrendingUp } from 'lucide-react';
+import { Video, Shuffle, Trash2, Minus, Plus, Pencil, TrendingUp, MoreHorizontal, ArrowUp, ArrowDown } from 'lucide-react';
+import { useToast } from './Toast';
 import { cn } from '@/lib/utils';
 import { ExercisePrescription, Equipment } from '@/lib/types';
 import { getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exercises';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
 import { resolveWeightUnit } from '@/lib/units';
 import { prescribedPercentOf1RM } from '@/lib/load-model';
+import type { EditScope } from '@/lib/plan-edit';
+
+/** "This week / Rest of block" — every block edit says how far it reaches. */
+function ScopeToggle({ value, onChange, weeksLeft }: { value: EditScope; onChange: (s: EditScope) => void; weeksLeft: number }) {
+  if (weeksLeft <= 1) return null;
+  return (
+    <div className="flex rounded-md bg-grappler-800 p-0.5 text-[11px] mb-2" role="radiogroup" aria-label="Apply to" data-testid="scope-toggle">
+      {(['week', 'remaining'] as const).map(sc => (
+        <button
+          key={sc}
+          role="radio"
+          aria-checked={value === sc}
+          onClick={() => onChange(sc)}
+          className={cn('flex-1 rounded py-1.5 font-medium', value === sc ? 'bg-grappler-600 text-grappler-50' : 'text-grappler-400')}
+        >
+          {sc === 'week' ? 'This week' : `Rest of block (${weeksLeft} wks)`}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 interface ProgramExerciseCardProps {
   exercise: ExercisePrescription;
   index: number;
   weekIndex: number;
   sessionId: string;
-  onSwap: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
+  onSwap: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string, scope?: EditScope) => void;
   // When provided, removal goes through the parent (which owns the undo toast)
   onRemove?: (weekIndex: number, sessionId: string, exerciseIndex: number, exercise: ExercisePrescription) => void;
   userEquipment: Equipment;
@@ -28,10 +50,25 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [showFormVideo, setShowFormVideo] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const moveExercise = useAppStore((s) => s.moveProgramExercise);
+  const { showToast } = useToast();
+  const move = (to: number) => {
+    setShowMenu(false);
+    const n = moveExercise(weekIndex, sessionId, index, to, 'remaining');
+    if (n > 1) showToast(`Order changed in ${n} weeks`, 'success');
+  };
   const workoutLogs = useAppStore((s) => s.workoutLogs);
   const weightUnit = useAppStore((s) => resolveWeightUnit(s.user?.weightUnit));
-  const updatePrescription = useAppStore((s) => s.updateExercisePrescription);
+  const updatePrescriptionRaw = useAppStore((s) => s.updateExercisePrescription);
   const removeExercise = useAppStore((s) => s.removeExerciseFromSession);
+  const weeksLeft = useAppStore((s) => Math.max(0, (s.currentMesocycle?.weeks.length ?? 0) - weekIndex));
+  // Swaps default to the rest of the block (you want the new lift from now on);
+  // number tweaks default to this week (progression differs week to week).
+  const [swapScope, setSwapScope] = useState<EditScope>('remaining');
+  const [editScope, setEditScope] = useState<EditScope>('week');
+  const updatePrescription = (w: number, sId: string, i: number, u: Parameters<typeof updatePrescriptionRaw>[3]) =>
+    updatePrescriptionRaw(w, sId, i, u, editScope);
 
   // Scoring the ~250-exercise database is too heavy to redo on every render
   const hiddenIds = useAppStore((s) => s.hiddenExercises?.ids);
@@ -82,9 +119,13 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
       <div className="p-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-grappler-100">{ex.exercise?.name || 'Unknown Exercise'}</p>
+            <p className="font-medium text-grappler-100" data-testid="exercise-name">{ex.exercise?.name || 'Unknown Exercise'}</p>
             <p className="text-sm text-grappler-400">
               {ex.sets} × {ex.prescription ? formatTarget(ex.prescription.targetReps, ex.exercise) : '?'} @ RPE {ex.prescription?.rpe ?? '?'}
+            </p>
+            <p className="text-xs text-grappler-400">
+              Rest {Math.floor((ex.prescription?.restSeconds ?? 120) / 60)}:{((ex.prescription?.restSeconds ?? 120) % 60).toString().padStart(2, '0')}
+              {ex.prescription?.percentageOf1RM ? ` · ~${prescribedPercentOf1RM(ex.prescription.targetReps, ex.prescription.rpe)}% 1RM` : ''}
             </p>
             {lastPerf && lastPerf.weight > 0 && (
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -99,27 +140,10 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <div className="text-right">
-              <p className="text-xs text-grappler-400">
-                Rest: {Math.floor((ex.prescription?.restSeconds ?? 120) / 60)}:{((ex.prescription?.restSeconds ?? 120) % 60).toString().padStart(2, '0')}
-              </p>
-              {ex.prescription?.percentageOf1RM && (
-                <p className="text-xs text-grappler-400">
-                  ~{prescribedPercentOf1RM(ex.prescription.targetReps, ex.prescription.rpe)}% 1RM
-                </p>
-              )}
-            </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+
             <button
-              onClick={() => setShowFormVideo(true)}
-              className="p-2 rounded-lg transition-colors text-grappler-500 hover:text-primary-300 hover:bg-primary-500/15"
-              title="Check form"
-              aria-label="Check form video"
-            >
-              <Video className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => { setShowEditor(!showEditor); setShowAlternatives(false); }}
+              onClick={() => { setShowEditor(!showEditor); setShowAlternatives(false); setShowMenu(false); }}
               className={cn(
                 'p-2 rounded-lg transition-colors',
                 showEditor
@@ -132,7 +156,7 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
               <Pencil className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={() => { setShowAlternatives(!showAlternatives); setShowEditor(false); }}
+              onClick={() => { setShowAlternatives(!showAlternatives); setShowEditor(false); setShowMenu(false); }}
               className={cn(
                 'p-2 rounded-lg transition-colors',
                 showAlternatives
@@ -144,19 +168,48 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
             >
               <Shuffle className="w-3.5 h-3.5" />
             </button>
-            {totalExercises > 1 && (
+            <div>
               <button
-                onClick={() => onRemove ? onRemove(weekIndex, sessionId, index, ex) : removeExercise(weekIndex, sessionId, index)}
-                className="p-2 rounded-lg transition-colors text-grappler-500 hover:text-red-400 hover:bg-red-500/15"
-                title="Remove exercise"
-                aria-label="Remove exercise"
+                onClick={() => { setShowMenu(m => !m); setShowEditor(false); setShowAlternatives(false); }}
+                className={cn('p-2 rounded-lg transition-colors', showMenu ? 'bg-grappler-600 text-grappler-100' : 'text-grappler-500 hover:text-grappler-300 hover:bg-grappler-600/50')}
+                aria-label="More actions"
+                aria-expanded={showMenu}
+                data-testid="exercise-menu"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <MoreHorizontal className="w-3.5 h-3.5" />
               </button>
-            )}
+            </div>
           </div>
         </div>
       </div>
+
+      {showMenu && (
+        <div className="border-t border-grappler-600/50 px-2 py-1.5 grid grid-cols-4 gap-1" role="menu" data-testid="exercise-actions">
+          <button role="menuitem" onClick={() => { setShowMenu(false); setShowFormVideo(true); }} className="flex flex-col items-center justify-center gap-0.5 rounded-md py-2 min-h-[44px] text-[11px] font-medium text-grappler-200 hover:bg-grappler-600/50">
+            <Video className="w-3.5 h-3.5" /> Form
+          </button>
+          {index > 0 && (
+            <button role="menuitem" onClick={() => move(index - 1)} className="flex flex-col items-center justify-center gap-0.5 rounded-md py-2 min-h-[44px] text-[11px] font-medium text-grappler-200 hover:bg-grappler-600/50">
+              <ArrowUp className="w-3.5 h-3.5" /> Move up
+            </button>
+          )}
+          {index < totalExercises - 1 && (
+            <button role="menuitem" onClick={() => move(index + 1)} className="flex flex-col items-center justify-center gap-0.5 rounded-md py-2 min-h-[44px] text-[11px] font-medium text-grappler-200 hover:bg-grappler-600/50">
+              <ArrowDown className="w-3.5 h-3.5" /> Move down
+            </button>
+          )}
+          {totalExercises > 1 && (
+            <button
+              role="menuitem"
+              aria-label="Remove exercise"
+              onClick={() => { setShowMenu(false); if (onRemove) onRemove(weekIndex, sessionId, index, ex); else removeExercise(weekIndex, sessionId, index); }}
+              className="col-start-4 flex flex-col items-center justify-center gap-0.5 rounded-md py-2 min-h-[44px] text-[11px] font-medium text-red-400 hover:bg-red-500/10"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Remove
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Inline Prescription Editor */}
       <AnimatePresence>
@@ -168,6 +221,10 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
             className="overflow-hidden"
           >
             <div className="border-t border-grappler-600/50 px-3 py-3 space-y-3">
+              <ScopeToggle value={editScope} onChange={setEditScope} weeksLeft={weeksLeft} />
+              {editScope === 'remaining' && (
+                <p className="text-[11px] text-grappler-400 -mt-1">Changes carry into later weeks as +/− steps, so their progression stays. Deload weeks keep theirs.</p>
+              )}
               <div className="grid grid-cols-3 gap-2">
                 {/* Sets */}
                 <div>
@@ -221,6 +278,7 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
             className="overflow-hidden"
           >
             <div className="border-t border-grappler-600/50 px-3 py-2">
+              <ScopeToggle value={swapScope} onChange={setSwapScope} weeksLeft={weeksLeft} />
               <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-1">
                 Swap with
               </p>
@@ -237,7 +295,7 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
                       <button
                         key={rec.exercise.id}
                         onClick={() => {
-                          onSwap(weekIndex, sessionId, index, rec.exercise.id);
+                          onSwap(weekIndex, sessionId, index, rec.exercise.id, swapScope);
                           setShowAlternatives(false);
                         }}
                         className="w-full text-left p-2.5 rounded-lg border border-grappler-700/50 hover:border-primary-500/50 bg-grappler-800/50 hover:bg-grappler-700/50 transition-all group"

@@ -498,7 +498,7 @@ interface LockedPick { exercise: Exercise; sets: number }
 
 // Experience-level modifiers for volume and intensity
 const EXPERIENCE_MODIFIERS: Record<ExperienceLevel, { volumeScale: number; rpeOffset: number; maxSets: number }> = {
-  beginner:     { volumeScale: 0.7, rpeOffset: -1.5, maxSets: 4 },
+  beginner:     { volumeScale: 0.7, rpeOffset: -1, maxSets: 4 },
   intermediate: { volumeScale: 1.0, rpeOffset: 0,    maxSets: 6 },
   advanced:     { volumeScale: 1.15, rpeOffset: 0.5,  maxSets: 8 },
 };
@@ -606,24 +606,52 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-function createSetPrescription(type: WorkoutType, sex?: BiologicalSex): SetPrescription {
+/**
+ * Deterministic starting prescription for one lift in one session type.
+ *
+ * Before: RPE and rest were drawn at random from the whole band every week,
+ * so week 1 already sat at RPE 9–9.5, the same lift jumped RPE/rest between
+ * weeks, and grip/isolation work inherited heavy strength sets (2×3 @ 10, 5 min
+ * rest). Now:
+ *  - main lifts (compound/power) use the session's scheme; accessories
+ *    (isolation/grip) use a higher-rep range and shorter rest
+ *    (Schoenfeld 2016 rest; Helms 2016 RPE-based loading)
+ *  - RPE STARTS conservative; the weekly wave raises it (see RPE ramp)
+ */
+const RPE_START: Record<WorkoutType, number> = { strength: 7.5, hypertrophy: 7, power: 7, strength_endurance: 6.5 };
+/** Highest RPE a training week may reach, by experience (novices misjudge proximity to failure — Zourdos 2016). */
+export const RPE_CAP: Record<ExperienceLevel, number> = { beginner: 8.5, intermediate: 9, advanced: 9.5 };
+/** RPE climbs this much from the first to the last training week. */
+export const RPE_RAMP = 1.5;
+const MAIN_REST: Record<WorkoutType, number> = { strength: 180, power: 150, hypertrophy: 120, strength_endurance: 75 };
+const ACCESSORY_REST: Record<WorkoutType, number> = { strength: 90, power: 90, hypertrophy: 75, strength_endurance: 60 };
+const ACCESSORY_REPS: Record<WorkoutType, [number, number]> = { strength: [8, 12], power: [8, 12], hypertrophy: [10, 15], strength_endurance: [15, 20] };
+
+export const isMainLift = (e: Pick<Exercise, 'category'> | undefined) => !e || e.category === 'compound' || e.category === 'power';
+
+function createSetPrescription(type: WorkoutType, sex?: BiologicalSex, exercise?: Exercise): SetPrescription {
   const config = getSexAdjustedPrescription(type, sex);
-  // Round rest to nearest 15s — clean values like 60, 90, 120, 180 instead of 3:32, 4:43
-  const rawRest = randomBetween(config.restSeconds[0], config.restSeconds[1]);
-  const restSeconds = Math.round(rawRest / 15) * 15;
-  const targetReps = randomBetween(config.reps[0], config.reps[1]);
-  const rpe = Math.round(randomBetween(config.rpe[0] * 2, config.rpe[1] * 2)) / 2;
+  const main = isMainLift(exercise);
+  const sexMod = SEX_MODIFIERS[sex || 'male'];
+  // Explosive lifts (cleans, jumps, throws): low reps, crisp — speed drops off
+  // well before failure, so they stay 2–3 reps and never chase high RPE.
+  const explosive = exercise?.category === 'power';
+  const [minReps, maxReps] = explosive
+    ? [2, 3]
+    : main
+    ? config.reps
+    : [ACCESSORY_REPS[type][0] + (type === 'hypertrophy' ? sexMod.repRangeShift : 0), ACCESSORY_REPS[type][1] + (type === 'hypertrophy' ? sexMod.repRangeShift : 0)];
+  const restSeconds = Math.round(((main ? MAIN_REST : ACCESSORY_REST)[type] * sexMod.restScale) / 15) * 15;
+  const targetReps = Math.round((minReps + maxReps) / 2);
+  const rpe = explosive ? 7 : RPE_START[type] + (type === 'strength' || type === 'hypertrophy' ? sexMod.rpeOffset : 0);
   return {
     targetReps,
-    minReps: config.reps[0],
-    maxReps: config.reps[1],
+    minReps,
+    maxReps,
     rpe,
     restSeconds,
     tempo: config.tempo,
-    // Derived from the reps/RPE pair rather than drawn independently from the
-    // band — a random 75% next to "12 reps @ RPE 7" is not a load anyone can
-    // actually lift for those reps, and it disagreed with the weight the app
-    // suggested. The band stays as the design intent for the rep/RPE ranges.
+    // Derived from the reps/RPE pair so the load is one you can actually lift for those reps
     percentageOf1RM: prescribedPercentOf1RM(targetReps, rpe),
   };
 }
@@ -911,7 +939,7 @@ function generateWorkoutSession(
     }
     }
 
-    const prescription = createSetPrescription(type, sex);
+    const prescription = createSetPrescription(type, sex, exercise);
     // Timed / distance work: targetReps holds SECONDS or METRES, not reps.
     // (A farmer's walk used to be prescribed "4 × 5" — five seconds.)
     if (exercise.measurementType === 'time') {
@@ -1256,18 +1284,6 @@ function generateMesocycleWeek(
         ? Math.max(2, Math.floor(ex.sets * volumeMultiplier))
         : Math.min(8, Math.round(ex.sets * volumeMultiplier));
 
-      const basePercentage = ex.prescription.percentageOf1RM ?? 75;
-      const adjustedPercentage = Math.min(
-        100,
-        Math.round(basePercentage * intensityMultiplier)
-      );
-
-      // Deload: RPE -1 maintains neural drive while reducing fatigue (Helms et al. 2018)
-      // RPE 8→7 still feels like training; -2 would be warm-up territory
-      const adjustedRPE = isDeload
-        ? Math.max(5, ex.prescription.rpe - 1)
-        : Math.round(Math.min(10, +(ex.prescription.rpe + (intensityMultiplier - 1) * 15).toFixed(1)) * 2) / 2;
-
       // Progressive rep targets: Week 1 targets top of range (accumulation),
       // final training week targets bottom of range (intensification)
       const trainingWeeks = Math.max(1, totalWeeks - 1); // exclude deload week
@@ -1280,12 +1296,23 @@ function generateMesocycleWeek(
         ? Math.round(ex.prescription.maxReps - progressFraction * repRange)
         : Math.round(ex.prescription.minReps + progressFraction * repRange);
 
+      // RPE ramp: start conservative, climb RPE_RAMP over the training weeks,
+      // never past the experience cap. The wave's intensity bump in a peak week
+      // adds at most +0.5. Deload: RPE −1 keeps neural drive (Helms et al. 2018).
+      const cap = ex.exercise.category === 'power' ? 8 : RPE_CAP[experienceLevel || 'intermediate'];
+      const waveBump = Math.max(0, Math.min(0.5, (intensityMultiplier - 1 - progressFraction * 0.05) * 10));
+      const adjustedRPE = isDeload
+        ? Math.max(5, Math.round((ex.prescription.rpe - 1) * 2) / 2)
+        : Math.min(cap, Math.round((ex.prescription.rpe + progressFraction * RPE_RAMP + waveBump) * 2) / 2);
+      const targetReps = isDeload ? ex.prescription.maxReps : progressiveReps;
+      const adjustedPercentage = isRepBased ? prescribedPercentOf1RM(targetReps, adjustedRPE) : ex.prescription.percentageOf1RM;
+
       return {
         ...ex,
         sets: adjustedSets,
         prescription: {
           ...ex.prescription,
-          targetReps: isDeload ? ex.prescription.maxReps : progressiveReps,
+          targetReps,
           percentageOf1RM: adjustedPercentage,
           rpe: adjustedRPE,
         },
@@ -1527,7 +1554,7 @@ export function generateQuickWorkout(
     exerciseId: exercise.id,
     exercise,
     sets: 3,
-    prescription: createSetPrescription(type),
+    prescription: createSetPrescription(type, undefined, exercise),
     notes: 'Keep rest periods short for time efficiency'
   }));
 
@@ -1560,7 +1587,7 @@ export function generateQuickWorkout(
         exerciseId: candidate.id,
         exercise: candidate,
         sets: setsToAdd,
-        prescription: createSetPrescription('hypertrophy'), // Isolation = hypertrophy rep ranges
+        prescription: createSetPrescription('hypertrophy', undefined, candidate), // Isolation = hypertrophy rep ranges
         notes: `Added to fill ${gap.muscle} volume gap (${gap.deficit} sets below MEV)`,
       });
       usedIds.add(candidate.id);
@@ -1721,7 +1748,7 @@ export function validateAndFixMuscleVolume(
             exerciseId: candidate.id,
             exercise: candidate,
             sets: setsToAdd,
-            prescription: createSetPrescription('hypertrophy'),
+            prescription: createSetPrescription('hypertrophy', undefined, candidate),
             notes: `Added to meet ${muscle} MEV`,
           });
         } else {

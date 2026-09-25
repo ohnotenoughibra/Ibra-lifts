@@ -81,6 +81,8 @@ import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
 import { stripLegacyDefaultTempos, stripLegacyDefaultTemposFromSession } from './live-session';
+import { matContext, planMatAdjustment } from './mat-aware';
+import { editAcrossWeeks, moveSessionAcrossWeeks, moveExerciseAcrossWeeks, addExerciseAcrossWeeks } from './plan-edit';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards, calculateStreak, defaultWellnessStats, calculateWellnessMultiplier, updateWellnessStreaks, calculateWellnessXP, checkWellnessBadges } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
 import { isBodyweightLoadedExercise, backfillBodyweightInLogs, estimate1RM, estimateFirstTimeWeight } from './weight-estimator';
@@ -269,6 +271,9 @@ interface AppState {
     position?: { exerciseIndex: number; setIndex: number };
     // One-level undo for the last in-workout swap.
     swapUndo?: { session: WorkoutSession; exerciseLogs: ExerciseLog[] };
+    // Mat-aware adjustment applied at start (fight-week taper / hard sparring
+    // nearby); `original` lets the athlete "Train as planned".
+    matAdjust?: { kind: 'taper' | 'mat'; reason: string; summary: string; original: WorkoutSession; undone?: boolean };
   } | null;
   workoutMinimized: boolean; // When true, workout is paused and user can browse app
   workoutLogs: WorkoutLog[];
@@ -474,6 +479,8 @@ interface AppState {
   updateMesocycleInQueue: (id: string, updates: Partial<Omit<PlannedMesocycle, 'id' | 'createdAt'>>) => void;
   removeFromMesocycleQueue: (id: string) => void;
   reorderMesocycleQueue: (fromIndex: number, toIndex: number) => void;
+  /** Rename the current block (trimmed, max 40 chars). */
+  renameMesocycle: (name: string) => void;
   advanceMesocycleQueue: () => void;
   switchToQueuedBlock: () => void;
   migrateWorkoutLogsToMesocycle: (fromMesocycleId: string, toMesocycleId: string) => void;
@@ -489,8 +496,16 @@ interface AppState {
   repairMesocycleProgress: () => { fixed: number; orphanedMesoId: string | null };
 
   // Mesocycle editing actions
-  updateExercisePrescription: (weekIndex: number, sessionId: string, exerciseIndex: number, updates: { sets?: number; targetReps?: number; minReps?: number; maxReps?: number; rpe?: number; restSeconds?: number; tempo?: string }) => void;
+  updateExercisePrescription: (weekIndex: number, sessionId: string, exerciseIndex: number, updates: { sets?: number; targetReps?: number; minReps?: number; maxReps?: number; rpe?: number; restSeconds?: number; tempo?: string }, scope?: import('./plan-edit').EditScope) => number;
+  /** Pin a session to a weekday (swaps with a session already on that day). */
+  moveSessionToDay: (weekIndex: number, sessionId: string, day: number, scope?: import('./plan-edit').EditScope) => void;
+  /** Change lift + mat weekdays without regenerating the block. */
+  setWeeklyLayout: (trainingDays: number[], combatTrainingDays: import('./types').CombatTrainingDay[]) => void;
   removeExerciseFromSession: (weekIndex: number, sessionId: string, exerciseIndex: number) => void;
+  /** Reorder a lift in a session; returns weeks changed. */
+  moveProgramExercise: (weekIndex: number, sessionId: string, from: number, to: number, scope?: import('./plan-edit').EditScope) => number;
+  /** Add a lift (by id) to the end of a session; returns weeks changed. */
+  addProgramExercise: (weekIndex: number, sessionId: string, exerciseId: string, scope?: import('./plan-edit').EditScope) => number;
   insertExerciseIntoSession: (weekIndex: number, sessionId: string, exerciseIndex: number, exercise: ExercisePrescription) => void;
   addWeekToMesocycle: () => void;
   removeWeekFromMesocycle: (weekIndex: number) => void;
@@ -506,10 +521,13 @@ interface AppState {
   /** Returns the index of the exercise the athlete should continue on. */
   swapExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => number | void;
   undoSwap: () => boolean;
+  /** Put back the session as planned (drop the mat-aware adjustment). */
+  undoMatAdjustment: () => void;
   /** Insert a readiness/mat-load-aware power primer; returns the index to continue at (null if skipped). */
   addPowerPrimer: () => { index: number; reason: string } | null;
   addBonusExercise: (exercise: Exercise, sets: number, reps: number) => void;
-  swapProgramExercise: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
+  /** Returns how many weeks were changed. */
+  swapProgramExercise: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string, scope?: import('./plan-edit').EditScope) => number;
   adaptWorkoutToProfile: (profile: EquipmentProfileName) => void;
   completeWorkout: (feedback: { overallRPE: number; soreness: number; energy: number; notes?: string; postFeedback?: PostWorkoutFeedback; durationOverride?: number }) => void;
   cancelWorkout: () => void;
@@ -1792,7 +1810,16 @@ export const useAppStore = create<AppState>()(
 
       updateMesocycleInQueue: (id, updates) => {
         const { mesocycleQueue } = get();
-        set({ mesocycleQueue: mesocycleQueue.map(b => b.id === id ? { ...b, ...updates } : b) });
+        // Stamp updatedAt so the sync merge prefers this edit over a stale cloud copy
+        const now = new Date().toISOString();
+        set({ mesocycleQueue: mesocycleQueue.map(b => b.id === id ? { ...b, ...updates, updatedAt: now } : b) });
+      },
+
+      renameMesocycle: (name) => {
+        const { currentMesocycle } = get();
+        const clean = name.replace(/\s+/g, ' ').trim().slice(0, 40);
+        if (!currentMesocycle || !clean || clean === currentMesocycle.name) return;
+        set({ currentMesocycle: { ...currentMesocycle, name: clean, updatedAt: new Date().toISOString() } });
       },
 
       removeFromMesocycleQueue: (id) => {
@@ -1810,7 +1837,8 @@ export const useAppStore = create<AppState>()(
         const { mesocycleQueue } = get();
         // UI indices refer to the LIVE (non-tombstoned) list — reorder live
         // entries only, keep tombstones appended for sync
-        const live = mesocycleQueue.filter(b => !b._deleted);
+        // Same order the UI shows (by position) — raw array order can differ after a sync merge
+        const live = mesocycleQueue.filter(b => !b._deleted).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         const dead = mesocycleQueue.filter(b => b._deleted);
         if (fromIndex < 0 || fromIndex >= live.length || toIndex < 0 || toIndex >= live.length) return;
         const updated = [...live];
@@ -1835,6 +1863,9 @@ export const useAppStore = create<AppState>()(
         if (next.sessionsPerWeek) overrides.sessionsPerWeek = next.sessionsPerWeek;
         set({ user: { ...user, ...overrides } });
         get().generateNewMesocycle(next.weeks, next.sessionDurationMinutes, next.periodization);
+        // The block you planned keeps the name you saw in the queue
+        const started = get().currentMesocycle;
+        if (started && next.name?.trim()) set({ currentMesocycle: { ...started, name: next.name.trim().slice(0, 40) } });
         // Restore original user settings and consume the queue entry in a single set().
         // Tombstone the consumed entry (not slice) — a hard-removed entry would
         // resurrect from the cloud copy on the next sync union merge.
@@ -2229,6 +2260,18 @@ export const useAppStore = create<AppState>()(
           exercises: applyInjuryAdaptationsToExercises(activeSession.exercises, injuryAdaptations),
         };
 
+        // Mat-aware: fight-week taper, or ease legs & grip around hard sparring.
+        let matAdjust: NonNullable<AppState['activeWorkout']>['matAdjust'];
+        {
+          const plan = planMatAdjustment(activeSession, matContext({
+            user, trainingSessions: get().trainingSessions, competitions: get().competitions,
+          }));
+          if (plan) {
+            matAdjust = { kind: plan.kind, reason: plan.reason, summary: plan.summary, original: activeSession };
+            activeSession = plan.session;
+          }
+        }
+
         // Pre-fill weights from previous session using auto-adjust
         const { baselineLifts } = get();
         const exerciseLogs = activeSession.exercises.map((ex) => {
@@ -2283,8 +2326,23 @@ export const useAppStore = create<AppState>()(
             mesocycleId: meso?.id || 'standalone', // Lock mesocycle at start time
             weekNumber,
             dayNumber,
+            ...(matAdjust ? { matAdjust } : {}),
           },
           workoutMinimized: false,
+        });
+      },
+
+      undoMatAdjustment: () => {
+        const { activeWorkout } = get();
+        if (!activeWorkout?.matAdjust || activeWorkout.matAdjust.undone) return;
+        const original = activeWorkout.matAdjust.original;
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            session: original,
+            exerciseLogs: reconcileLogsToExercises(activeWorkout.exerciseLogs, original.exercises),
+            matAdjust: { ...activeWorkout.matAdjust, undone: true },
+          },
         });
       },
 
@@ -2454,7 +2512,9 @@ export const useAppStore = create<AppState>()(
         const matThisWeek = sessions.filter(t => matCats.has(t.category) && now - new Date(t.date).getTime() < 7 * 864e5).length;
         const hardNear = sessions.some(t => matCats.has(t.category)
           && Math.abs(now - new Date(t.date).getTime()) < 24 * 36e5
-          && (t.actualIntensity ?? t.plannedIntensity) === 'hard_sparring');
+          && (t.actualIntensity ?? t.plannedIntensity) === 'hard_sparring')
+          // …or hard sparring on the SCHEDULE today/tomorrow (not logged yet)
+          || (() => { const m = matContext({ user, trainingSessions: sessions, competitions: get().competitions }); return m.hardToday || m.hardTomorrow; })();
         const legs = new Set(['quadriceps', 'hamstrings', 'glutes', 'calves']);
         const muscles = activeWorkout.session.exercises.flatMap(e => e.exercise.primaryMuscles);
         const legShare = muscles.length ? muscles.filter(m => legs.has(m)).length / muscles.length : 0.5;
@@ -2556,74 +2616,93 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      swapProgramExercise: (weekIndex, sessionId, exerciseIndex, newExerciseId) => {
+      swapProgramExercise: (weekIndex, sessionId, exerciseIndex, newExerciseId, scope = 'remaining') => {
         const { currentMesocycle } = get();
-        if (!currentMesocycle) return;
-
+        if (!currentMesocycle) return 0;
         const newExercise = getExerciseById(newExerciseId);
-        if (!newExercise) return;
-
-        const updatedWeeks = currentMesocycle.weeks.map((week, wIdx) => {
-          if (wIdx !== weekIndex) return week;
-          return {
-            ...week,
-            sessions: week.sessions.map(session => {
-              if (session.id !== sessionId) return session;
-              const updatedExercises = [...session.exercises];
-              const oldPrescription = updatedExercises[exerciseIndex];
-              updatedExercises[exerciseIndex] = {
-                ...oldPrescription,
-                exerciseId: newExerciseId,
-                exercise: newExercise,
-              };
-              return { ...session, exercises: updatedExercises };
-            }),
-          };
-        });
-
-        set({
-          currentMesocycle: {
-            ...currentMesocycle,
-            weeks: updatedWeeks,
-            updatedAt: new Date().toISOString(),
-          },
-        });
+        if (!newExercise) return 0;
+        // Default: this week AND the rest of the block — a swap that silently
+        // reverted next week was the most confusing part of editing a block.
+        const { meso, weeksChanged } = editAcrossWeeks(currentMesocycle, weekIndex, sessionId, exerciseIndex, scope,
+          ex => ({ ...ex, exerciseId: newExerciseId, exercise: newExercise }));
+        set({ currentMesocycle: meso });
+        return weeksChanged;
       },
 
-      updateExercisePrescription: (weekIndex, sessionId, exerciseIndex, updates) => {
+      updateExercisePrescription: (weekIndex, sessionId, exerciseIndex, updates, scope = 'week') => {
         const { currentMesocycle } = get();
-        if (!currentMesocycle) return;
-
-        const updatedWeeks = currentMesocycle.weeks.map((week, wIdx) => {
-          if (wIdx !== weekIndex) return week;
+        if (!currentMesocycle) return 0;
+        const orig = currentMesocycle.weeks[weekIndex]?.sessions.find(s => s.id === sessionId)?.exercises[exerciseIndex];
+        if (!orig) return 0;
+        // Later weeks carry their own progression (more sets, higher RPE), so a
+        // "rest of block" edit applies the CHANGE (+1 set, −0.5 RPE), not the
+        // edited week's absolute number. Rest and tempo are absolute.
+        const d = (next: number | undefined, prev: number | undefined) => (next != null && prev != null ? next - prev : null);
+        const dSets = d(updates.sets, orig.sets);
+        const dTarget = d(updates.targetReps, orig.prescription?.targetReps);
+        const dMin = d(updates.minReps, orig.prescription?.minReps);
+        const dMax = d(updates.maxReps, orig.prescription?.maxReps);
+        const dRpe = d(updates.rpe, orig.prescription?.rpe);
+        const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+        const { meso, weeksChanged } = editAcrossWeeks(currentMesocycle, weekIndex, sessionId, exerciseIndex, scope, old => {
+          const p = old.prescription;
           return {
-            ...week,
-            sessions: week.sessions.map(session => {
-              if (session.id !== sessionId) return session;
-              const updatedExercises = [...session.exercises];
-              const old = updatedExercises[exerciseIndex];
-              if (!old) return session;
-              updatedExercises[exerciseIndex] = {
-                ...old,
-                sets: updates.sets ?? old.sets,
-                prescription: {
-                  ...old.prescription,
-                  ...(updates.targetReps != null && { targetReps: updates.targetReps }),
-                  ...(updates.minReps != null && { minReps: updates.minReps }),
-                  ...(updates.maxReps != null && { maxReps: updates.maxReps }),
-                  ...(updates.rpe != null && { rpe: updates.rpe }),
-                  ...(updates.restSeconds != null && { restSeconds: updates.restSeconds }),
-                  ...(updates.tempo !== undefined && { tempo: updates.tempo }),
-                },
-              };
-              return { ...session, exercises: updatedExercises };
-            }),
+            ...old,
+            sets: dSets != null ? clamp(old.sets + dSets, 1, 10) : old.sets,
+            prescription: {
+              ...p,
+              ...(dTarget != null && { targetReps: Math.max(1, p.targetReps + dTarget) }),
+              ...(dMin != null && { minReps: Math.max(1, p.minReps + dMin) }),
+              ...(dMax != null && { maxReps: Math.max(1, p.maxReps + dMax) }),
+              ...(dRpe != null && { rpe: clamp(p.rpe + dRpe, 5, 10) }),
+              ...(updates.restSeconds != null && { restSeconds: updates.restSeconds }),
+              ...(updates.tempo !== undefined && { tempo: updates.tempo }),
+            },
           };
-        });
+        }, { skipDeload: true });
+        set({ currentMesocycle: meso });
+        return weeksChanged;
+      },
 
-        set({
-          currentMesocycle: { ...currentMesocycle, weeks: updatedWeeks, updatedAt: new Date().toISOString() },
-        });
+      moveSessionToDay: (weekIndex, sessionId, day, scope = 'week') => withBlockUndo('Session moved', get, set, () => {
+        const { currentMesocycle, user } = get();
+        if (!currentMesocycle) return;
+        set({ currentMesocycle: moveSessionAcrossWeeks(currentMesocycle, weekIndex, sessionId, day, user?.trainingDays, scope) });
+      }),
+
+      setWeeklyLayout: (trainingDays, combatTrainingDays) => withBlockUndo('Week layout changed', get, set, () => {
+        const { currentMesocycle } = get();
+        get().updateUserFields({ trainingDays: [...trainingDays].sort((x, y) => x - y), combatTrainingDays });
+        // Re-derive every session's weekday from the new lift days.
+        if (currentMesocycle) {
+          set({
+            currentMesocycle: {
+              ...currentMesocycle,
+              weeks: currentMesocycle.weeks.map(w => ({
+                ...w,
+                sessions: w.sessions.map(sess => { const next = { ...sess }; delete next.plannedDay; return next; }),
+              })),
+              updatedAt: new Date().toISOString(),
+            },
+          });
+        }
+      }),
+
+      moveProgramExercise: (weekIndex, sessionId, from, to, scope = 'remaining') => {
+        const { currentMesocycle } = get();
+        if (!currentMesocycle) return 0;
+        const { meso, weeksChanged } = moveExerciseAcrossWeeks(currentMesocycle, weekIndex, sessionId, from, to, scope);
+        if (weeksChanged) set({ currentMesocycle: meso });
+        return weeksChanged;
+      },
+
+      addProgramExercise: (weekIndex, sessionId, exerciseId, scope = 'remaining') => {
+        const { currentMesocycle } = get();
+        const ex = getExerciseById(exerciseId);
+        if (!currentMesocycle || !ex) return 0;
+        const { meso, weeksChanged } = addExerciseAcrossWeeks(currentMesocycle, weekIndex, sessionId, ex, scope);
+        if (weeksChanged) set({ currentMesocycle: meso });
+        return weeksChanged;
       },
 
       removeExerciseFromSession: (weekIndex, sessionId, exerciseIndex) => {

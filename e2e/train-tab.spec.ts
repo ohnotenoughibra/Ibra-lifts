@@ -71,8 +71,13 @@ test.describe('Train tab', () => {
     // Switch via the manager — old block becomes Stopped, queue empties
     await upNextRow.click();
     const manager = page.getByRole('dialog', { name: 'Manage blocks' });
-    await manager.getByRole('button', { name: 'Switch' }).click();
+    await manager.getByRole('button', { name: 'Start now' }).click();
+    // Switching stops the current block — it asks first
+    await expect(manager.getByTestId('confirm-switch')).toBeVisible();
+    await manager.getByRole('button', { name: 'Switch now' }).click();
     await expect(manager.getByText('Stopped', { exact: true })).toBeVisible();
+    // The block keeps the name it had in the queue
+    await expect(manager.getByTestId('rename-block')).toContainText('Hypertrophy');
     await expect(manager.getByText('Nothing queued', { exact: false })).toBeVisible();
   });
 
@@ -82,9 +87,10 @@ test.describe('Train tab', () => {
 
     // Expand the first session to reveal its exercises
     await sheet.getByRole('button', { name: /W1\/D1/ }).first().click();
-    await expect(sheet.getByRole('button', { name: 'Remove exercise' }).first()).toBeVisible();
+    await sheet.getByTestId('exercise-menu').first().click();
+    await expect(sheet.getByRole('menuitem', { name: 'Remove exercise' })).toBeVisible();
 
-    await sheet.getByRole('button', { name: 'Remove exercise' }).first().click();
+    await sheet.getByRole('menuitem', { name: 'Remove exercise' }).click();
     // The toast names what was removed — read it rather than guessing the DOM
     const toastLabel = page.locator('[role="status"]', { hasText: 'Removed' }).locator('span').first();
     await expect(toastLabel).toBeVisible();
@@ -102,5 +108,129 @@ test.describe('Train tab', () => {
     // Zero-work completion is abandonment: badge shows Stopped, never Completed
     await expect(manager.getByText('Stopped', { exact: true })).toBeVisible();
     await expect(manager.getByText('Completed', { exact: true })).not.toBeVisible();
+  });
+});
+
+test.describe('Train tab — week planning', () => {
+  test.beforeEach(async ({ page }) => {
+    await onboard(page);
+    await openTrainTab(page);
+  });
+
+  test('agenda shows Mon→Sun and a session can be moved, then undone', async ({ page }) => {
+    const agenda = page.getByTestId('week-agenda');
+    await agenda.scrollIntoViewIfNeeded();
+    await expect(agenda.locator('[data-testid^="agenda-day-"]')).toHaveCount(7);
+    const moveBtn = agenda.locator('[data-testid^="agenda-move-"]').first();
+    const sid = (await moveBtn.getAttribute('data-testid'))!.replace('agenda-move-', '');
+    const before = await agenda.locator('[data-testid^="agenda-day-"]', { has: page.getByTestId(`agenda-session-${sid}`) }).getAttribute('data-testid');
+    await moveBtn.click();
+    await page.getByTestId('move-picker').getByTestId('move-to-0').click();
+    await expect(page.getByTestId('agenda-day-0').getByTestId(`agenda-session-${sid}`)).toBeVisible();
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect(page.getByTestId(before!).getByTestId(`agenda-session-${sid}`)).toBeVisible();
+  });
+
+  test('week layout sheet sets mat days and moves lifting onto new days', async ({ page }) => {
+    await page.getByTestId('edit-layout').click();
+    const sheet = page.getByTestId('week-layout-sheet');
+    await expect(sheet).toBeVisible();
+    // Tap cycles none → light → moderate → hard (onboarding may already have set one)
+    const tue = sheet.getByTestId('mat-day-2');
+    for (let i = 0; i < 4 && !(await tue.getAttribute('aria-label'))!.endsWith('hard'); i++) await tue.click();
+    await expect(sheet.getByTestId('mat-day-2')).toContainText('hard');
+    await sheet.getByTestId('save-layout').click();
+    await expect(sheet).not.toBeVisible();
+    await expect(page.getByTestId('agenda-day-2')).toContainText('hard');
+  });
+
+  test('tapping an agenda session opens it in the schedule with scope choice on swap', async ({ page }) => {
+    const first = page.locator('[data-testid^="agenda-session-"]').first();
+    await first.click();
+    const sheet = page.getByRole('dialog', { name: 'Block schedule' });
+    await expect(sheet).toBeVisible();
+    await sheet.getByRole('button', { name: 'Swap exercise' }).first().click();
+    const toggle = sheet.getByTestId('scope-toggle').first();
+    await expect(toggle).toBeVisible();
+    await expect(toggle.getByRole('radio', { name: /Rest of block/ })).toHaveAttribute('aria-checked', 'true');
+  });
+});
+
+test.describe('Train tab — organising blocks', () => {
+  test.beforeEach(async ({ page }) => {
+    await onboard(page);
+    await openTrainTab(page);
+  });
+
+  test('rename the current block', async ({ page }) => {
+    await page.getByRole('button', { name: 'Blocks', exact: true }).click();
+    const manager = page.getByRole('dialog', { name: 'Manage blocks' });
+    await manager.getByTestId('rename-block').click();
+    const input = manager.getByTestId('block-name-input');
+    await input.fill('Camp 1 — Strength');
+    await input.press('Enter');
+    await expect(manager.getByTestId('rename-block')).toContainText('Camp 1 — Strength');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: 'Open full block schedule' })).toContainText('Camp 1 — Strength');
+  });
+
+  test('queued blocks can be edited and reordered', async ({ page }) => {
+    for (const focus of ['Muscle', 'Endurance']) {
+      await page.getByRole('button', { name: 'New Block' }).click();
+      const composer = page.getByRole('dialog', { name: 'New block composer' });
+      await composer.getByRole('button', { name: focus, exact: true }).click();
+      await composer.getByRole('button', { name: 'Add block to queue' }).click();
+      await expect(composer).not.toBeVisible();
+    }
+    await page.getByRole('button', { name: 'Blocks', exact: true }).click();
+    const manager = page.getByRole('dialog', { name: 'Manage blocks' });
+    const names = manager.getByRole('button', { name: /^Edit / });
+    await expect(names).toHaveCount(2);
+    const firstBefore = (await names.first().getAttribute('aria-label'))!;
+    await manager.getByRole('button', { name: /later$/ }).first().click();
+    await expect(names.nth(1)).toHaveAttribute('aria-label', firstBefore);
+    // Edit length of the (new) first block
+    await names.first().click();
+    const editor = manager.getByTestId('queue-editor');
+    const before = parseInt(await editor.getByTestId('queue-weeks').innerText());
+    await editor.getByRole('button', { name: 'Longer' }).click();
+    await expect(editor.getByTestId('queue-weeks')).toHaveText(`${before + 1} weeks`);
+  });
+
+  test('block length is changed from the schedule header', async ({ page }) => {
+    await page.getByRole('button', { name: 'Open full block schedule' }).click();
+    const sheet = page.getByRole('dialog', { name: 'Block schedule' });
+    const len = sheet.getByTestId('block-length');
+    const n = parseInt(await len.innerText());
+    await sheet.getByRole('button', { name: 'Add week' }).click();
+    await expect(len).toHaveText(`${n + 1} weeks`);
+    await sheet.getByRole('button', { name: 'Remove week' }).click();
+    await expect(len).toHaveText(`${n} weeks`);
+  });
+});
+
+test.describe('Train tab — editing sessions', () => {
+  test.beforeEach(async ({ page }) => {
+    await onboard(page);
+    await openTrainTab(page);
+  });
+
+  test('add an exercise to a session and move it up', async ({ page }) => {
+    await page.locator('[data-testid^="agenda-session-"]').first().click();
+    const sheet = page.getByRole('dialog', { name: 'Block schedule' });
+    await sheet.getByTestId('add-exercise').click();
+    const panel = sheet.getByTestId('add-exercise-panel');
+    await panel.getByLabel('Search exercises').fill('face pull');
+    const pick = panel.getByRole('button', { name: /Face Pull/i }).first();
+    const name = (await pick.locator('span').first().innerText()).trim();
+    await pick.click();
+    await expect(page.getByText(new RegExp(`Added ${name}`))).toBeVisible();
+    const cards = sheet.locator('[data-testid="exercise-menu"]');
+    const last = (await cards.count()) - 1;
+    await cards.nth(last).click();
+    await sheet.getByRole('menuitem', { name: /Move up/ }).click();
+    // it now sits second-to-last
+    const names = sheet.getByTestId('exercise-name');
+    await expect(names.nth(last - 1)).toHaveText(name);
   });
 });

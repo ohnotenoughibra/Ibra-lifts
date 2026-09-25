@@ -25,6 +25,7 @@ interface LiftPhaseProps {
     todayType: string;
     isDeload: boolean;
     sessionLabel?: string | null;
+    sessionMoveReason?: string | null;
     subline: string;
     overloadTeaser?: string | null;
     trainingModification?: string | null;
@@ -193,6 +194,9 @@ export default function LiftPhase({
           <h2 className="text-xl font-black text-grappler-50 leading-tight">{nextWorkout.name}</h2>
           {directive.sessionLabel && (
             <p className="text-xs text-grappler-500 mt-0.5">{directive.sessionLabel}</p>
+          )}
+          {directive.sessionMoveReason && (
+            <p className="text-xs text-amber-300/90 mt-1">↻ {directive.sessionMoveReason}</p>
           )}
           <p className="text-xs text-grappler-400 mt-1 leading-relaxed">{directive.subline}</p>
         </div>

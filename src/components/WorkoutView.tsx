@@ -4,7 +4,9 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
-import WeeklyCalendar from './WeeklyCalendar';
+import WeekAgenda from './WeekAgenda';
+import WeekLayoutSheet from './WeekLayoutSheet';
+import { DAY_SHORT, plannedDayOf, type EditScope } from '@/lib/plan-edit';
 import MyWorkouts from './MyWorkouts';
 import type { OverlayView } from './dashboard-types';
 
@@ -39,7 +41,8 @@ import BlockComposer, { BlockConfig, FOCUS_QUEUE_LABELS } from './BlockComposer'
 import ScheduleSheet from './ScheduleSheet';
 import BlockManagerSheet from './BlockManagerSheet';
 import { getWorkoutTypeUI } from './workout-type-ui';
-import { getCompletedSessionIds, getNextSession } from '@/lib/session-matching';
+import { getCompletedSessionIds, getTodaysSession } from '@/lib/session-matching';
+import { matContext } from '@/lib/mat-aware';
 import { useToast } from './Toast';
 
 /**
@@ -56,7 +59,7 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
     currentMesocycle, startWorkout, generateNewMesocycle, muscleEmphasis, setMuscleEmphasis,
     rawWorkoutLogs, swapProgramExercise, user, rawMesocycleHistory, trainingSessions, injuryLog,
     wearableHistory, competitions, rawMesocycleQueue, undoBlockAction, addToMesocycleQueue,
-    advanceMesocycleQueue, activeWorkout, workoutMinimized, resumeWorkout,
+    advanceMesocycleQueue, activeWorkout, workoutMinimized, resumeWorkout, moveSessionToDay, setWeeklyLayout,
   } = useAppStore(
     // Only stable references in the selector — a .filter() here would return a
     // fresh array every evaluation, defeat useShallow, and re-render the whole
@@ -72,7 +75,7 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
       rawMesocycleQueue: s.mesocycleQueue, undoBlockAction: s.undoBlockAction,
       addToMesocycleQueue: s.addToMesocycleQueue, advanceMesocycleQueue: s.advanceMesocycleQueue,
       activeWorkout: s.activeWorkout, workoutMinimized: s.workoutMinimized,
-      resumeWorkout: s.resumeWorkout,
+      resumeWorkout: s.resumeWorkout, moveSessionToDay: s.moveSessionToDay, setWeeklyLayout: s.setWeeklyLayout,
     }))
   );
 
@@ -111,11 +114,11 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
 
   const nextUpSession = useMemo(() => {
     if (!currentMesocycle) return null;
-    const next = getNextSession(currentMesocycle, workoutLogs);
+    const next = getTodaysSession(currentMesocycle, workoutLogs, matContext({ user, trainingSessions, competitions }), { trainingDays: user?.trainingDays });
     if (!next) return null;
     const weekIndex = currentMesocycle.weeks.findIndex(w => w.weekNumber === next.weekNumber);
-    return { session: next.session, weekIndex, weekNumber: next.weekNumber };
-  }, [currentMesocycle, workoutLogs]);
+    return { session: next.session, weekIndex, weekNumber: next.weekNumber, reason: next.reason };
+  }, [currentMesocycle, workoutLogs, user, trainingSessions, competitions]);
 
   const currentWeekIndex = nextUpSession?.weekIndex ?? -1;
 
@@ -160,11 +163,13 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
   // --- UI state: one sheet at a time ---
   const [showComposer, setShowComposer] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
+  const [scheduleFocus, setScheduleFocus] = useState<{ weekIndex: number; sessionId: string } | null>(null);
+  const [showLayout, setShowLayout] = useState(false);
   const [showManager, setShowManager] = useState(false);
   const [showEmphasisPicker, setShowEmphasisPicker] = useState(false);
   const [blockWeeks, setBlockWeeks] = useState(4);
   const [sessionMinutes, setSessionMinutes] = useState(0); // 0 = no limit
-  const [undoToast, setUndoToast] = useState<{ oldExerciseId: string; oldExerciseName: string; newExerciseName: string; weekIndex: number; sessionId: string; exerciseIndex: number } | null>(null);
+  const [undoToast, setUndoToast] = useState<{ oldExerciseId: string; oldExerciseName: string; newExerciseName: string; weekIndex: number; sessionId: string; exerciseIndex: number; scope: EditScope; weeksChanged: number } | null>(null);
   // entryId pins the toast to ONE undo entry — a lingering toast can never pop
   // a newer, unrelated action off the stack
   const [blockToast, setBlockToast] = useState<{ label: string; entryId?: number } | null>(null);
@@ -380,23 +385,23 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
   };
 
   // Exercise swap with undo (passed down to ScheduleSheet)
-  const handleSwapExercise = (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => {
+  const handleSwapExercise = (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string, scope: EditScope = 'remaining') => {
     const oldExercise = currentMesocycle?.weeks[weekIndex]?.sessions
       ?.find(s => s.id === sessionId)?.exercises?.[exerciseIndex];
     const oldExerciseId = oldExercise?.exerciseId || '';
     const oldExerciseName = oldExercise?.exercise?.name || 'exercise';
 
-    swapProgramExercise(weekIndex, sessionId, exerciseIndex, newExerciseId);
+    const weeksChanged = swapProgramExercise(weekIndex, sessionId, exerciseIndex, newExerciseId, scope);
 
     const newExName = useAppStore.getState().currentMesocycle?.weeks[weekIndex]?.sessions
       .find(s => s.id === sessionId)?.exercises[exerciseIndex]?.exercise?.name || 'exercise';
 
-    setUndoToast({ oldExerciseId, oldExerciseName, newExerciseName: newExName, weekIndex, sessionId, exerciseIndex });
+    setUndoToast({ oldExerciseId, oldExerciseName, newExerciseName: newExName, weekIndex, sessionId, exerciseIndex, scope, weeksChanged });
   };
 
   const handleUndoSwap = () => {
     if (!undoToast) return;
-    swapProgramExercise(undoToast.weekIndex, undoToast.sessionId, undoToast.exerciseIndex, undoToast.oldExerciseId);
+    swapProgramExercise(undoToast.weekIndex, undoToast.sessionId, undoToast.exerciseIndex, undoToast.oldExerciseId, undoToast.scope);
     setUndoToast(null);
   };
 
@@ -638,13 +643,19 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
       ) : nextUpSession ? (
         // The main event: today's session, one big button
         (() => {
-          const { session, weekNumber } = nextUpSession;
+          const { session, weekNumber, reason, weekIndex: heroWeek } = nextUpSession;
+          const heroWeekData = currentMesocycle.weeks[heroWeek];
+          const plannedFor = heroWeekData ? plannedDayOf(heroWeekData, session.id, user?.trainingDays) : null;
+          const todayDow = new Date().getDay();
           const typeUI = getWorkoutTypeUI(session.type);
           const TypeIcon = typeUI.icon;
           const exerciseNames = session.exercises.slice(0, 3).map(ex => ex.exercise?.name).filter(Boolean);
           return (
             <div className={cn('card p-5 bg-gradient-to-br border', typeUI.heroBg)}>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-grappler-400 mb-2">Today</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-grappler-400 mb-2" data-testid="hero-day">
+                Today · {DAY_SHORT[todayDow]}
+                {plannedFor !== null && plannedFor !== todayDow && <span className="normal-case font-medium text-grappler-500"> · planned {DAY_SHORT[plannedFor]}</span>}
+              </p>
               <div className="flex items-center gap-3 mb-3">
                 <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0', typeUI.color)}>
                   <TypeIcon className="w-6 h-6" />
@@ -661,6 +672,9 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
                   </div>
                 </div>
               </div>
+              {reason && (
+                <p className="text-xs text-amber-300/90 mb-2" data-testid="session-move-reason">↻ {reason}</p>
+              )}
               {exerciseNames.length > 0 && (
                 <p className="text-xs text-grappler-400 mb-4 truncate">
                   {exerciseNames.join(' · ')}
@@ -763,26 +777,30 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
         </button>
       </div>
 
-      {/* ── 6. THIS WEEK — lifting + combat + cardio at a glance; tap to plan cardio ── */}
-      <div className="card p-3">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-semibold text-grappler-300">This week</p>
-          <button
-            onClick={() => onNavigate?.('cardio_planner')}
-            className="text-[11px] font-medium text-sky-400 hover:text-sky-300 flex items-center gap-1"
-          >
-            <Heart className="w-3 h-3" /> Cardio
-          </button>
-        </div>
-        <WeeklyCalendar
-          trainingDays={user?.trainingDays ?? EMPTY_ARR}
-          combatTrainingDays={user?.combatTrainingDays ?? EMPTY_ARR}
-          currentMesocycle={currentMesocycle}
-          workoutLogs={rawWorkoutLogs}
-          scheduledCardio={user?.scheduledCardio ?? EMPTY_ARR}
-          scheduledWorkoutDays={(user?.scheduledWorkouts ?? EMPTY_ARR).map(s => s.day)}
-          onDayTap={() => onNavigate?.('cardio_planner')}
-        />
+      {/* ── 6. THIS WEEK — Mon→Sun agenda: lift, mats, rest; move sessions, edit days ── */}
+      <WeekAgenda
+        key={currentMesocycle.id}
+        mesocycle={currentMesocycle}
+        currentWeekIndex={currentWeekIndex}
+        completedSessionIds={completedSessionIds}
+        trainingDays={user?.trainingDays ?? EMPTY_ARR}
+        combatTrainingDays={user?.combatTrainingDays ?? EMPTY_ARR}
+        onOpenSession={(weekIndex, sessionId) => { setScheduleFocus({ weekIndex, sessionId }); setShowSchedule(true); }}
+        onStart={handleStartSession}
+        onMove={(weekIndex, sessionId, day, scope) => {
+          moveSessionToDay(weekIndex, sessionId, day, scope);
+          showBlockActionToast('Session moved');
+        }}
+        onEditLayout={() => setShowLayout(true)}
+        onLogMat={() => onNavigate?.('grappling')}
+      />
+      <div className="flex justify-end -mt-2">
+        <button
+          onClick={() => onNavigate?.('cardio_planner')}
+          className="text-[11px] font-medium text-sky-400 hover:text-sky-300 flex items-center gap-1 py-1"
+        >
+          <Heart className="w-3 h-3" /> Plan cardio
+        </button>
       </div>
 
       {/* ── 7. MY WORKOUTS — your own creations, save-by-default ── */}
@@ -795,9 +813,22 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
             mesocycle={currentMesocycle}
             completedSessionIds={completedSessionIds}
             currentWeekIndex={currentWeekIndex}
-            onClose={() => setShowSchedule(false)}
+            focus={scheduleFocus}
+            onClose={() => { setShowSchedule(false); setScheduleFocus(null); }}
             onSwap={handleSwapExercise}
             onBlockAction={showBlockActionToast}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showLayout && (
+          <WeekLayoutSheet
+            trainingDays={user?.trainingDays ?? EMPTY_ARR}
+            combatTrainingDays={user?.combatTrainingDays ?? EMPTY_ARR}
+            sessionsPerWeek={Math.max(...currentMesocycle.weeks.map(w => w.sessions.length), 0)}
+            onClose={() => setShowLayout(false)}
+            onSave={(lift, mat) => { setWeeklyLayout(lift, mat); setShowLayout(false); showBlockActionToast('Week layout changed'); }}
           />
         )}
       </AnimatePresence>
@@ -817,6 +848,7 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
           >
             <p className="text-sm text-grappler-200 flex-1 min-w-0 truncate">
               Swapped to <span className="font-semibold text-grappler-100">{undoToast.newExerciseName}</span>
+              <span className="text-grappler-400"> · {undoToast.weeksChanged <= 1 ? 'this week' : `${undoToast.weeksChanged} weeks`}</span>
             </p>
             <button
               onClick={handleUndoSwap}

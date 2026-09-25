@@ -9,6 +9,7 @@ import ExerciseSwapSheet from './ExerciseSwapSheet';
 import { suggestNextLoad, getLoadProfile, formatLoad, nextLoadStep, roundForImplement } from '@/lib/next-load';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { recommendFinisher, totalSeconds as sprintTotalSeconds } from '@/lib/sprint-protocols';
+import { matContext } from '@/lib/mat-aware';
 import dynamic from 'next/dynamic';
 const SprintTimer = dynamic(() => import('./SprintTimer'), { ssr: false });
 import { quickAdjustOptions, stepWeight, personalBest, repsToBeat, lastTimeSets, warmupRamp, sessionEta, sessionDeltas } from '@/lib/live-session';
@@ -166,7 +167,7 @@ export default function ActiveWorkout() {
   const {
     activeWorkout, user, updateExerciseLog, completeWorkout, cancelWorkout, pauseWorkout,
     setPreCheckIn, updateExerciseFeedback, swapExercise, addBonusExercise, adaptWorkoutToProfile,
-    applyReadinessThrottle, setWorkoutPosition, markWorkoutOverviewDone, undoSwap, addPowerPrimer,
+    applyReadinessThrottle, setWorkoutPosition, markWorkoutOverviewDone, undoSwap, addPowerPrimer, undoMatAdjustment,
     activeEquipmentProfile, latestWhoopData, wearableHistory, applyWhoopAdjustment,
     baselineLifts, exerciseNotes, setExerciseNote,
   } = useAppStore(
@@ -176,7 +177,7 @@ export default function ActiveWorkout() {
       setPreCheckIn: s.setPreCheckIn, updateExerciseFeedback: s.updateExerciseFeedback,
       swapExercise: s.swapExercise, addBonusExercise: s.addBonusExercise, adaptWorkoutToProfile: s.adaptWorkoutToProfile,
       applyReadinessThrottle: s.applyReadinessThrottle, setWorkoutPosition: s.setWorkoutPosition,
-      markWorkoutOverviewDone: s.markWorkoutOverviewDone, undoSwap: s.undoSwap, addPowerPrimer: s.addPowerPrimer,
+      markWorkoutOverviewDone: s.markWorkoutOverviewDone, undoSwap: s.undoSwap, addPowerPrimer: s.addPowerPrimer, undoMatAdjustment: s.undoMatAdjustment,
       activeEquipmentProfile: s.activeEquipmentProfile, latestWhoopData: s.latestWhoopData,
       wearableHistory: s.wearableHistory, applyWhoopAdjustment: s.applyWhoopAdjustment,
       baselineLifts: s.baselineLifts,
@@ -234,6 +235,16 @@ export default function ActiveWorkout() {
   const [warmupOpen, setWarmupOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState<string | null>(null); // non-null = editing
   const [showFinisher, setShowFinisher] = useState(false);
+  // Mats + competition + time left feed the finisher pick (only readiness and
+  // leg sets did before, so its competition / hard-mats branches never ran).
+  const finisherMatContext = () => {
+    const st = useAppStore.getState();
+    const m = matContext({ user: st.user, trainingSessions: st.trainingSessions, competitions: st.competitions });
+    return {
+      daysToCompetition: m.daysToCompetition ?? undefined,
+      hardMatWithin24h: m.hardToday || m.hardTomorrow,
+    };
+  };
   const [finisherLogged, setFinisherLogged] = useState(false);
   const [etaNow, setEtaNow] = useState(() => Date.now());
   useWakeLock(true); // screen stays on for the whole session
@@ -1380,7 +1391,7 @@ export default function ActiveWorkout() {
         return (
           <SprintTimer
             mode="finisher"
-            recommendation={recommendFinisher({ readiness: typeof score === 'number' ? score : undefined, heavyLowerSets })}
+            recommendation={recommendFinisher({ readiness: typeof score === 'number' ? score : undefined, heavyLowerSets, ...finisherMatContext() })}
             onLogged={() => setFinisherLogged(true)}
             onClose={() => { setShowFinisher(false); setShowFinishModal(true); }}
           />
@@ -2081,6 +2092,21 @@ export default function ActiveWorkout() {
                 </motion.div>
               )}
 
+              {/* Mat-aware adjustment (fight-week taper / hard sparring nearby) */}
+              {activeWorkout.matAdjust && (
+                activeWorkout.matAdjust.undone ? (
+                  <p className="mb-4 text-xs text-grappler-500" data-testid="mat-adjust">Training as planned ({activeWorkout.matAdjust.reason.split(' — ')[0].toLowerCase()}).</p>
+                ) : (
+                  <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3" data-testid="mat-adjust">
+                    <p className="text-sm font-semibold text-amber-200">{activeWorkout.matAdjust.reason}</p>
+                    <p className="text-xs text-amber-300/80 mt-0.5">{activeWorkout.matAdjust.summary}</p>
+                    <button onClick={undoMatAdjustment} className="mt-2 min-h-[36px] text-xs font-semibold text-amber-200 underline underline-offset-2">
+                      Train as planned
+                    </button>
+                  </div>
+                )
+              )}
+
               {/* Readiness Auto-Throttle Banner */}
               {throttleResult && throttleResult.config.level !== 'green' && !throttleDismissed && (
                 <motion.div
@@ -2149,6 +2175,8 @@ export default function ActiveWorkout() {
               {/* ─── Combat Load Banner — concurrent training interference ─── */}
               {(() => {
                 const isCombat = user?.trainingIdentity === 'combat';
+                // The mat-aware adjustment above already acted on this — don't repeat it.
+                if (activeWorkout.matAdjust && !activeWorkout.matAdjust.undone) return null;
                 if (!isCombat || !trainingSessions || trainingSessions.length === 0) return null;
                 const recent = trainingSessions.filter((s: { date: string | Date }) => {
                   const d = new Date(s.date);
@@ -4508,7 +4536,7 @@ export default function ActiveWorkout() {
                 const score = latestWhoopData?.recoveryScore ?? readiness?.score;
                 // Offer a finisher only once the lifting is mostly done.
                 if (totalSets === 0 || completedSets / totalSets < 0.6) return null;
-                const pick = recommendFinisher({ readiness: typeof score === 'number' ? score : undefined, heavyLowerSets });
+                const pick = recommendFinisher({ readiness: typeof score === 'number' ? score : undefined, heavyLowerSets, ...finisherMatContext() });
                 if (!pick) return null;
                 return (
                   <button

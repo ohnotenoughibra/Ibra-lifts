@@ -7,9 +7,11 @@ import { useShallow } from 'zustand/react/shallow';
 import {
   X, Check, Square, Play, Trash2, ChevronLeft, ChevronRight, Plus,
   Dumbbell, Clock, Activity, Star, BarChart3, Award, TrendingUp, Target, ListPlus,
+  Pencil, ChevronUp, ChevronDown, Minus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Mesocycle } from '@/lib/types';
+import { Mesocycle, MAX_BLOCK_WEEKS, MIN_BLOCK_WEEKS } from '@/lib/types';
+import { getCompletedSessionIds } from '@/lib/session-matching';
 import { generateMesocycleReport, formatVolume, formatDuration } from '@/lib/mesocycle-report';
 import { useToast } from './Toast';
 
@@ -31,7 +33,7 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
   const {
     currentMesocycle, rawMesocycleHistory, rawMesocycleQueue, rawWorkoutLogs, user, activeWorkout,
     completeMesocycle, stopMesocycle, advanceMesocycleQueue, switchToQueuedBlock,
-    removeFromMesocycleQueue, deleteMesocycle,
+    removeFromMesocycleQueue, deleteMesocycle, renameMesocycle, updateMesocycleInQueue, reorderMesocycleQueue,
   } = useAppStore(
     // Stable references only — a .filter() inside the selector defeats useShallow
     // and re-renders the open sheet on every store update
@@ -48,6 +50,9 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
       switchToQueuedBlock: s.switchToQueuedBlock,
       removeFromMesocycleQueue: s.removeFromMesocycleQueue,
       deleteMesocycle: s.deleteMesocycle,
+      renameMesocycle: s.renameMesocycle,
+      updateMesocycleInQueue: s.updateMesocycleInQueue,
+      reorderMesocycleQueue: s.reorderMesocycleQueue,
     }))
   );
   const { showToast } = useToast();
@@ -64,6 +69,14 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
 
   const [viewingBlock, setViewingBlock] = useState<Mesocycle | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const [confirmSwitch, setConfirmSwitch] = useState(false);
+  const [editingQueueId, setEditingQueueId] = useState<string | null>(null);
+
+  const commitRename = () => {
+    if (nameDraft !== null) renameMesocycle(nameDraft);
+    setNameDraft(null);
+  };
 
   // Backdrop onKeyDown only fires when focus is inside the sheet — a document
   // listener makes Escape work no matter where focus sits
@@ -163,8 +176,30 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
               {currentMesocycle ? (
                 <div className="card p-4 space-y-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-grappler-50 truncate">{currentMesocycle.name}</p>
+                    <div className="min-w-0 flex-1">
+                      {nameDraft !== null ? (
+                        <input
+                          autoFocus
+                          value={nameDraft}
+                          maxLength={40}
+                          onChange={e => setNameDraft(e.target.value)}
+                          onBlur={commitRename}
+                          onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') { e.stopPropagation(); setNameDraft(null); } }}
+                          className="w-full bg-grappler-800 border border-primary-500/50 rounded-md px-2 py-1 text-sm font-bold text-grappler-50 outline-none"
+                          aria-label="Block name"
+                          data-testid="block-name-input"
+                        />
+                      ) : (
+                        <button
+                          onClick={() => setNameDraft(currentMesocycle.name)}
+                          className="flex items-center gap-1.5 min-w-0 max-w-full text-left group"
+                          aria-label={`Rename ${currentMesocycle.name}`}
+                          data-testid="rename-block"
+                        >
+                          <span className="text-sm font-bold text-grappler-50 truncate">{currentMesocycle.name}</span>
+                          <Pencil className="w-3 h-3 text-grappler-500 group-hover:text-grappler-300 flex-shrink-0" />
+                        </button>
+                      )}
                       <p className="text-xs text-grappler-400 capitalize">
                         {currentMesocycle.goalFocus.replace(/_/g, ' ')} · {currentMesocycle.weeks.length}w · {progress.completed}/{progress.total} sessions
                       </p>
@@ -223,25 +258,62 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
                 <p className="text-xs text-grappler-500 px-1">Nothing queued. Plan your next block and it starts the moment this one ends.</p>
               ) : (
                 <div className="space-y-2">
-                  {mesocycleQueue.map((planned, i) => (
-                    <div key={planned.id} className="card p-3 flex items-center gap-3">
-                      <span className="w-6 h-6 rounded-full bg-grappler-800 text-grappler-400 text-xs font-bold flex items-center justify-center flex-shrink-0">
-                        {i + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-grappler-100 truncate">{planned.name}</p>
+                  {confirmSwitch && currentMesocycle && mesocycleQueue[0] && (
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2" data-testid="confirm-switch">
+                      <p className="text-xs text-grappler-200">
+                        Stop <span className="font-semibold">{currentMesocycle.name}</span> ({progress.completed}/{progress.total} done) and start <span className="font-semibold">{mesocycleQueue[0].name}</span> today?
+                      </p>
+                      <p className="text-[11px] text-grappler-400">The current block is archived as Stopped. Your logs stay, and you can undo.</p>
+                      <div className="flex gap-2">
+                        <button onClick={() => setConfirmSwitch(false)} className="btn btn-secondary btn-sm flex-1">Keep training</button>
+                        <button
+                          onClick={() => { setConfirmSwitch(false); switchToQueuedBlock(); onBlockAction('Switched block'); }}
+                          className="btn btn-sm flex-1 bg-amber-600 text-white hover:bg-amber-500"
+                        >Switch now</button>
+                      </div>
+                    </div>
+                  )}
+                  {mesocycleQueue.map((planned, i) => {
+                    const editing = editingQueueId === planned.id;
+                    return (
+                    <div key={planned.id} className="card overflow-hidden">
+                    <div className="p-3 flex items-center gap-2">
+                      <div className="flex flex-col flex-shrink-0">
+                        <button
+                          onClick={() => reorderMesocycleQueue(i, i - 1)}
+                          disabled={i === 0}
+                          aria-label={`Move ${planned.name} earlier`}
+                          className="w-7 h-5 flex items-center justify-center text-grappler-400 hover:text-grappler-100 disabled:opacity-20"
+                        ><ChevronUp className="w-4 h-4" /></button>
+                        <span className="text-[10px] font-bold text-grappler-500 text-center">{i + 1}</span>
+                        <button
+                          onClick={() => reorderMesocycleQueue(i, i + 1)}
+                          disabled={i === mesocycleQueue.length - 1}
+                          aria-label={`Move ${planned.name} later`}
+                          className="w-7 h-5 flex items-center justify-center text-grappler-400 hover:text-grappler-100 disabled:opacity-20"
+                        ><ChevronDown className="w-4 h-4" /></button>
+                      </div>
+                      <button
+                        onClick={() => setEditingQueueId(editing ? null : planned.id)}
+                        className="flex-1 min-w-0 text-left"
+                        aria-expanded={editing}
+                        aria-label={`Edit ${planned.name}`}
+                      >
+                        <p className="text-sm font-semibold text-grappler-100 truncate flex items-center gap-1.5">
+                          <span className="truncate">{planned.name}</span>
+                          <Pencil className="w-3 h-3 text-grappler-500 flex-shrink-0" />
+                        </p>
                         <p className="text-xs text-grappler-400 capitalize">
                           {planned.weeks}w · {planned.focus.replace(/_/g, ' ')}
                           {planned.sessionsPerWeek ? ` · ${planned.sessionsPerWeek}×/wk` : ''}
                         </p>
-                      </div>
+                      </button>
                       {i === 0 && (
                         <button
                           onClick={() => {
                             if (guardActiveWorkout()) return;
                             if (currentMesocycle) {
-                              switchToQueuedBlock();
-                              onBlockAction('Switched block');
+                              setConfirmSwitch(true);
                             } else {
                               advanceMesocycleQueue();
                               onBlockAction('Queued block started');
@@ -251,7 +323,7 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
                           title={currentMesocycle ? 'Stop current block and start this one' : 'Start this block'}
                         >
                           <Play className="w-3.5 h-3.5" />
-                          {currentMesocycle ? 'Switch' : 'Start'}
+                          {currentMesocycle ? 'Start now' : 'Start'}
                         </button>
                       )}
                       <button
@@ -262,7 +334,39 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
                         <X className="w-4 h-4" />
                       </button>
                     </div>
-                  ))}
+                    {editing && (
+                      <div className="border-t border-grappler-800 p-3 space-y-2" data-testid="queue-editor">
+                        <input
+                          defaultValue={planned.name}
+                          maxLength={40}
+                          onBlur={e => { const v = e.target.value.trim(); if (v && v !== planned.name) updateMesocycleInQueue(planned.id, { name: v }); }}
+                          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                          className="w-full bg-grappler-800 border border-grappler-700 rounded-md px-2 py-1.5 text-sm text-grappler-50 outline-none focus:border-primary-500/50"
+                          aria-label="Queued block name"
+                        />
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-grappler-400">Length</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => updateMesocycleInQueue(planned.id, { weeks: Math.max(MIN_BLOCK_WEEKS, planned.weeks - 1) })}
+                              disabled={planned.weeks <= MIN_BLOCK_WEEKS}
+                              className="w-8 h-8 rounded-md bg-grappler-800 flex items-center justify-center text-grappler-300 disabled:opacity-30"
+                              aria-label="Shorter"
+                            ><Minus className="w-3.5 h-3.5" /></button>
+                            <span className="text-sm font-bold text-grappler-100 w-16 text-center" data-testid="queue-weeks">{planned.weeks} weeks</span>
+                            <button
+                              onClick={() => updateMesocycleInQueue(planned.id, { weeks: Math.min(MAX_BLOCK_WEEKS, planned.weeks + 1) })}
+                              disabled={planned.weeks >= MAX_BLOCK_WEEKS}
+                              className="w-8 h-8 rounded-md bg-grappler-800 flex items-center justify-center text-grappler-300 disabled:opacity-30"
+                              aria-label="Longer"
+                            ><Plus className="w-3.5 h-3.5" /></button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    </div>
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -277,6 +381,7 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
                   {sortedHistory.map(block => {
                     const badge = STATUS_BADGE[block.status] || STATUS_BADGE.completed;
                     const totalSessions = block.weeks.reduce((s, w) => s + w.sessions.length, 0);
+                    const doneSessions = getCompletedSessionIds(block, workoutLogs).size;
                     return (
                       <button
                         key={block.id}
@@ -286,7 +391,7 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-grappler-100 truncate">{block.name}</p>
                           <p className="text-xs text-grappler-400 capitalize">
-                            {block.goalFocus.replace(/_/g, ' ')} · {block.weeks.length}w · {totalSessions} sessions
+                            {block.goalFocus.replace(/_/g, ' ')} · {block.weeks.length}w · {doneSessions}/{totalSessions} sessions
                           </p>
                         </div>
                         <span className={cn('text-[10px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0', badge.cls)}>

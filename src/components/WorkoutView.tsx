@@ -39,7 +39,8 @@ import BlockComposer, { BlockConfig, FOCUS_QUEUE_LABELS } from './BlockComposer'
 import ScheduleSheet from './ScheduleSheet';
 import BlockManagerSheet from './BlockManagerSheet';
 import { getWorkoutTypeUI } from './workout-type-ui';
-import { getCompletedSessionIds, getNextSession } from '@/lib/session-matching';
+import { getCompletedSessionIds, getTodaysSession } from '@/lib/session-matching';
+import { matContext } from '@/lib/mat-aware';
 import { useToast } from './Toast';
 
 /**
@@ -111,11 +112,11 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
 
   const nextUpSession = useMemo(() => {
     if (!currentMesocycle) return null;
-    const next = getNextSession(currentMesocycle, workoutLogs);
+    const next = getTodaysSession(currentMesocycle, workoutLogs, matContext({ user, trainingSessions, competitions }));
     if (!next) return null;
     const weekIndex = currentMesocycle.weeks.findIndex(w => w.weekNumber === next.weekNumber);
-    return { session: next.session, weekIndex, weekNumber: next.weekNumber };
-  }, [currentMesocycle, workoutLogs]);
+    return { session: next.session, weekIndex, weekNumber: next.weekNumber, reason: next.reason };
+  }, [currentMesocycle, workoutLogs, user, trainingSessions, competitions]);
 
   const currentWeekIndex = nextUpSession?.weekIndex ?? -1;
 
@@ -638,7 +639,7 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
       ) : nextUpSession ? (
         // The main event: today's session, one big button
         (() => {
-          const { session, weekNumber } = nextUpSession;
+          const { session, weekNumber, reason } = nextUpSession;
           const typeUI = getWorkoutTypeUI(session.type);
           const TypeIcon = typeUI.icon;
           const exerciseNames = session.exercises.slice(0, 3).map(ex => ex.exercise?.name).filter(Boolean);
@@ -661,6 +662,9 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
                   </div>
                 </div>
               </div>
+              {reason && (
+                <p className="text-xs text-amber-300/90 mb-2" data-testid="session-move-reason">↻ {reason}</p>
+              )}
               {exerciseNames.length > 0 && (
                 <p className="text-xs text-grappler-400 mb-4 truncate">
                   {exerciseNames.join(' · ')}

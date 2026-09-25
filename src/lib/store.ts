@@ -81,6 +81,7 @@ import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
 import { stripLegacyDefaultTempos, stripLegacyDefaultTemposFromSession } from './live-session';
+import { matContext, planMatAdjustment } from './mat-aware';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards, calculateStreak, defaultWellnessStats, calculateWellnessMultiplier, updateWellnessStreaks, calculateWellnessXP, checkWellnessBadges } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
 import { isBodyweightLoadedExercise, backfillBodyweightInLogs, estimate1RM, estimateFirstTimeWeight } from './weight-estimator';
@@ -269,6 +270,9 @@ interface AppState {
     position?: { exerciseIndex: number; setIndex: number };
     // One-level undo for the last in-workout swap.
     swapUndo?: { session: WorkoutSession; exerciseLogs: ExerciseLog[] };
+    // Mat-aware adjustment applied at start (fight-week taper / hard sparring
+    // nearby); `original` lets the athlete "Train as planned".
+    matAdjust?: { kind: 'taper' | 'mat'; reason: string; summary: string; original: WorkoutSession; undone?: boolean };
   } | null;
   workoutMinimized: boolean; // When true, workout is paused and user can browse app
   workoutLogs: WorkoutLog[];
@@ -506,6 +510,8 @@ interface AppState {
   /** Returns the index of the exercise the athlete should continue on. */
   swapExercise: (exerciseIndex: number, newExerciseId: string, newExerciseName: string) => number | void;
   undoSwap: () => boolean;
+  /** Put back the session as planned (drop the mat-aware adjustment). */
+  undoMatAdjustment: () => void;
   /** Insert a readiness/mat-load-aware power primer; returns the index to continue at (null if skipped). */
   addPowerPrimer: () => { index: number; reason: string } | null;
   addBonusExercise: (exercise: Exercise, sets: number, reps: number) => void;
@@ -2229,6 +2235,18 @@ export const useAppStore = create<AppState>()(
           exercises: applyInjuryAdaptationsToExercises(activeSession.exercises, injuryAdaptations),
         };
 
+        // Mat-aware: fight-week taper, or ease legs & grip around hard sparring.
+        let matAdjust: NonNullable<AppState['activeWorkout']>['matAdjust'];
+        {
+          const plan = planMatAdjustment(activeSession, matContext({
+            user, trainingSessions: get().trainingSessions, competitions: get().competitions,
+          }));
+          if (plan) {
+            matAdjust = { kind: plan.kind, reason: plan.reason, summary: plan.summary, original: activeSession };
+            activeSession = plan.session;
+          }
+        }
+
         // Pre-fill weights from previous session using auto-adjust
         const { baselineLifts } = get();
         const exerciseLogs = activeSession.exercises.map((ex) => {
@@ -2283,8 +2301,23 @@ export const useAppStore = create<AppState>()(
             mesocycleId: meso?.id || 'standalone', // Lock mesocycle at start time
             weekNumber,
             dayNumber,
+            ...(matAdjust ? { matAdjust } : {}),
           },
           workoutMinimized: false,
+        });
+      },
+
+      undoMatAdjustment: () => {
+        const { activeWorkout } = get();
+        if (!activeWorkout?.matAdjust || activeWorkout.matAdjust.undone) return;
+        const original = activeWorkout.matAdjust.original;
+        set({
+          activeWorkout: {
+            ...activeWorkout,
+            session: original,
+            exerciseLogs: reconcileLogsToExercises(activeWorkout.exerciseLogs, original.exercises),
+            matAdjust: { ...activeWorkout.matAdjust, undone: true },
+          },
         });
       },
 
@@ -2454,7 +2487,9 @@ export const useAppStore = create<AppState>()(
         const matThisWeek = sessions.filter(t => matCats.has(t.category) && now - new Date(t.date).getTime() < 7 * 864e5).length;
         const hardNear = sessions.some(t => matCats.has(t.category)
           && Math.abs(now - new Date(t.date).getTime()) < 24 * 36e5
-          && (t.actualIntensity ?? t.plannedIntensity) === 'hard_sparring');
+          && (t.actualIntensity ?? t.plannedIntensity) === 'hard_sparring')
+          // …or hard sparring on the SCHEDULE today/tomorrow (not logged yet)
+          || (() => { const m = matContext({ user, trainingSessions: sessions, competitions: get().competitions }); return m.hardToday || m.hardTomorrow; })();
         const legs = new Set(['quadriceps', 'hamstrings', 'glutes', 'calves']);
         const muscles = activeWorkout.session.exercises.flatMap(e => e.exercise.primaryMuscles);
         const legShare = muscles.length ? muscles.filter(m => legs.has(m)).length / muscles.length : 0.5;

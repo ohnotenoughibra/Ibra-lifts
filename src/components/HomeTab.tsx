@@ -93,7 +93,8 @@ import { hapticMedium } from '@/lib/haptics';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import type { OverlayView, TabType } from './dashboard-types';
 import { useComputedGamification } from '@/lib/computed-gamification';
-import { getCompletedSessionIds, getNextSession } from '@/lib/session-matching';
+import { getCompletedSessionIds, getTodaysSession } from '@/lib/session-matching';
+import { matContext } from '@/lib/mat-aware';
 import { calculateCumulativeSportLoad, getSessionAdjustments } from '@/lib/concurrent-training';
 
 // ─── Factor explainer data ───
@@ -1160,8 +1161,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
   // Position-based next workout — survives UUID changes from regeneration/sync/migration
   const nextWorkoutInfo = useMemo(() => {
-    return getNextSession(currentMesocycle, workoutLogs);
-  }, [currentMesocycle, workoutLogs]);
+    return getTodaysSession(currentMesocycle, workoutLogs, matContext({ user, trainingSessions, competitions }));
+  }, [currentMesocycle, workoutLogs, user, trainingSessions, competitions]);
   const nextWorkout = nextWorkoutInfo?.session ?? null;
 
   // ─── Injury pattern risk alert for today's workout ───

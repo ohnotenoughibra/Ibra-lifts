@@ -29,7 +29,8 @@ import type {
 } from './types';
 import { calculateReadiness } from './performance-engine';
 import { detectFightCampPhase, getPhaseConfig } from './fight-camp-engine';
-import { getNextSession as getNextSessionFromMatching } from './session-matching';
+import { getTodaysSession } from './session-matching';
+import { matContext } from './mat-aware';
 import { getActivePhaseContext } from './periodization-planner';
 import { getIllnessTrainingRecommendation } from './illness-engine';
 import { INTENSITY_LABELS, type TrainingIntensity } from './types';
@@ -74,6 +75,10 @@ export interface DailyDirective {
   shouldTrain: boolean;
   /** The next workout session if training (null on rest days) */
   nextSession: WorkoutSession | null;
+  /** Set when the mat schedule moved a different session of this week up. */
+  sessionMoveReason?: string | null;
+  /** What's around today on the mats (for banners / finisher / primer). */
+  matLabel?: string | null;
   /** Week/day label like "W2/D1" */
   sessionLabel: string | null;
   /** Whether it's a deload week */
@@ -175,7 +180,9 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   });
 
   // ─── Next workout ───
-  const nextWorkoutInfo = getNextWorkout(currentMesocycle, workoutLogs);
+  // Mat-aware: next to hard sparring, a lighter-legs session from this week moves up.
+  const matCtx = matContext({ user, trainingSessions, competitions });
+  const nextWorkoutInfo = getNextWorkout(currentMesocycle, workoutLogs, matCtx);
   const nextSession = nextWorkoutInfo?.session ?? null;
   const isDeload = nextWorkoutInfo?.isDeload ?? false;
 
@@ -624,6 +631,8 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     readinessLevel: readiness.level,
     shouldTrain,
     nextSession,
+    sessionMoveReason: nextWorkoutInfo?.reason ?? null,
+    matLabel: matCtx.label,
     sessionLabel,
     isDeload,
     proteinGap,
@@ -649,10 +658,11 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
 
 function getNextWorkout(
   mesocycle: Mesocycle | null,
-  logs: WorkoutLog[]
-): { session: WorkoutSession; weekNumber: number; dayNumber: number; isDeload: boolean } | null {
-  const result = getNextSessionFromMatching(mesocycle, logs);
-  return result ? { session: result.session, weekNumber: result.weekNumber, dayNumber: result.dayNumber, isDeload: result.isDeload } : null;
+  logs: WorkoutLog[],
+  ctx: ReturnType<typeof matContext>,
+): { session: WorkoutSession; weekNumber: number; dayNumber: number; isDeload: boolean; reason: string | null } | null {
+  const result = getTodaysSession(mesocycle, logs, ctx);
+  return result ? { session: result.session, weekNumber: result.weekNumber, dayNumber: result.dayNumber, isDeload: result.isDeload, reason: result.reason } : null;
 }
 
 function buildSubline(

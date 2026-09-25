@@ -11,6 +11,7 @@
  */
 
 import type { Mesocycle, WorkoutLog, WorkoutSession } from './types';
+import { pickTodaysSession, type MatContext } from './mat-aware';
 
 export interface SessionEntry {
   session: WorkoutSession;
@@ -113,4 +114,25 @@ export function getNextSession(
   const completedIds = getCompletedSessionIds(mesocycle, workoutLogs);
   const entries = flattenSessions(mesocycle);
   return entries.find(e => !completedIds.has(e.session.id)) ?? null;
+}
+
+/**
+ * The session to offer TODAY: the next one in plan order, unless mats are
+ * around (hard sparring yesterday/today/tomorrow) and a lighter-legs session
+ * from the same week is still to do — then that one moves up. Completion is
+ * tracked by session id, so doing week 1's sessions out of order is fine.
+ */
+export function getTodaysSession(
+  mesocycle: Mesocycle | null,
+  workoutLogs: WorkoutLog[],
+  ctx?: MatContext | null,
+): (SessionEntry & { reason: string | null }) | null {
+  if (!mesocycle) return null;
+  const completedIds = getCompletedSessionIds(mesocycle, workoutLogs);
+  const remaining = flattenSessions(mesocycle).filter(e => !completedIds.has(e.session.id));
+  if (remaining.length === 0) return null;
+  if (!ctx) return { ...remaining[0], reason: null };
+  const week = remaining.filter(e => e.weekNumber === remaining[0].weekNumber);
+  const pick = pickTodaysSession(week, ctx);
+  return pick ? { ...pick.entry, reason: pick.reason } : { ...remaining[0], reason: null };
 }

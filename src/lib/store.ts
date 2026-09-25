@@ -3083,7 +3083,7 @@ export const useAppStore = create<AppState>()(
         // Universal streak — counts lifting, combat, AND mobility
         const { quickLogs } = get();
         const allLogs = [...workoutLogs, workoutLog]; // include the workout we just completed
-        let newStreak = calculateStreak(allLogs, trainingSessions, quickLogs);
+        let newStreak = calculateStreak(allLogs, trainingSessions, quickLogs, gamificationStats.streakShield?.usedDates);
         const todayStr = localDayKey();
         const fmtDate = (d: Date) => localDayKey(new Date(d));
 
@@ -3096,8 +3096,8 @@ export const useAppStore = create<AppState>()(
         // Streak shield: if streak would reset (gap > 1 day) and shield available, preserve streak
         let shieldUsed = false;
         if (newStreak === 1 && gamificationStats.currentStreak > 1 && (gamificationStats.streakShield?.available || 0) > 0) {
-          // Would have reset — use shield to save the streak
-          newStreak = gamificationStats.currentStreak + 1;
+          // Would have reset — spend the shield on today and recount with the bridge
+          newStreak = calculateStreak(allLogs, trainingSessions, quickLogs, [...(gamificationStats.streakShield?.usedDates ?? []), todayStr]);
           shieldUsed = true;
         }
 
@@ -4117,7 +4117,7 @@ export const useAppStore = create<AppState>()(
 
         // Mobility logs count toward streak — recalculate
         if (log.type === 'mobility') {
-          const newStreak = calculateStreak(workoutLogs, trainingSessions, updatedQuickLogs);
+          const newStreak = calculateStreak(workoutLogs, trainingSessions, updatedQuickLogs, gamificationStats.streakShield?.usedDates);
           if (newStreak !== gamificationStats.currentStreak) {
             set({
               gamificationStats: {
@@ -4498,7 +4498,7 @@ export const useAppStore = create<AppState>()(
         {
           const { quickLogs } = get();
           const allSessions = [...trainingSessions, newSession];
-          const newStreak = calculateStreak(workoutLogs, allSessions, quickLogs);
+          const newStreak = calculateStreak(workoutLogs, allSessions, quickLogs, get().gamificationStats.streakShield?.usedDates);
 
           // Check if this is also a lifting day (dual training)
           // Local calendar day — must match completeWorkout's dual-day keying
@@ -5335,6 +5335,7 @@ export const useAppStore = create<AppState>()(
               workoutLogs as never[],
               trainingSessions as never[],
               quickLogs as never[],
+              ((gamStats.streakShield as { usedDates?: string[] } | undefined)?.usedDates),
             );
 
             if (Number.isFinite(recalculated) && recalculated >= 0) {

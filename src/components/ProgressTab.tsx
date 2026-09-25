@@ -33,7 +33,7 @@ import {
   Swords,
   Medal,
 } from 'lucide-react';
-import { cn, formatNumber } from '@/lib/utils';
+import { cn, formatNumber, localDayKey } from '@/lib/utils';
 import { useComputedGamification } from '@/lib/computed-gamification';
 import type { WorkoutLog, GamificationStats, TrainingSession } from '@/lib/types';
 import { getExerciseById } from '@/lib/exercises';
@@ -1081,19 +1081,19 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
 
   const handleExportCSV = () => {
     const csv = exportToCSV(workoutLogs, weightUnit);
-    const date = new Date().toISOString().split('T')[0];
+    const date = localDayKey();
     downloadFile(csv, `roots-gains-${date}.csv`, 'text/csv');
   };
 
   const handleExportJSON = () => {
     const json = exportToJSON(workoutLogs);
-    const date = new Date().toISOString().split('T')[0];
+    const date = localDayKey();
     downloadFile(json, `roots-gains-${date}.json`, 'application/json');
   };
 
   const handleExportBackup = () => {
     const backup = exportFullBackup();
-    const date = new Date().toISOString().split('T')[0];
+    const date = localDayKey();
     downloadFile(backup, `roots-gains-backup-${date}.json`, 'application/json');
   };
 

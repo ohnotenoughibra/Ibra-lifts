@@ -1,5 +1,6 @@
 'use client';
 
+import { localDayKey } from '@/lib/utils';
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
@@ -260,7 +261,7 @@ export default function DietCoach() {
       endDietPhase();
       startDietPhase({
         goal: params.goal,
-        startDate: new Date().toISOString().split('T')[0],
+        startDate: localDayKey(),
         startWeightKg: bodyWeightKg,
         targetRatePerWeek: nextPhase.targetRateKgPerWeek,
         currentMacros: newMacros,
@@ -319,7 +320,7 @@ export default function DietCoach() {
 
     startDietPhase({
       goal: selectedGoal,
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: localDayKey(),
       startWeightKg: bodyWeightKg,
       targetRatePerWeek: rate,
       currentMacros: newMacros,
@@ -356,7 +357,7 @@ export default function DietCoach() {
     endDietPhase();
     startDietPhase({
       goal: newGoal,
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: localDayKey(),
       startWeightKg: bodyWeightKg,
       targetRatePerWeek: rate,
       currentMacros: newMacros,
@@ -387,7 +388,7 @@ export default function DietCoach() {
     addWeeklyCheckIn({
       phaseId: activeDietPhase.id,
       weekNumber: activeDietPhase.weeksCompleted + 1,
-      date: new Date().toISOString().split('T')[0],
+      date: localDayKey(),
       averageWeightKg: weightTrend.current * (user?.weightUnit === 'lbs' ? 0.453592 : 1),
       weightChange: weightTrend.weeklyChange * (user?.weightUnit === 'lbs' ? 0.453592 : 1),
       adherenceScore: adherence,
@@ -881,7 +882,7 @@ export default function DietCoach() {
                                 endDietPhase();
                                 startDietPhase({
                                   goal: phaseStatus.nextGoal!,
-                                  startDate: new Date().toISOString().split('T')[0],
+                                  startDate: localDayKey(),
                                   startWeightKg: bodyWeightKg,
                                   targetRatePerWeek: getTargetRate(phaseStatus.nextGoal!, bodyWeightKg, formSex),
                                   currentMacros: newMacros,

@@ -668,53 +668,58 @@ export function analyzeWeightTrend(
     return { current: 0, weeklyChange: 0, weeksAtPlateau: 0, trendData: [] };
   }
 
-  const sorted = [...entries]
-    .filter(e => safeDayKey(e.date) !== null) // drop corrupt-date entries (don't crash)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .map(e => ({
-      date: safeDayKey(e.date) as string,
-      weight: e.unit === 'lbs' ? e.weight * 0.45359237 : e.weight,
-    }));
+  // One value per calendar day (mean of that day's weigh-ins), deleted and
+  // corrupt entries dropped. Windows below are by DATE, not by entry count:
+  // someone weighing in twice a week used to get "weekly" change over ~3 weeks.
+  const byDay = new Map<string, number[]>();
+  for (const e of entries) {
+    if ((e as { _deleted?: boolean })._deleted) continue;
+    const key = safeDayKey(e.date);
+    if (key === null) continue;
+    const kg = e.unit === 'lbs' ? e.weight * 0.45359237 : e.weight;
+    if (!Number.isFinite(kg) || kg <= 0) continue;
+    byDay.set(key, [...(byDay.get(key) ?? []), kg]);
+  }
+  const sorted = Array.from(byDay.entries())
+    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+    .map(([date, ws]) => ({ date, weight: ws.reduce((s, w) => s + w, 0) / ws.length }));
+  if (sorted.length === 0) return { current: 0, weeklyChange: 0, weeksAtPlateau: 0, trendData: [] };
 
-  const alpha = 0.2;
+  // EMA weighted by elapsed days, so a 5-day gap moves the trend more than a 1-day step
   const trendData: { date: string; weight: number; trend: number }[] = [];
   let ema = sorted[0].weight;
-
+  let prevDay = Date.parse(sorted[0].date);
   for (const entry of sorted) {
+    const t = Date.parse(entry.date);
+    const days = Math.max(1, Math.round((t - prevDay) / 864e5));
+    const alpha = 1 - Math.pow(1 - 0.2, days);
     ema = alpha * entry.weight + (1 - alpha) * ema;
+    prevDay = t;
     trendData.push({ date: entry.date, weight: entry.weight, trend: Math.round(ema * 10) / 10 });
   }
-
   const current = ema;
 
-  let weeklyChange = 0;
-  if (trendData.length >= 7) {
-    const recent = trendData.slice(-7);
-    const recentAvg = recent.reduce((s, d) => s + d.trend, 0) / recent.length;
+  const lastT = Date.parse(trendData[trendData.length - 1].date);
+  const windowAvg = (fromDaysAgo: number, toDaysAgo: number) => {
+    const xs = trendData.filter(d => {
+      const ago = (lastT - Date.parse(d.date)) / 864e5;
+      return ago >= fromDaysAgo && ago < toDaysAgo;
+    });
+    return xs.length >= 2 ? xs.reduce((s, d) => s + d.trend, 0) / xs.length : null;
+  };
 
-    if (trendData.length >= 14) {
-      const prev = trendData.slice(-14, -7);
-      const prevAvg = prev.reduce((s, d) => s + d.trend, 0) / prev.length;
-      weeklyChange = recentAvg - prevAvg;
-    }
-  }
+  let weeklyChange = 0;
+  const thisWeek = windowAvg(0, 7);
+  const lastWeek = windowAvg(7, 14);
+  if (thisWeek !== null && lastWeek !== null) weeklyChange = thisWeek - lastWeek;
 
   let weeksAtPlateau = 0;
-  if (trendData.length >= 14) {
-    for (let i = trendData.length - 7; i >= 7; i -= 7) {
-      const weekEnd = trendData.slice(i, i + 7);
-      const weekStart = trendData.slice(i - 7, i);
-      if (weekEnd.length < 3 || weekStart.length < 3) break;
-
-      const endAvg = weekEnd.reduce((s, d) => s + d.trend, 0) / weekEnd.length;
-      const startAvg = weekStart.reduce((s, d) => s + d.trend, 0) / weekStart.length;
-
-      if (Math.abs(endAvg - startAvg) < 0.15) {
-        weeksAtPlateau++;
-      } else {
-        break;
-      }
-    }
+  for (let w = 0; w < 26; w++) {
+    const end = windowAvg(w * 7, w * 7 + 7);
+    const start = windowAvg(w * 7 + 7, w * 7 + 14);
+    if (end === null || start === null) break;
+    if (Math.abs(end - start) < 0.15) weeksAtPlateau++;
+    else break;
   }
 
   if (unitPreference === 'lbs') {

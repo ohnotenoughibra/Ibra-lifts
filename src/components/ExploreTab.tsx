@@ -15,7 +15,7 @@ import {
   ChevronDown, ChevronRight,
   Users, Trophy,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, localDayKey } from '@/lib/utils';
 import { hapticMedium } from '@/lib/haptics';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -306,7 +306,7 @@ export default function ExploreTab({ onNavigate, filterTab, compact = false }: E
   // ─── "Right Now" context computation ───
   const rightNowSuggestions = useMemo(() => {
     const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
+    const todayStr = localDayKey(now);
 
     // Hours since last workout
     const allSessions = [
@@ -321,7 +321,7 @@ export default function ExploreTab({ onNavigate, filterTab, compact = false }: E
     // Has trained today
     const hasTrainedToday = allSessions.some(t => {
       const d = new Date(t);
-      return d.toISOString().slice(0, 10) === todayStr;
+      return localDayKey(d) === todayStr;
     });
 
     // Active injuries
@@ -349,7 +349,7 @@ export default function ExploreTab({ onNavigate, filterTab, compact = false }: E
     const mealsLoggedToday = (meals ?? []).filter(m => {
       if (m._deleted) return false;
       const d = new Date(m.date);
-      return d.toISOString().slice(0, 10) === todayStr;
+      return localDayKey(d) === todayStr;
     }).length;
 
     // Is rest day — heuristic: if user hasn't trained and hoursSinceLastWorkout > 20,

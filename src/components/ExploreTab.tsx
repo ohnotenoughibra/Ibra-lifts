@@ -15,7 +15,7 @@ import {
   ChevronDown, ChevronRight,
   Users, Trophy,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, localDayKey } from '@/lib/utils';
 import { hapticMedium } from '@/lib/haptics';
 import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
@@ -69,10 +69,9 @@ const CATEGORIES: Category[] = [
       { id: 'grappling', label: 'Mat Sessions', desc: 'BJJ, wrestling, sparring', longDesc: 'Session tracker with technique notes and mat time. For round-count CTE-load tracking, see Sparring Load.', keywords: 'bjj jiu jitsu wrestling mma roll mat submission martial arts grappling drilling', icon: Navigation, color: 'from-blue-500/20 to-blue-500/5 text-blue-400', tab: 'train' },
       { id: 'sparring_tracker', label: 'Sparring Load', desc: 'Round-count CTE risk', longDesc: 'Live sparring rounds tracked separately from mat time. Effective hard rounds (intensity-weighted), ACWR spike detection, CTE-zone alerts. Top-3 concussion risk metric for combat athletes.', keywords: 'sparring rounds rolling live boxing kickboxing muay thai mma cte concussion head trauma load risk overload taper hard fighting', icon: Shield, color: 'from-rose-500/20 to-rose-500/5 text-rose-400', tab: 'train' },
       { id: 'technique_log', label: 'Technique Log', desc: 'Drilling reps tracker', longDesc: 'Log drilling reps by technique. Skill compounds with reps — track which moves you\'ve drilled 100, 500, 2000, 10000 times. Greg Jackson mastery rule, made trackable.', keywords: 'technique drilling reps skill mastery move single leg double pass guard sweep submission jab cross combo combat', icon: Target, color: 'from-amber-500/20 to-amber-500/5 text-amber-400', tab: 'train' },
-      { id: 'camp_timeline', label: 'Camp Timeline', desc: '10-week fight camp at a glance', longDesc: 'Visualize the full fight camp: off-season → base → intensification → peak → fight week. Current phase prescription, days to fight, deload alignment.', keywords: 'fight camp timeline phase week peak base intensification taper fight day weigh in countdown competition tournament', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', tab: 'train' },
       { id: 'movement_library', label: 'Exercise Library', desc: 'Browse & add exercises', longDesc: 'Searchable exercise database with form cues, muscle targets, and alternatives. Add custom exercises not in the database.', keywords: 'exercise library reference form cues movement muscles custom add', icon: BookOpen, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400', tab: 'train' },
       { id: 'knowledge_hub', label: 'Knowledge', desc: 'Science-backed articles', longDesc: 'Curated library of science-backed articles on strength, nutrition, recovery, and combat sports training.', keywords: 'articles knowledge learn science research evidence based study insights', icon: BookMarked, color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-400', tab: 'train' },
-      { id: 'competition', label: 'Fight Prep', desc: 'Peak, cut, taper', longDesc: 'Competition peaking with taper protocols, weight cut management, rehydration plans, and fight-day fueling.', keywords: 'meet competition event peak taper fight tournament weigh in weight cut rehydrate refeed combat sport mma boxing muay thai', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', tab: 'train' },
+      { id: 'competition', label: 'Fight Prep', desc: 'Peak, cut, taper', longDesc: 'Competition peaking with taper protocols, weight cut management, rehydration plans and fight-day fueling — plus the camp timeline and camp nutrition, one tap away.', keywords: 'meet competition event peak taper fight tournament weigh in weight cut rehydrate refeed combat sport mma boxing muay thai camp timeline phase countdown fight camp nutrition', icon: Swords, color: 'from-red-500/20 to-red-500/5 text-red-400', tab: 'train' },
     ],
   },
   {
@@ -307,7 +306,7 @@ export default function ExploreTab({ onNavigate, filterTab, compact = false }: E
   // ─── "Right Now" context computation ───
   const rightNowSuggestions = useMemo(() => {
     const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
+    const todayStr = localDayKey(now);
 
     // Hours since last workout
     const allSessions = [
@@ -322,7 +321,7 @@ export default function ExploreTab({ onNavigate, filterTab, compact = false }: E
     // Has trained today
     const hasTrainedToday = allSessions.some(t => {
       const d = new Date(t);
-      return d.toISOString().slice(0, 10) === todayStr;
+      return localDayKey(d) === todayStr;
     });
 
     // Active injuries
@@ -350,7 +349,7 @@ export default function ExploreTab({ onNavigate, filterTab, compact = false }: E
     const mealsLoggedToday = (meals ?? []).filter(m => {
       if (m._deleted) return false;
       const d = new Date(m.date);
-      return d.toISOString().slice(0, 10) === todayStr;
+      return localDayKey(d) === todayStr;
     }).length;
 
     // Is rest day — heuristic: if user hasn't trained and hoursSinceLastWorkout > 20,
@@ -571,7 +570,7 @@ export default function ExploreTab({ onNavigate, filterTab, compact = false }: E
                 <tool.icon className="w-4 h-4 flex-shrink-0" />
                 <div className="text-left min-w-0">
                   <p className="text-xs font-semibold text-grappler-100">{tool.label}</p>
-                  <p className="text-[10px] text-grappler-400 truncate">{tool.desc}</p>
+                  <p className="text-[11px] text-grappler-400 truncate">{tool.desc}</p>
                 </div>
               </button>
             ))}

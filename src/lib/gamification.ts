@@ -1033,6 +1033,8 @@ export function calculateStreak(
   workoutLogs: WorkoutLog[],
   trainingSessions?: TrainingSession[],
   quickLogs?: QuickLog[],
+  /** Local day keys where a streak shield was spent: the gap BEFORE such a day is forgiven. */
+  shieldDays?: string[],
 ): number {
   workoutLogs = active(workoutLogs);
   if (trainingSessions) trainingSessions = active(trainingSessions);
@@ -1080,9 +1082,13 @@ export function calculateStreak(
   let streak = 1;
   let cursor = sortedDates[0];
 
+  // Shields bridge a gap: the day the shield was spent keeps its link to the
+  // activity before it, so later recalculations (mat log, mobility, reload)
+  // don't silently undo a shield that was already used.
+  const shielded = new Set(shieldDays ?? []);
   for (let i = 1; i < sortedDates.length; i++) {
     const gap = Math.round((cursor - sortedDates[i]) / DAY_MS);
-    if (gap <= 2) {
+    if (gap <= 2 || shielded.has(localDayKey(new Date(cursor)))) {
       streak++;
       cursor = sortedDates[i];
     } else {

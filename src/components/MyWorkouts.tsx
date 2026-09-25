@@ -136,7 +136,7 @@ export default function MyWorkouts({
                     <p className="text-sm font-semibold text-grappler-100 truncate flex items-center gap-1.5">
                       {w.name}
                       {isToday && (
-                        <span className="text-[9px] font-bold uppercase tracking-wide text-primary-300 bg-primary-500/20 px-1.5 py-0.5 rounded">
+                        <span className="text-[11px] font-bold uppercase tracking-wide text-primary-300 bg-primary-500/20 px-1.5 py-0.5 rounded">
                           Today
                         </span>
                       )}

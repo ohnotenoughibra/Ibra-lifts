@@ -1,14 +1,12 @@
 # ACTIVE: Workouts / Swap / Live / UX overhaul (2026-09-24)
 
 Plan: `tasks/plan-2026-09-24-workouts-ux.md` · Audit: `tasks/audit-2026-09-24-workouts.md`
-Shipped locally through v2.21.0 (2026-09-25; 2.21: mat-aware week, Train tab planning overhaul — week view, move sessions, week layout, scoped block edits, block organising — and generator intensity fix; 2.20: open exercise library + swap engine, sync row lock): phases 0–4, live-workout QoL, air bike & sprints, full-app audit fixes (data, science, UX).
+Shipped locally through v2.22.0 (2026-09-25; 2.22: push reminders via cron, generator rotation + small-kit library fill, UI pass, HRV/streak/weight-trend/day-key fixes, ActiveWorkout split; 2.21: mat-aware week, Train tab planning overhaul — week view, move sessions, week layout, scoped block edits, block organising — and generator intensity fix; 2.20: open exercise library + swap engine, sync row lock): phases 0–4, live-workout QoL, air bike & sprints, full-app audit fixes (data, science, UX).
 Still open (known, not yet fixed):
-- Push notifications: plumbing exists (SW push handler, /api/push, VAPID) but nothing sends while the app is closed — needs a Vercel Cron sender.
-- e2e: onboarding sometimes lands on the sign-up link screen (≈1 in 35 tests) — harden the helper.
-- Plan phases: generator slot variety (library is search/swap-only for now), data-driven templates, ActiveWorkout split, UX shell (one sheet header, 12px/44px minimums, 4 tabs).
+- Push reminders: set VAPID keys + CRON_SECRET (Vercel) and APP_URL + CRON_SECRET (GitHub secrets); verify on a real iPhone Home Screen install.
+- Plan phases: data-driven templates; ActiveWorkout could shrink further (live set logging block is still inline).
 - Server: Whoop OAuth state fails open (iOS PWA cookie jars make a server check risky — needs device testing), /api/whoop/data has no auth, localStorage backup + unbounded arrays.
-- Science: HRV CV on ln(rMSSD) with 7-day mean; streak shield bridging; DietCoach weekly change by date windows; UTC day keys in a few components.
-- UX: one header style for all tools; merge Fight Prep / Camp Timeline; Quick Access empty slots; "0g" chip on Today.
+- UX: one header style for all tools (sheets done; full-screen tools still vary).
 
 ---
 

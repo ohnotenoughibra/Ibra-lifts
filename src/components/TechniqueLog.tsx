@@ -95,7 +95,7 @@ export default function TechniqueLog({ onClose }: Props) {
                       <div className="text-sm font-bold text-white truncate">{p.technique}</div>
                       <div className="text-[11px] text-grappler-500">{cat?.label}</div>
                     </div>
-                    <span className="text-[10px] uppercase tracking-[0.18em] text-grappler-400 whitespace-nowrap">
+                    <span className="text-[11px] uppercase tracking-[0.18em] text-grappler-400 whitespace-nowrap">
                       {tierLabel(tier)}
                     </span>
                   </div>
@@ -118,7 +118,7 @@ export default function TechniqueLog({ onClose }: Props) {
               <div key={e.id} className="flex items-center justify-between py-1.5 border-b border-grappler-800 last:border-0 text-xs">
                 <div className="min-w-0 flex-1">
                   <div className="text-white truncate">{e.technique}</div>
-                  <div className="text-grappler-500 text-[10px] font-mono tabular-nums">
+                  <div className="text-grappler-500 text-[11px] font-mono tabular-nums">
                     {new Date(e.date).toLocaleDateString()} · {e.reps} reps {e.withResistance ? '· w/ resistance' : ''}
                   </div>
                 </div>
@@ -210,7 +210,7 @@ function LogView({ onBack, onLog }: {
             </button>
           ))}
         </div>
-        <p className="text-[10px] text-grappler-500 mt-2">{TECHNIQUE_CATEGORIES.find(c => c.id === category)?.example}</p>
+        <p className="text-[11px] text-grappler-500 mt-2">{TECHNIQUE_CATEGORIES.find(c => c.id === category)?.example}</p>
       </Section>
 
       <Section title="Reps">

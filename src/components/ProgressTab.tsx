@@ -33,7 +33,7 @@ import {
   Swords,
   Medal,
 } from 'lucide-react';
-import { cn, formatNumber } from '@/lib/utils';
+import { cn, formatNumber, localDayKey } from '@/lib/utils';
 import { useComputedGamification } from '@/lib/computed-gamification';
 import type { WorkoutLog, GamificationStats, TrainingSession } from '@/lib/types';
 import { getExerciseById } from '@/lib/exercises';
@@ -137,7 +137,7 @@ function TodaySnapshot({
 
   return (
     <div className="rounded-lg bg-grappler-900/40 border border-grappler-800 p-4">
-      <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
+      <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
         This Week
       </div>
       <div className="grid grid-cols-4 gap-3">
@@ -158,9 +158,9 @@ function TodaySnapshot({
 function SnapshotCell({ label, value, subtext, accent }: { label: string; value: string; subtext: string; accent: string }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-grappler-500">{label}</div>
+      <div className="text-[11px] uppercase tracking-wider text-grappler-500">{label}</div>
       <div className={cn('text-xl font-bold font-mono leading-tight', accent)}>{value}</div>
-      <div className="text-[10px] text-grappler-500">{subtext}</div>
+      <div className="text-[11px] text-grappler-500">{subtext}</div>
     </div>
   );
 }
@@ -230,7 +230,7 @@ function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]
       <h3 className="text-sm font-semibold text-grappler-200 mb-3 flex items-center gap-2">
         <TrendingUp className="w-4 h-4 text-accent-400" />
         Estimated 1RM
-        <span className="text-[9px] text-grappler-600 ml-auto">Tap to set goal</span>
+        <span className="text-[11px] text-grappler-600 ml-auto">Tap to set goal</span>
       </h3>
       <div className="grid grid-cols-2 gap-3">
         {trends.map((lift) => {
@@ -268,7 +268,7 @@ function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]
               {/* Goal progress bar */}
               {goal && !goalReached && goalPct !== null && (
                 <div className="mt-1.5">
-                  <div className="flex justify-between text-[9px] text-grappler-500 mb-0.5">
+                  <div className="flex justify-between text-[11px] text-grappler-500 mb-0.5">
                     <span>Goal: {goal} {weightUnit}</span>
                     <span>{goalPct}%</span>
                   </div>
@@ -278,7 +278,7 @@ function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]
                 </div>
               )}
               {goalReached && (
-                <p className="text-[9px] text-green-400 font-semibold mt-1">Goal reached!</p>
+                <p className="text-[11px] text-green-400 font-semibold mt-1">Goal reached!</p>
               )}
 
               {/* Inline goal editor */}
@@ -752,7 +752,7 @@ function HardMetricsCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
             </span>
           </div>
           <p className="text-xs text-grappler-500 font-medium">Strength</p>
-          <p className={cn('text-[9px] font-semibold',
+          <p className={cn('text-[11px] font-semibold',
             strengthTrend.direction === 'up' ? 'text-green-500' :
             strengthTrend.direction === 'down' ? 'text-red-500' : 'text-grappler-500'
           )}>{strengthTrend.label}</p>
@@ -764,7 +764,7 @@ function HardMetricsCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
             {volumeCapacity.pctOfMAV}%
           </p>
           <p className="text-xs text-grappler-500 font-medium">Vol Capacity</p>
-          <p className={cn('text-[9px] font-semibold', getZoneColor(volumeCapacity.zone))}>
+          <p className={cn('text-[11px] font-semibold', getZoneColor(volumeCapacity.zone))}>
             {getZoneLabel(volumeCapacity.zone)}
           </p>
         </div>
@@ -779,7 +779,7 @@ function HardMetricsCard({ workoutLogs }: { workoutLogs: WorkoutLog[] }) {
             {fightReadiness.score}
           </p>
           <p className="text-xs text-grappler-500 font-medium">Readiness</p>
-          <p className={cn('text-[9px] font-semibold',
+          <p className={cn('text-[11px] font-semibold',
             fightReadiness.score >= 80 ? 'text-green-500' :
             fightReadiness.score >= 60 ? 'text-primary-500' :
             fightReadiness.score >= 40 ? 'text-yellow-500' : 'text-red-500'
@@ -870,19 +870,19 @@ function SessionRecapCard() {
         <div className="grid grid-cols-4 gap-1.5 mb-3">
           <div className="text-center bg-grappler-800/40 rounded-lg py-2 px-1">
             <p className="text-sm font-bold text-grappler-100">{log.exercises.length}</p>
-            <p className="text-[9px] text-grappler-500">Exercises</p>
+            <p className="text-[11px] text-grappler-500">Exercises</p>
           </div>
           <div className="text-center bg-grappler-800/40 rounded-lg py-2 px-1">
             <p className="text-sm font-bold text-grappler-100">{formatNumber(log.totalVolume)}</p>
-            <p className="text-[9px] text-grappler-500">Vol ({weightUnit})</p>
+            <p className="text-[11px] text-grappler-500">Vol ({weightUnit})</p>
           </div>
           <div className="text-center bg-grappler-800/40 rounded-lg py-2 px-1">
             <p className="text-sm font-bold text-grappler-100">{log.duration}m</p>
-            <p className="text-[9px] text-grappler-500">Duration</p>
+            <p className="text-[11px] text-grappler-500">Duration</p>
           </div>
           <div className="text-center bg-grappler-800/40 rounded-lg py-2 px-1">
             <p className="text-sm font-bold text-grappler-100">{newStreak}</p>
-            <p className="text-[9px] text-grappler-500">Streak</p>
+            <p className="text-[11px] text-grappler-500">Streak</p>
           </div>
         </div>
 
@@ -1081,19 +1081,19 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
 
   const handleExportCSV = () => {
     const csv = exportToCSV(workoutLogs, weightUnit);
-    const date = new Date().toISOString().split('T')[0];
+    const date = localDayKey();
     downloadFile(csv, `roots-gains-${date}.csv`, 'text/csv');
   };
 
   const handleExportJSON = () => {
     const json = exportToJSON(workoutLogs);
-    const date = new Date().toISOString().split('T')[0];
+    const date = localDayKey();
     downloadFile(json, `roots-gains-${date}.json`, 'application/json');
   };
 
   const handleExportBackup = () => {
     const backup = exportFullBackup();
-    const date = new Date().toISOString().split('T')[0];
+    const date = localDayKey();
     downloadFile(backup, `roots-gains-backup-${date}.json`, 'application/json');
   };
 
@@ -1160,7 +1160,7 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
                 ].map(item => (
                   <div key={item.label} className="bg-grappler-800/40 rounded-xl p-3 text-center ring-1 ring-grappler-700/30">
                     <p className="text-xs font-semibold text-grappler-300">{item.label}</p>
-                    <p className="text-[10px] text-grappler-500 mt-0.5">{item.desc}</p>
+                    <p className="text-[11px] text-grappler-500 mt-0.5">{item.desc}</p>
                   </div>
                 ))}
               </div>
@@ -1219,7 +1219,7 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
                     <Target className="w-4 h-4 text-primary-400" />
                     <div className="text-left">
                       <p className="text-xs font-semibold text-grappler-200">Sticking Points</p>
-                      <p className="text-[10px] text-grappler-500">Weak spots &amp; fixes</p>
+                      <p className="text-[11px] text-grappler-500">Weak spots &amp; fixes</p>
                     </div>
                   </button>
                   <button
@@ -1229,7 +1229,7 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
                     <ArrowUpRight className="w-4 h-4 text-green-400" />
                     <div className="text-left">
                       <p className="text-xs font-semibold text-grappler-200">Overload Tracker</p>
-                      <p className="text-[10px] text-grappler-500">Per-exercise progress</p>
+                      <p className="text-[11px] text-grappler-500">Per-exercise progress</p>
                     </div>
                   </button>
                 </div>

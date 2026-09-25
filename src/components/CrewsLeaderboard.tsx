@@ -209,7 +209,7 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-grappler-100 truncate flex items-center gap-1.5">
                           {m.rank === 1 && <Crown className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />}
-                          {m.displayName}{m.isYou && <span className="text-[10px] text-primary-400">(you)</span>}
+                          {m.displayName}{m.isYou && <span className="text-[11px] text-primary-400">(you)</span>}
                         </p>
                         {m.currentStreak > 0 && (
                           <p className="text-[11px] text-grappler-500 flex items-center gap-1">
@@ -219,7 +219,7 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-black text-grappler-100 tabular-nums leading-none">{m.sessionsThisWeek}</p>
-                        <p className="text-[10px] text-grappler-600">sessions</p>
+                        <p className="text-[11px] text-grappler-600">sessions</p>
                       </div>
                     </div>
                   ))}

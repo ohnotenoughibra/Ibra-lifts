@@ -97,7 +97,7 @@ export default function CoachReport({ onClose }: Props) {
         Copy text
       </button>
 
-      <p className="text-[10px] text-grappler-500 text-center leading-relaxed">
+      <p className="text-[11px] text-grappler-500 text-center leading-relaxed">
         v1: text export. Server-hosted shareable URLs are coming.
       </p>
     </ToolShell>

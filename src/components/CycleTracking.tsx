@@ -1,5 +1,6 @@
 'use client';
 
+import { localDayKey } from '@/lib/utils';
 import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -45,7 +46,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
   const [symptoms, setSymptoms] = useState<CycleSymptom[]>([]);
   const [energy, setEnergy] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [notes, setNotes] = useState('');
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState(() => localDayKey());
 
   const profile = useMemo<CycleProfile>(() => buildCycleProfile(cycleLogs), [cycleLogs]);
   const adjustments = useMemo<PhaseAdjustment>(() => {
@@ -71,7 +72,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
     };
     addCycleLog(log);
     setSymptoms([]); setEnergy(3); setNotes('');
-    setStartDate(new Date().toISOString().slice(0, 10));
+    setStartDate(localDayKey());
     setFormOpen(false);
   }, [startDate, phase, symptoms, energy, notes, addCycleLog]);
 
@@ -337,10 +338,10 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
                     </div>
                     {confirmDeleteId === log.id ? (
                       <div className="flex items-center gap-1 shrink-0">
-                        <button onClick={() => { deleteCycleLog(log.id); setConfirmDeleteId(null); }} className="p-0.5 rounded bg-red-500/20 text-red-400 text-[10px]" title="Confirm delete">
+                        <button onClick={() => { deleteCycleLog(log.id); setConfirmDeleteId(null); }} className="p-0.5 rounded bg-red-500/20 text-red-400 text-[11px]" title="Confirm delete">
                           yes
                         </button>
-                        <button onClick={() => setConfirmDeleteId(null)} className="p-0.5 text-[10px] text-grappler-400 hover:text-grappler-200">
+                        <button onClick={() => setConfirmDeleteId(null)} className="p-0.5 text-[11px] text-grappler-400 hover:text-grappler-200">
                           no
                         </button>
                       </div>

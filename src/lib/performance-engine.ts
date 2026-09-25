@@ -508,7 +508,7 @@ function assessAge(user: UserProfile | null): ReadinessFactor {
   return base;
 }
 
-function assessHRV(
+export function assessHRV(
   latest: WearableData | null,
   history: WearableData[]
 ): ReadinessFactor {
@@ -525,45 +525,47 @@ function assessHRV(
   base.available = true;
   const currentHRV = latest.hrv;
 
-  // Calculate rolling baseline from history (SWC = Smallest Worthwhile Change)
-  // Kiviniemi 2007: HRV-guided training leads to better outcomes
-  if (history.length >= 3) {
-    const hrvValues = history
-      .filter(d => d.hrv != null)
-      .map(d => d.hrv!);
+  // HRV is log-normal, so everything is done on ln(rMSSD) (Plews et al. 2012/2013;
+  // Buchheit 2014): the 7-day rolling mean is compared with the athlete's 30-day
+  // baseline ± SWC (0.5 × SD), and the 7-day CV of ln(rMSSD) flags instability.
+  // A single morning is noisy — the rolling mean is what's compared.
+  const series = history
+    .filter(d => d.hrv != null && d.hrv > 0)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map(d => Math.log(d.hrv!));
+  if (!history.some(d => d.hrv === currentHRV && new Date(d.date).getTime() === new Date(latest.date).getTime()) && currentHRV > 0) {
+    series.push(Math.log(currentHRV)); // today's reading, if history doesn't have it yet
+  }
+  if (series.length >= 7) {
+    const mean = (xs: number[]) => xs.reduce((s, v) => s + v, 0) / xs.length;
+    const sd = (xs: number[]) => { const m = mean(xs); return Math.sqrt(xs.reduce((s, v) => s + (v - m) ** 2, 0) / Math.max(1, xs.length - 1)); };
+    const week = series.slice(-7);
+    const baseline = series.slice(-30);
+    const weekMean = mean(week);
+    const baseMean = mean(baseline);
+    // Floor: real ln(rMSSD) day-to-day SD is rarely under ~0.1 — a too-tidy baseline would make one bad morning look alarming
+    const baseSd = Math.max(0.1, sd(baseline));
+    const swc = 0.5 * baseSd;
+    const deviation = weekMean - baseMean;
+    const cv = (sd(week) / weekMean) * 100;
+    const weekMs = Math.round(Math.exp(weekMean));
 
-    if (hrvValues.length >= 3) {
-      const mean = hrvValues.reduce((s, v) => s + v, 0) / hrvValues.length;
-      const stdDev = Math.sqrt(
-        hrvValues.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / hrvValues.length
-      );
-      const cv = (stdDev / mean) * 100;
-
-      // SWC: ±0.5 SD from baseline
-      const swc = stdDev * 0.5;
-      const deviation = currentHRV - mean;
-
-      if (deviation > swc) {
-        // Above baseline — parasympathetic dominance → ready to train
-        base.score = Math.min(100, 75 + Math.round((deviation / stdDev) * 15));
-        base.detail = `HRV ${currentHRV}ms (+${deviation.toFixed(0)} above baseline)`;
-      } else if (deviation < -swc) {
-        // Below baseline — sympathetic dominance → reduce load
-        base.score = Math.max(20, 65 + Math.round((deviation / stdDev) * 15));
-        base.detail = `HRV ${currentHRV}ms (${deviation.toFixed(0)} below baseline)`;
-      } else {
-        base.score = 70;
-        base.detail = `HRV ${currentHRV}ms (within normal range)`;
-      }
-
-      // CV > 15% = overreaching signal (Plews et al. 2013)
-      if (cv > 15) {
-        base.score = Math.max(20, base.score - 15);
-        base.detail += ` | CV ${cv.toFixed(0)}% (instability)`;
-      }
-
-      return base;
+    if (deviation > swc) {
+      base.score = Math.min(100, 75 + Math.round((deviation / baseSd) * 10));
+      base.detail = `HRV 7-day avg ${weekMs}ms — above your baseline`;
+    } else if (deviation < -swc) {
+      base.score = Math.max(20, 65 + Math.round((deviation / baseSd) * 15));
+      base.detail = `HRV 7-day avg ${weekMs}ms — below your baseline`;
+    } else {
+      base.score = 70;
+      base.detail = `HRV 7-day avg ${weekMs}ms — within your normal range`;
     }
+    // Day-to-day swings in ln(rMSSD) above ~10 % mean the system is unsettled
+    if (cv > 10) {
+      base.score = Math.max(20, base.score - 10);
+      base.detail += ` | swinging day to day (CV ${cv.toFixed(0)}%)`;
+    }
+    return base;
   }
 
   // No baseline — use absolute HRV values (less accurate, population-based)

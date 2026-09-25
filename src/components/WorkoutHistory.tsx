@@ -516,19 +516,19 @@ export default function WorkoutHistory() {
                   <div className="grid grid-cols-4 gap-2 mb-3">
                     <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
                       <p className="text-sm font-bold text-grappler-100">{totalSessions}</p>
-                      <p className="text-[10px] text-grappler-500 uppercase">Sessions</p>
+                      <p className="text-[11px] text-grappler-500 uppercase">Sessions</p>
                     </div>
                     <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
                       <p className="text-sm font-bold text-grappler-100">{formatNumber(Math.round(totalVol))}</p>
-                      <p className="text-[10px] text-grappler-500 uppercase">{weightUnit}</p>
+                      <p className="text-[11px] text-grappler-500 uppercase">{weightUnit}</p>
                     </div>
                     <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
                       <p className="text-sm font-bold text-grappler-100">{avgRPE}</p>
-                      <p className="text-[10px] text-grappler-500 uppercase">Avg RPE</p>
+                      <p className="text-[11px] text-grappler-500 uppercase">Avg RPE</p>
                     </div>
                     <div className="bg-grappler-800/50 rounded-lg p-2 text-center">
                       <p className="text-sm font-bold text-primary-400">{prs}</p>
-                      <p className="text-[10px] text-grappler-500 uppercase">PRs</p>
+                      <p className="text-[11px] text-grappler-500 uppercase">PRs</p>
                     </div>
                   </div>
 

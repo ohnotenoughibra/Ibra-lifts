@@ -127,7 +127,7 @@ export default function WeekAgenda({
                     data-testid={`move-to-${d}`}
                   >
                     {DAY_SHORT[d]}
-                    <span className="text-[9px] font-normal text-grappler-400">{occupant ? '⇄' : hardMat.has(d) ? 'mat' : ''}</span>
+                    <span className="text-[11px] font-normal text-grappler-400">{occupant ? '⇄' : hardMat.has(d) ? 'mat' : ''}</span>
                   </button>
                 );
               })}
@@ -165,7 +165,7 @@ export default function WeekAgenda({
             <p className="text-xs font-bold text-grappler-100" data-testid="agenda-week-label">
               Week {week.weekNumber}{week.isDeload ? ' · Deload' : ''}
             </p>
-            <p className="text-[10px] text-grappler-400">{isNowWeek ? 'this week · ' : ''}{done}/{week.sessions.length} done</p>
+            <p className="text-[11px] text-grappler-400">{isNowWeek ? 'this week · ' : ''}{done}/{week.sessions.length} done</p>
           </div>
           <button
             onClick={() => { setPos(p => Math.min(sorted.length - 1, p + 1)); setMoving(null); }}
@@ -186,7 +186,7 @@ export default function WeekAgenda({
             <div key={r.day} className={cn('flex items-start gap-2 py-1.5', isToday && 'bg-primary-500/[0.06] -mx-3 px-3')} data-testid={`agenda-day-${r.day}`}>
               <div className="w-10 pt-2 flex-shrink-0">
                 <p className={cn('text-xs font-bold', isToday ? 'text-primary-300' : 'text-grappler-300')}>{DAY_SHORT[r.day]}</p>
-                {isToday && <p className="text-[9px] uppercase font-bold text-primary-400">today</p>}
+                {isToday && <p className="text-[11px] uppercase font-bold text-primary-400">today</p>}
               </div>
               <div className="flex-1 min-w-0 space-y-1">
                 {r.sessions.map(s => sessionRow(s, r.day))}

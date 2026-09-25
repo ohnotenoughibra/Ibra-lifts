@@ -94,6 +94,7 @@ export default function NotificationSettings() {
             enabled: true,
             pushEnabled: true,
             pushSubscription: subscriptionData,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           });
           showToast('Push notifications enabled!', 'success');
         } else {

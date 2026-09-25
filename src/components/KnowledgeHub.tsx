@@ -436,7 +436,7 @@ function DifficultyBadge({ difficulty }: { difficulty: string }) {
   const config = DIFFICULTY_CONFIG[difficulty as keyof typeof DIFFICULTY_CONFIG];
   if (!config) return null;
   return (
-    <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-md border', config.color)}>
+    <span className={cn('text-[11px] font-semibold px-1.5 py-0.5 rounded-md border', config.color)}>
       {config.label}
     </span>
   );

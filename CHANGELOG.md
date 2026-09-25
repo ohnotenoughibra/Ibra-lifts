@@ -3,6 +3,30 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.22.0] - 2026-09-25
+
+**Reminders that arrive while the app is closed, fresher blocks, and a round of fixes to the numbers behind readiness, streaks and weight trend.**
+
+### Added
+- **Push reminders while the app is closed** — lift day (names today's session and flags hard mats), streak nudge from 19:00 (streak ≥ 3, nothing logged), fight week at 7 days out. Sent in your own time zone, never 22:00–07:00, each at most once a day. Needs VAPID keys + `CRON_SECRET` in Vercel and `APP_URL` + `CRON_SECRET` as GitHub Actions secrets (the hourly trigger is `.github/workflows/notify-cron.yml`).
+
+### Changed
+- **Blocks rotate accessories** — a new block swaps out most of the last block's accessory lifts; main lifts can carry over.
+- **Small kits get real lifts** — with home/minimal equipment, a movement with too few options borrows a lift from the open library that fits your gear, and lifts that use the equipment you own are preferred (you can load them). Full gym stays on the curated set.
+- **Fight Prep is the one fight-camp home** — camp timeline and camp nutrition one tap away.
+- **Quick Access** — an empty dock suggests starter tools instead of blank slots.
+- **Tap targets and text** — every icon button has a 44 × 44 hit area; no text below 11 px.
+
+### Fixed
+- **HRV readiness** — uses the 7-day mean of ln(rMSSD) against your 30-day baseline and day-to-day variation on the log scale; one bad morning no longer drops readiness.
+- **Streak shields** — a spent shield kept disappearing on the next recalculation (mat log, mobility, reload); it now stays.
+- **Weekly weight change** — compares calendar weeks (was the last 7 weigh-ins vs the 7 before); deleted weigh-ins ignored, same-day weigh-ins averaged.
+- **Day boundaries** — Explore, Illness, Cycle, Diet Coach, Journal and Progress used UTC dates; late-evening entries could land on the wrong day.
+- Onboarding disclaimer is a real checkbox for screen readers.
+
+### Internal
+- `ActiveWorkout.tsx` split from 4,816 to 2,986 lines (overview, finish, volume-gap, rest tips, add-exercise, history, plate calculator in `components/active-workout/`) with no behavior change.
+
 ## [2.21.0] - 2026-09-25
 
 **Plan your week like a week: sessions on real days, mats alongside, move anything, edit the rest of the block in one go — and a generator that stops starting you at RPE 9.5.**

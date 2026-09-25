@@ -136,7 +136,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
 
               {/* Points */}
               <p className={cn(
-                'text-[9px] mt-0.5',
+                'text-[11px] mt-0.5',
                 badge.earned ? 'text-yellow-400' : 'text-grappler-700'
               )}>
                 {badge.points} pts

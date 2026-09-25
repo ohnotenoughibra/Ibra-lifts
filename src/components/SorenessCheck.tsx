@@ -557,7 +557,7 @@ export default function SorenessCheck({ context, isCombatAthlete = true, onDismi
           <div className="space-y-1">
             {sessionPlan.slice(currentDrillIndex + 1, currentDrillIndex + 3).map((d, i) => (
               <div key={d.name + i} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-grappler-800/30">
-                <div className="w-4 h-4 rounded bg-grappler-700/50 flex items-center justify-center text-[9px] text-grappler-500 font-bold">
+                <div className="w-4 h-4 rounded bg-grappler-700/50 flex items-center justify-center text-[11px] text-grappler-500 font-bold">
                   {currentDrillIndex + i + 2}
                 </div>
                 <p className="text-xs text-grappler-400 flex-1 truncate">{d.name}</p>

@@ -147,20 +147,20 @@ export default function CampTimeline({ onClose }: Props) {
                     <span className={cn('text-sm', isCurrent ? 'text-white font-bold' : 'text-grappler-300')}>
                       {t.label}
                     </span>
-                    <span className="text-[10px] font-mono tabular-nums text-grappler-500">
+                    <span className="text-[11px] font-mono tabular-nums text-grappler-500">
                       {t.daysFrom > 0 ? `D-${t.daysFrom} → D-${t.daysTo}` : t.phase === 'fight_day' ? 'D-0' : 'post'}
                     </span>
                   </div>
                   <p className="text-[11px] text-grappler-500 leading-snug">{t.description}</p>
                 </div>
-                {isCurrent && <span className="text-[10px] uppercase tracking-[0.18em] text-white mt-1">Now</span>}
+                {isCurrent && <span className="text-[11px] uppercase tracking-[0.18em] text-white mt-1">Now</span>}
               </div>
             );
           })}
         </div>
       </Section>
 
-      <p className="text-[10px] text-grappler-500 text-center px-4 leading-relaxed">
+      <p className="text-[11px] text-grappler-500 text-center px-4 leading-relaxed">
         Camp phases drive training volume, nutrition macros, supplements, and deload alignment automatically across the app.
       </p>
     </ToolShell>

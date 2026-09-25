@@ -973,13 +973,13 @@ function VolumeZoneBar({
 
       {/* Landmark numbers */}
       <div className="relative h-3 mt-0.5">
-        <span className="absolute text-[10px] text-grappler-500 tabular-nums" style={{ left: `${mevPct}%`, transform: 'translateX(-50%)' }}>
+        <span className="absolute text-[11px] text-grappler-500 tabular-nums" style={{ left: `${mevPct}%`, transform: 'translateX(-50%)' }}>
           {mev}
         </span>
-        <span className="absolute text-[10px] text-grappler-500 tabular-nums" style={{ left: `${mavPct}%`, transform: 'translateX(-50%)' }}>
+        <span className="absolute text-[11px] text-grappler-500 tabular-nums" style={{ left: `${mavPct}%`, transform: 'translateX(-50%)' }}>
           {mav}
         </span>
-        <span className="absolute text-[10px] text-grappler-500 tabular-nums" style={{ left: `${mrvPct}%`, transform: 'translateX(-50%)' }}>
+        <span className="absolute text-[11px] text-grappler-500 tabular-nums" style={{ left: `${mrvPct}%`, transform: 'translateX(-50%)' }}>
           {mrv}
         </span>
       </div>

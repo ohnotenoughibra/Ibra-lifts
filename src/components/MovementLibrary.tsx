@@ -452,7 +452,7 @@ function ExerciseDetailPanel({
                   <div className="flex items-center gap-1 mb-1.5">
                     <span
                       className={cn(
-                        'px-1.5 py-0.5 rounded text-[9px] font-semibold border',
+                        'px-1.5 py-0.5 rounded text-[11px] font-semibold border',
                         CATEGORY_COLORS[ex.category]
                       )}
                     >
@@ -463,7 +463,7 @@ function ExerciseDetailPanel({
                     {ex.primaryMuscles.slice(0, 2).map((m) => (
                       <span
                         key={m}
-                        className="text-[9px] text-grappler-400 font-medium"
+                        className="text-[11px] text-grappler-400 font-medium"
                       >
                         {formatLabel(m)}
                       </span>

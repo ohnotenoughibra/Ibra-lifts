@@ -139,22 +139,22 @@ export default function PostWorkoutPhase({
           <div className="bg-grappler-900/60 border border-grappler-700/40 rounded-xl p-2.5 text-center">
             <Dumbbell className="w-3.5 h-3.5 text-primary-400 mx-auto mb-0.5" />
             <p className="text-base font-black text-grappler-100">{formatNumber(blockStats.totalVolume)}</p>
-            <p className="text-[10px] text-grappler-500 uppercase">{weightUnit}</p>
+            <p className="text-[11px] text-grappler-500 uppercase">{weightUnit}</p>
           </div>
           <div className="bg-grappler-900/60 border border-grappler-700/40 rounded-xl p-2.5 text-center">
             <Trophy className="w-3.5 h-3.5 text-yellow-400 mx-auto mb-0.5" />
             <p className="text-base font-black text-grappler-100">{blockStats.totalPRs}</p>
-            <p className="text-[10px] text-grappler-500 uppercase">PRs</p>
+            <p className="text-[11px] text-grappler-500 uppercase">PRs</p>
           </div>
           <div className="bg-grappler-900/60 border border-grappler-700/40 rounded-xl p-2.5 text-center">
             <Flame className="w-3.5 h-3.5 text-orange-400 mx-auto mb-0.5" />
             <p className="text-base font-black text-grappler-100">{blockStats.avgRPE}</p>
-            <p className="text-[10px] text-grappler-500 uppercase">RPE</p>
+            <p className="text-[11px] text-grappler-500 uppercase">RPE</p>
           </div>
           <div className="bg-grappler-900/60 border border-grappler-700/40 rounded-xl p-2.5 text-center">
             <Calendar className="w-3.5 h-3.5 text-blue-400 mx-auto mb-0.5" />
             <p className="text-base font-black text-grappler-100">{durationStr}</p>
-            <p className="text-[10px] text-grappler-500 uppercase">Time</p>
+            <p className="text-[11px] text-grappler-500 uppercase">Time</p>
           </div>
         </motion.div>
 
@@ -191,7 +191,7 @@ export default function PostWorkoutPhase({
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-grappler-600 mt-1.5">Estimated 1RM ({weightUnit})</p>
+            <p className="text-[11px] text-grappler-600 mt-1.5">Estimated 1RM ({weightUnit})</p>
           </motion.div>
         )}
 
@@ -432,20 +432,20 @@ export default function PostWorkoutPhase({
       >
         <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
           <p className="text-lg font-black text-grappler-100">{formatNumber(todayPerformance.totalVolume)}</p>
-          <p className="text-[10px] text-grappler-500 uppercase">{weightUnit}</p>
+          <p className="text-[11px] text-grappler-500 uppercase">{weightUnit}</p>
         </div>
         <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
           <p className="text-lg font-black text-grappler-100">{todayPerformance.totalSets}</p>
-          <p className="text-[10px] text-grappler-500 uppercase">Sets</p>
+          <p className="text-[11px] text-grappler-500 uppercase">Sets</p>
         </div>
         <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
           <p className="text-lg font-black text-grappler-100">{todayPerformance.avgRPE > 0 ? todayPerformance.avgRPE : '—'}</p>
-          <p className="text-[10px] text-grappler-500 uppercase">RPE</p>
+          <p className="text-[11px] text-grappler-500 uppercase">RPE</p>
         </div>
         {durationMin > 0 && (
           <div className="bg-grappler-800/60 rounded-xl p-2.5 text-center">
             <p className="text-lg font-black text-grappler-100">{durationMin}</p>
-            <p className="text-[10px] text-grappler-500 uppercase">Min</p>
+            <p className="text-[11px] text-grappler-500 uppercase">Min</p>
           </div>
         )}
       </motion.div>

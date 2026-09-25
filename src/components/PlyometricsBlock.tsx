@@ -174,7 +174,7 @@ function SetupView({ onClose, onCreate, onShowRSI }: {
           selected={String(sessionsPerWeek)}
           onSelect={(v) => setSessionsPerWeek(Number(v))}
         />
-        <p className="text-[10px] text-grappler-500 mt-2 leading-relaxed">
+        <p className="text-[11px] text-grappler-500 mt-2 leading-relaxed">
           Combat athletes can&apos;t recover from 4+ plyo sessions/week alongside sport practice.
         </p>
       </Section>
@@ -450,7 +450,7 @@ function RSIView({ onBack, onClose }: { onBack: () => void; onClose: () => void 
       <Section title="Inputs">
         <div className="space-y-3">
           <div>
-            <label className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Jump height (m)</label>
+            <label className="text-[11px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Jump height (m)</label>
             <input
               type="number" inputMode="decimal" enterKeyHint="done" step="0.01" min={0} max={1.5}
               value={height}
@@ -459,7 +459,7 @@ function RSIView({ onBack, onClose }: { onBack: () => void; onClose: () => void 
             />
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Ground contact time (s)</label>
+            <label className="text-[11px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Ground contact time (s)</label>
             <input
               type="number" inputMode="decimal" enterKeyHint="done" step="0.01" min={0.05} max={1}
               value={contactTime}

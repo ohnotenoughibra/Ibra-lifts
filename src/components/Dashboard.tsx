@@ -230,6 +230,16 @@ export default function Dashboard({
 
   // Imported exercise library (search/swap) loads after first paint.
   useEffect(() => { void loadExerciseLibrary(); }, []);
+  // Keep the saved time zone current (travel, DST-zone change) so server-sent
+  // reminders arrive at local times. Only matters once push is on.
+  useEffect(() => {
+    const s = useAppStore.getState();
+    const prefs = s.notificationPreferences;
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (prefs?.pushEnabled && tz && prefs.timeZone !== tz) s.setNotificationPreferences({ timeZone: tz });
+    } catch { /* no Intl zone support — server falls back to UTC */ }
+  }, []);
 
   // ── Morning Ritual — once-per-day readiness reveal ──
   const [showMorningRitual, setShowMorningRitual] = useState(false);
@@ -520,7 +530,7 @@ export default function Dashboard({
       builder: <WorkoutBuilder onClose={closeOverlay} editTemplateId={overlayContext} />,
       nutrition: <NutritionTracker onClose={closeOverlay} />,
       wearable: <WearableIntegration onClose={closeOverlay} />,
-      competition: <CompetitionPrep onClose={closeOverlay} />,
+      competition: <CompetitionPrep onClose={closeOverlay} onNavigate={v => setOverlayView(v)} />,
       mobility: <MobilityWorkouts onClose={closeOverlay} />,
       coach: <WeeklyCoach onClose={closeOverlay} />,
       strength: <StrengthAnalysis onClose={closeOverlay} />,
@@ -768,7 +778,7 @@ export default function Dashboard({
                   <div className="font-display font-black text-lg leading-none tracking-tight text-white">
                     IBRA / LIFTS<span className="text-primary-500">.</span>
                   </div>
-                  <p className="text-[10px] uppercase tracking-wider text-grappler-500">{getLevelTitle(computed.level)}</p>
+                  <p className="text-[11px] uppercase tracking-wider text-grappler-500">{getLevelTitle(computed.level)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {/* Streak — the hero motivator */}

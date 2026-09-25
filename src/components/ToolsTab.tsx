@@ -114,7 +114,7 @@ export default function ToolsTab({ onNavigate }: Props) {
     <div className="px-4 pt-4 pb-nav max-w-2xl mx-auto">
       {/* Editorial header */}
       <header className="mb-5">
-        <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
+        <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
           IBRA / TOOLS
         </div>
         <h1 className="font-display text-4xl md:text-5xl font-black tracking-tight leading-none text-white mb-3">
@@ -215,7 +215,7 @@ function SectionHeader({ children, icon: Icon }: { children: React.ReactNode; ic
   return (
     <div className="flex items-center gap-1.5 mb-2">
       {Icon && <Icon className="w-3.5 h-3.5 text-grappler-400" />}
-      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-grappler-400">{children}</span>
+      <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-grappler-400">{children}</span>
     </div>
   );
 }
@@ -249,7 +249,7 @@ function QuickAction({ icon: Icon, label, onTap, accent }: { icon: React.Compone
       className="flex flex-col items-center gap-1 p-3 rounded-lg border border-grappler-800 bg-grappler-900/60 hover:border-grappler-700 active:scale-95 transition"
     >
       <Icon className={cn('w-5 h-5', accent)} />
-      <span className="text-[10px] font-medium text-grappler-200 uppercase tracking-wider">{label}</span>
+      <span className="text-[11px] font-medium text-grappler-200 uppercase tracking-wider">{label}</span>
     </button>
   );
 }

@@ -258,7 +258,7 @@ function Step1_AboutYou({
     <div className="space-y-5">
       {/* Editorial brutalist intro: oversize wordmark + tight hairline rule */}
       <div className="mb-2">
-        <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
+        <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
           Ibra Lifts · 01
         </div>
         <h2 className="font-display text-5xl md:text-6xl font-black tracking-tight leading-none text-white mb-3">
@@ -667,7 +667,7 @@ function Step2_ScheduleAndGo({
   return (
     <div className="space-y-5">
       <div className="mb-2">
-        <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
+        <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
           Ibra Lifts · 02
         </div>
         <h2 className="font-display text-5xl md:text-6xl font-black tracking-tight leading-none text-white mb-3">
@@ -730,6 +730,8 @@ function Step2_ScheduleAndGo({
       {/* Disclaimer — compact, inline */}
       <div className="border-t border-grappler-700/50 pt-4">
         <button
+          role="checkbox"
+          aria-checked={!!data.disclaimerAccepted}
           onClick={() => update({ disclaimerAccepted: !data.disclaimerAccepted })}
           className={cn(
             'w-full p-3 rounded-xl border-2 text-left transition-all flex items-center gap-3',

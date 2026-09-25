@@ -703,7 +703,7 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
           <p className="text-sm font-bold text-grappler-50 truncate">{currentMesocycle.name}</p>
           <div className="flex items-center gap-2 flex-shrink-0">
             {daysToCompetition !== null && daysToCompetition <= 70 && (
-              <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400">
+              <span className="text-[11px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400">
                 {daysToCompetition}d to fight
               </span>
             )}
@@ -900,19 +900,19 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
               <div className="grid grid-cols-2 gap-px bg-grappler-800 mx-4 mt-4 rounded-xl overflow-hidden">
                 <div className="bg-grappler-900 p-3 text-center">
                   <p className="text-lg font-black text-grappler-100">{blockFlash!.weeks}</p>
-                  <p className="text-[10px] text-grappler-500 uppercase">Weeks</p>
+                  <p className="text-[11px] text-grappler-500 uppercase">Weeks</p>
                 </div>
                 <div className="bg-grappler-900 p-3 text-center">
                   <p className="text-lg font-black text-grappler-100">{blockFlash!.sessionsPerWeek}</p>
-                  <p className="text-[10px] text-grappler-500 uppercase">Days/Week</p>
+                  <p className="text-[11px] text-grappler-500 uppercase">Days/Week</p>
                 </div>
                 <div className="bg-grappler-900 p-3 text-center">
                   <p className="text-lg font-black text-grappler-100 capitalize">{blockFlash!.focus}</p>
-                  <p className="text-[10px] text-grappler-500 uppercase">Focus</p>
+                  <p className="text-[11px] text-grappler-500 uppercase">Focus</p>
                 </div>
                 <div className="bg-grappler-900 p-3 text-center">
                   <p className="text-lg font-black text-grappler-100 capitalize">{blockFlash!.split.replace(/_/g, ' ')}</p>
-                  <p className="text-[10px] text-grappler-500 uppercase">Split</p>
+                  <p className="text-[11px] text-grappler-500 uppercase">Split</p>
                 </div>
               </div>
 

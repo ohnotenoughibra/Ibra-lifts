@@ -16,7 +16,7 @@ export default function LoadingScreen() {
           <div className="font-display text-5xl md:text-6xl font-black tracking-tight leading-none text-white">
             IBRA<br />LIFTS<span className="text-primary-500">.</span>
           </div>
-          <p className="text-[10px] text-grappler-500 mt-3 tracking-[0.3em] uppercase">
+          <p className="text-[11px] text-grappler-500 mt-3 tracking-[0.3em] uppercase">
             Performance System
           </p>
         </div>

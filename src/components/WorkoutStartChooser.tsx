@@ -231,14 +231,14 @@ export default function WorkoutStartChooser({ open, onClose, scheduledSession, o
                               i < previewExercises.length - 1 && 'border-b border-grappler-700/30',
                             )}
                           >
-                            <span className="text-[10px] font-bold text-grappler-600 w-3 tabular-nums">{i + 1}</span>
+                            <span className="text-[11px] font-bold text-grappler-600 w-3 tabular-nums">{i + 1}</span>
                             <span className="text-xs text-grappler-200 flex-1 truncate">{ex.exercise.name}</span>
-                            <span className="text-[10px] text-grappler-500 tabular-nums">{formatSetsTarget(ex.sets, ex.prescription.targetReps, ex.exercise)}</span>
+                            <span className="text-[11px] text-grappler-500 tabular-nums">{formatSetsTarget(ex.sets, ex.prescription.targetReps, ex.exercise)}</span>
                           </div>
                         ))}
                         {exerciseCount > previewExercises.length && (
                           <div className="px-3 py-1 text-center border-t border-grappler-700/30">
-                            <span className="text-[10px] text-grappler-500">+{exerciseCount - previewExercises.length} more</span>
+                            <span className="text-[11px] text-grappler-500">+{exerciseCount - previewExercises.length} more</span>
                           </div>
                         )}
                       </div>

@@ -114,7 +114,7 @@ export default function SparringTracker({ onClose }: Props) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2 text-sm">
                       <span className="text-white font-semibold font-mono tabular-nums">{r.rounds}× {r.minutesPerRound}m</span>
-                      <span className="text-[10px] uppercase tracking-[0.18em] text-grappler-400">
+                      <span className="text-[11px] uppercase tracking-[0.18em] text-grappler-400">
                         {INTENSITY_LABELS[r.intensity].label}
                       </span>
                     </div>
@@ -137,7 +137,7 @@ export default function SparringTracker({ onClose }: Props) {
         </Section>
       )}
 
-      <p className="text-[10px] text-grappler-500 text-center px-4 leading-relaxed">
+      <p className="text-[11px] text-grappler-500 text-center px-4 leading-relaxed">
         Effective rounds = count × intensity weight (technical 0×, moderate 0.5×, hard 1.0×, competition 1.2×).
       </p>
     </ToolShell>
@@ -206,7 +206,7 @@ function LogView({ onBack, onLog }: {
       <Section title="Volume">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Rounds</label>
+            <label className="text-[11px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Rounds</label>
             <input
               type="number" inputMode="decimal" enterKeyHint="done" min={1} step={1}
               value={rounds || ''}
@@ -215,7 +215,7 @@ function LogView({ onBack, onLog }: {
             />
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Min / round</label>
+            <label className="text-[11px] uppercase tracking-[0.18em] text-grappler-500 block mb-1">Min / round</label>
             <input
               type="number" inputMode="decimal" enterKeyHint="done" min={1} step={1}
               value={minutesPerRound || ''}
@@ -242,7 +242,7 @@ function LogView({ onBack, onLog }: {
               <span className={cn('text-sm font-semibold', intensity === i ? 'text-white' : 'text-grappler-200')}>
                 {INTENSITY_LABELS[i].label}
               </span>
-              <span className="text-[10px] text-grappler-500">{INTENSITY_LABELS[i].description}</span>
+              <span className="text-[11px] text-grappler-500">{INTENSITY_LABELS[i].description}</span>
             </button>
           ))}
         </div>

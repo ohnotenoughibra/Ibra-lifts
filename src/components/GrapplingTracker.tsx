@@ -1434,8 +1434,8 @@ export default function GrapplingTracker({ onClose, startWithForm = false }: Gra
                         }`}
                       >
                         <div className="text-base font-bold">{count}</div>
-                        <div className="text-[9px] font-medium mt-0.5 leading-tight">{opt.label}</div>
-                        {count > 0 && <div className="text-[9px] opacity-60 mt-0.5">{pct}%</div>}
+                        <div className="text-[11px] font-medium mt-0.5 leading-tight">{opt.label}</div>
+                        {count > 0 && <div className="text-[11px] opacity-60 mt-0.5">{pct}%</div>}
                       </div>
                     );
                   })}

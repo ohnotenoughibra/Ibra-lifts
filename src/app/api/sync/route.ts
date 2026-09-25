@@ -2,7 +2,7 @@ import { sql, db } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { rateLimit, getClientIP } from '@/lib/rate-limit';
-import { resolveConflicts } from '@/lib/db-sync';
+import { planSyncWrite } from '@/lib/sync-write';
 import { createBackupIfEligible } from '@/lib/db-backup';
 
 // GET - Load user data from database
@@ -117,93 +117,52 @@ export async function POST(request: Request) {
       )
     `;
 
-    // ── Safety: refuse to overwrite richer server data with poorer incoming data ──
-    const { rows: existingRows } = await sql`
-      SELECT data FROM user_store WHERE user_id = ${userId}
-    `;
+    // ── Read-merge-write under a row lock ──
+    // The read used to happen outside the transaction: two pushes at once
+    // (keep-alive flush, queue replay, a second device) both merged against
+    // the same old row and the later write dropped the other's entries.
+    // Now: make sure the row exists, lock it (SELECT … FOR UPDATE), merge,
+    // write — all in one transaction, so concurrent pushes serialize.
+    const client = await db.connect();
+    let mergedData: Record<string, unknown>;
+    try {
+      await client.sql`BEGIN`;
+      await client.sql`
+        INSERT INTO user_store (user_id, data, updated_at)
+        VALUES (${userId}, '{}'::jsonb, NOW())
+        ON CONFLICT (user_id) DO NOTHING
+      `;
+      const { rows: existingRows } = await client.sql`
+        SELECT data FROM user_store WHERE user_id = ${userId} FOR UPDATE
+      `;
+      const serverData = (existingRows[0]?.data ?? null) as Record<string, unknown> | null;
 
-    let mergedData = data;
-
-    // Legacy field from the removed paywall — drop it if an old client sends it.
-    delete data.subscription;
-
-    if (existingRows.length > 0 && existingRows[0].data) {
-      const serverData = existingRows[0].data as Record<string, unknown>;
-
-      const richness = (d: Record<string, unknown>) => {
-        let score = 0;
-        if (d.isOnboarded) score += 5;
-        if (d.user) score += 5;
-        if (d.baselineLifts) score += 3;
-        if (d.currentMesocycle) score += 3;
-        score += (Array.isArray(d.workoutLogs) ? d.workoutLogs.length : 0) * 2;
-        score += (Array.isArray(d.meals) ? d.meals.length : 0);
-        score += (Array.isArray(d.mesocycleHistory) ? d.mesocycleHistory.length : 0) * 2;
-        score += (Array.isArray(d.trainingSessions) ? d.trainingSessions.length : 0);
-        score += (Array.isArray(d.bodyWeightLog) ? d.bodyWeightLog.length : 0);
-        score += (Array.isArray(d.quickLogs) ? d.quickLogs.length : 0);
-        score += (Array.isArray(d.bodyComposition) ? d.bodyComposition.length : 0);
-        score += (Array.isArray(d.injuryLog) ? d.injuryLog.length : 0);
-        score += (Array.isArray(d.illnessLogs) ? d.illnessLogs.length : 0);
-        score += (Array.isArray(d.cycleLogs) ? d.cycleLogs.length : 0);
-        score += (Array.isArray(d.competitions) ? d.competitions.length : 0);
-        score += (Array.isArray(d.mealStamps) ? d.mealStamps.length : 0);
-        score += (Array.isArray(d.supplementIntakes) ? d.supplementIntakes.length : 0);
-        score += (Array.isArray(d.mentalCheckIns) ? d.mentalCheckIns.length : 0);
-        score += (Array.isArray(d.weeklyCheckIns) ? d.weeklyCheckIns.length : 0);
-        const gam = d.gamificationStats as Record<string, unknown> | undefined;
-        if (gam) score += (Number(gam.totalXP) || Number(gam.totalPoints) || 0) > 0 ? 5 : 0;
-        if (d.waterLog && typeof d.waterLog === 'object') score += Object.keys(d.waterLog).length;
-        return score;
-      };
-
-      const serverScore = richness(serverData);
-      const incomingScore = richness(data);
-
-      // Block if incoming data loses more than 20% of the server's richness
-      if (serverScore > 10 && incomingScore < serverScore * 0.8) {
+      const plan = planSyncWrite(data, serverData);
+      if (plan.blocked) {
+        await client.sql`ROLLBACK`;
         console.warn(
           `[sync] BLOCKED data regression for user ${userId}: ` +
-          `server score ${serverScore} → incoming score ${incomingScore}`
+          `server score ${plan.serverScore} → merged score ${plan.mergedScore}`
         );
         return NextResponse.json({
           success: false,
           blocked: true,
           reason: 'data_regression',
-          serverScore,
-          incomingScore,
+          serverScore: plan.serverScore,
+          incomingScore: plan.mergedScore,
         });
       }
-
-      // ── SERVER-SIDE MERGE: merge incoming with existing server data ──
-      // This is the bulletproof fix for multi-device sync. Instead of blindly
-      // overwriting, we merge so that:
-      //   - Arrays are union-merged (no workout logs, meals, etc. are ever lost)
-      //   - Gamification stats never regress (XP/level always take the max)
-      //   - Scalar fields prefer the newer push (by lastSyncAt)
-      // This prevents the race condition where phone pushes level 14, then
-      // laptop pushes level 12 with stale data — the merge keeps level 14.
-      mergedData = resolveConflicts(data, serverData);
-    }
-
-    const jsonData = JSON.stringify(mergedData);
-
-    // ── Atomic write: backup + upsert + gamification in a single transaction ──
-    const client = await db.connect();
-    try {
-      await client.sql`BEGIN`;
+      mergedData = plan.merged;
+      const jsonData = JSON.stringify(mergedData);
 
       // Backup: snapshot existing data before overwriting (15-min rate limit, smart pruning)
-      if (existingRows.length > 0 && existingRows[0].data) {
-        await createBackupIfEligible(client, userId, existingRows[0].data as Record<string, unknown>);
+      if (serverData && Object.keys(serverData).length > 0) {
+        await createBackupIfEligible(client, userId, serverData);
       }
 
-      // Upsert merged data (not raw incoming — server-side merge ensures no data loss)
       await client.sql`
-        INSERT INTO user_store (user_id, data, updated_at)
-        VALUES (${userId}, ${jsonData}::jsonb, NOW())
-        ON CONFLICT (user_id)
-        DO UPDATE SET data = ${jsonData}::jsonb, updated_at = NOW()
+        UPDATE user_store SET data = ${jsonData}::jsonb, updated_at = NOW()
+        WHERE user_id = ${userId}
       `;
 
       // Dual-write gamification to its dedicated table (use merged data, not raw incoming)

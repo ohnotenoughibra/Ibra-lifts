@@ -1636,6 +1636,8 @@ export interface NotificationPreferences {
   recoveryAlerts: boolean;
   nutritionNudges: boolean;
   reminderTime: string; // HH:MM
+  /** IANA zone (e.g. "Europe/Vienna") so server-sent reminders land at local times. */
+  timeZone?: string;
 }
 
 // ── Daily Login Bonus Types ────────────────────────────────────────────────

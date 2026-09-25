@@ -62,6 +62,12 @@ export interface DailyDirective {
   actions: string[];
   /** Readiness score 0-100 */
   readinessScore: number;
+  /**
+   * True when the score rests on at least one real signal about the athlete
+   * today (sleep, stress/check-in, recovery, HRV, soreness). Without one the
+   * number is just defaults — the UI asks for a check-in instead of showing it.
+   */
+  readinessHasSignal: boolean;
   /** Readiness level for color coding */
   readinessLevel: ReadinessLevel;
   /** Whether user should train today */
@@ -614,6 +620,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     subline,
     actions,
     readinessScore: readiness.overall,
+    readinessHasSignal: readiness.factors.some(f => f.available && ['sleep', 'stress', 'recovery', 'hrv', 'soreness'].includes(f.source)),
     readinessLevel: readiness.level,
     shouldTrain,
     nextSession,

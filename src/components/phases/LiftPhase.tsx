@@ -9,6 +9,7 @@ import {
   AlertTriangle, SkipForward, Flame, Activity, SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
 import type { OverlayView } from '../dashboard-types';
 import type { SkipReason } from '@/lib/types';
 
@@ -92,7 +93,12 @@ export default function LiftPhase({
   // We still gate on readiness here because for low/critical scores the
   // safety pause matters more than the picking step — Smart pick will scale
   // volume but won't make the user *think* before tapping like the gate does.
+  // A workout is already running (left via "Leave"): the hero resumes it
+  // instead of offering to start a second one.
+  const activeWorkout = useAppStore(s => s.activeWorkout);
+  const resumeWorkout = useAppStore(s => s.resumeWorkout);
   const handleStartWorkout = () => {
+    if (activeWorkout) { resumeWorkout(); return; }
     if (directive.readinessLevel === 'low' || directive.readinessLevel === 'critical') {
       setShowReadinessGate(true);
     } else {
@@ -247,7 +253,7 @@ export default function LiftPhase({
             )}
           >
             <Play className="w-6 h-6" />
-            Start Workout
+            {activeWorkout ? 'Resume your workout' : 'Start Workout'}
           </button>
         </div>
       </div>

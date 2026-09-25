@@ -118,77 +118,36 @@ const KnowledgeHub = dynamic(() => import('./KnowledgeHub'), { loading: () => <O
 
 
 function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: () => void }) {
+  // Non-blocking banner (was a full-screen modal that covered the workout
+  // summary right after saving). Auto-dismisses; tap to close early.
   const title = getLevelTitle(level);
+  const dismissRef = useRef(onDismiss);
+  dismissRef.current = onDismiss;
+  useEffect(() => {
+    const t = setTimeout(() => dismissRef.current(), 3500);
+    return () => clearTimeout(t);
+  }, [level]);
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-6"
-      onClick={onDismiss}
-      onKeyDown={(e) => { if (e.key === 'Escape') onDismiss(); }}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Level up — Level ${level}`}
-      tabIndex={-1}
+      initial={{ y: -40, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: -40, opacity: 0 }}
+      className="fixed top-3 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-sm safe-area-top"
+      role="status"
     >
-      <motion.div
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.8, opacity: 0 }}
-        transition={{ type: 'spring', damping: 15, stiffness: 300 }}
-        onClick={(e) => e.stopPropagation()}
-        className="bg-gradient-to-br from-grappler-900 via-grappler-900 to-primary-950 rounded-3xl p-6 max-w-xs w-full border border-primary-500/30 shadow-2xl text-center relative overflow-hidden"
+      <button
+        onClick={onDismiss}
+        className="w-full flex items-center gap-3 rounded-xl border border-primary-500/40 bg-grappler-900/95 backdrop-blur px-3 py-2.5 text-left shadow-lg"
+        aria-label={`Level ${level} reached — dismiss`}
       >
-        {/* Particle burst background */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-2 h-2 rounded-full"
-              style={{
-                background: ['#facc15', '#a78bfa', '#34d399', '#f472b6', '#60a5fa'][i % 5],
-                left: '50%',
-                top: '50%',
-              }}
-              initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-              animate={{
-                x: Math.cos((i * 30 * Math.PI) / 180) * (80 + Math.random() * 60),
-                y: Math.sin((i * 30 * Math.PI) / 180) * (80 + Math.random() * 60),
-                opacity: 0,
-                scale: 0,
-              }}
-              transition={{ duration: 1.2, delay: 0.2, ease: 'easeOut' }}
-            />
-          ))}
-        </div>
-
-        <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: 'spring', damping: 10, stiffness: 200, delay: 0.1 }}
-          className="w-20 h-20 bg-gradient-to-br from-sky-400 to-blue-500 rounded-lg flex items-center justify-center mx-auto mb-4 shadow-lg shadow-yellow-500/30"
-        >
-          <Star className="w-10 h-10 text-white" />
-        </motion.div>
-
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
-          <p className="text-xs text-yellow-400 font-semibold uppercase tracking-widest mb-1">Level Up!</p>
-          <h2 className="text-3xl font-black text-white mb-1">Level {level}</h2>
-          <p className="text-sm text-primary-300 font-medium">{title}</p>
-        </motion.div>
-
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
-          <p className="text-xs text-grappler-400 mt-3 mb-4">Keep pushing — your consistency is paying off.</p>
-          <button
-            onClick={onDismiss}
-            className="btn btn-primary btn-md w-full gap-2"
-          >
-            <Flame className="w-4 h-4" />
-            Let&apos;s Go
-          </button>
-        </motion.div>
-      </motion.div>
+        <span className="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center flex-shrink-0">
+          <Star className="w-5 h-5 text-white" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-sm font-bold text-grappler-50">Level {level}</span>
+          <span className="block text-xs text-grappler-400 truncate">{title}</span>
+        </span>
+      </button>
     </motion.div>
   );
 }
@@ -272,7 +231,10 @@ export default function Dashboard({
   const [showMorningRitual, setShowMorningRitual] = useState(false);
   useEffect(() => {
     // Only show on home tab, only when user exists (onboarding complete)
-    if (user && activeTab === 'home' && shouldShowRitual()) {
+    // No reveal of a score built from defaults (a brand-new profile saw "98").
+    const hasSignal = !!useAppStore.getState().latestWhoopData
+      || (useAppStore.getState().quickLogs ?? []).some(q => q.type === 'sleep' && !q._deleted);
+    if (user && activeTab === 'home' && hasSignal && shouldShowRitual()) {
       setShowMorningRitual(true);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -576,7 +538,7 @@ export default function Dashboard({
       custom_exercise: <CustomExerciseCreator onClose={closeOverlay} />,
       templates: <SessionTemplates onClose={closeOverlay} />,
       volume_map: <VolumeHeatMap onClose={closeOverlay} />,
-      grappling: <GrapplingTracker onClose={closeOverlay} />,
+      grappling: <GrapplingTracker onClose={closeOverlay} startWithForm={overlayContext === 'log'} />,
       quick_actions: <QuickActions onClose={closeOverlay} />,
       grip_strength: <GripStrengthModule onClose={closeOverlay} />,
       program_browser: <ProgramBrowserView onClose={closeOverlay} onNavigate={setOverlayView} />,
@@ -927,7 +889,7 @@ export default function Dashboard({
                       <WorkoutView onNavigate={setOverlayView} />
                     </CardErrorBoundary>
                     <div className="mt-6">
-                      <ExploreTab onNavigate={setOverlayView} filterTab="train" />
+                      <ExploreTab onNavigate={setOverlayView} filterTab="train" compact />
                     </div>
                   </motion.div>
                 )}
@@ -940,7 +902,7 @@ export default function Dashboard({
                   >
                     <ProgressAndHistoryTab onViewReport={setReportMesocycleId} onNavigate={setOverlayView} />
                     <div className="mt-6">
-                      <ExploreTab onNavigate={setOverlayView} filterTab="body" />
+                      <ExploreTab onNavigate={setOverlayView} filterTab="body" compact />
                     </div>
                   </motion.div>
                 )}

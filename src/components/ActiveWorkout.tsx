@@ -146,7 +146,7 @@ function MiniPlateCalc({ weight, unit, singleSided = false }: { weight: number; 
       {/* Text breakdown */}
       <p className="text-center text-xs text-grappler-300 font-medium">
         <Dumbbell className="w-3 h-3 inline mr-1 text-grappler-400" />
-        {loaded.map(p => p % 1 === 0 ? p : p.toFixed(1)).join(' + ')} {unit} {singleSided ? 'on working end' : 'each side'}
+        {loaded.map(p => String(p)).join(' + ')} {unit} {singleSided ? 'on working end' : 'each side'}
       </p>
       {singleSided && (
         <p className="text-center text-[10px] text-grappler-500 mt-0.5">
@@ -430,6 +430,19 @@ export default function ActiveWorkout() {
     mood: 3,
     wouldRepeat: true
   });
+  // Session RPE starts from the sets you actually rated (was a flat 7), so
+  // finishing is one tap for most sessions; tapping a value overrides it.
+  const sessionRpeTouched = useRef(false);
+  useEffect(() => {
+    if (activeModal !== 'finish' || sessionRpeTouched.current) return;
+    const rated = (useAppStore.getState().activeWorkout?.exerciseLogs ?? [])
+      .flatMap(l => l.sets)
+      .filter(st => st.completed && st.rpeSource === 'user' && st.rpe > 0)
+      .map(st => st.rpe);
+    if (rated.length === 0) return;
+    const avg = Math.round(rated.reduce((a, b) => a + b, 0) / rated.length);
+    setFeedback(f => ({ ...f, overallRPE: Math.max(5, Math.min(10, avg)) }));
+  }, [activeModal]);
   const [durationOverride, setDurationOverride] = useState<number | null>(null);
   const [showMoreFeedback, setShowMoreFeedback] = useState(false);
 
@@ -448,8 +461,10 @@ export default function ActiveWorkout() {
     };
   }, []);
 
-  // Show swipe gesture hint on first active workout
+  // Show swipe gesture hint on first active workout — once the logger is
+  // actually visible (it used to time out behind the overview).
   useEffect(() => {
+    if (showOverview) return;
     if (typeof window !== 'undefined' && !localStorage.getItem('hasSeenSwipeHint')) {
       setShowSwipeHint(true);
       const hintTimer = setTimeout(() => {
@@ -458,7 +473,7 @@ export default function ActiveWorkout() {
       }, 4000);
       return () => clearTimeout(hintTimer);
     }
-  }, []);
+  }, [showOverview]);
 
   // Rest timer managed by useRestTimer hook (see line 173)
 
@@ -3309,10 +3324,11 @@ export default function ActiveWorkout() {
         <div className="relative">
           {showSwipeHint && (
             <div
-              className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex items-center justify-center z-50 pointer-events-auto"
-              onClick={() => { setShowSwipeHint(false); localStorage.setItem('hasSeenSwipeHint', 'true'); }}
+              className="fixed inset-x-0 bottom-28 flex items-center justify-center z-40 pointer-events-none"
             >
-              <div className="bg-grappler-800/90 backdrop-blur-sm rounded-xl px-4 py-3 flex items-center gap-3 shadow-lg border border-grappler-700/50">
+              <div
+                onClick={() => { setShowSwipeHint(false); localStorage.setItem('hasSeenSwipeHint', 'true'); }}
+                className="pointer-events-auto bg-grappler-800/90 backdrop-blur-sm rounded-xl px-4 py-3 flex items-center gap-3 shadow-lg border border-grappler-700/50">
                 <ArrowLeftRight className="w-5 h-5 text-primary-400" />
                 <span className="text-sm text-grappler-200">Swipe left/right to navigate exercises</span>
               </div>
@@ -3901,7 +3917,9 @@ export default function ActiveWorkout() {
               );
             })()}
 
-            {/* RPE */}
+            {/* RPE — rated once, right after the set (rest bar). Shown here only
+                when correcting a logged set; before the set it was a third RPE ask. */}
+            {currentSet.completed && (
             <div className="bg-grappler-800/50 rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <label className="text-xs text-grappler-400 uppercase tracking-wide">RPE (1-10)</label>
@@ -3957,6 +3975,7 @@ export default function ActiveWorkout() {
                 </p>
               )}
             </div>
+            )}
           </div>
 
           {/* ── Tempo Metronome ── */}
@@ -4488,6 +4507,8 @@ export default function ActiveWorkout() {
                   return n + (lower && ex.exercise.category === 'compound' ? done : 0);
                 }, 0);
                 const score = latestWhoopData?.recoveryScore ?? readiness?.score;
+                // Offer a finisher only once the lifting is mostly done.
+                if (totalSets === 0 || completedSets / totalSets < 0.6) return null;
                 const pick = recommendFinisher({ readiness: typeof score === 'number' ? score : undefined, heavyLowerSets });
                 if (!pick) return null;
                 return (
@@ -4532,7 +4553,7 @@ export default function ActiveWorkout() {
                     {[5, 6, 7, 8, 9, 10].map((rpe) => (
                       <button
                         key={rpe}
-                        onClick={() => setFeedback({ ...feedback, overallRPE: rpe })}
+                        onClick={() => { sessionRpeTouched.current = true; setFeedback({ ...feedback, overallRPE: rpe }); }}
                         className={cn(
                           'flex-1 py-2 rounded-lg font-medium text-sm',
                           feedback.overallRPE === rpe

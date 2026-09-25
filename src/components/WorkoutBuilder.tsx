@@ -1022,11 +1022,6 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-medium text-grappler-100 truncate">{exercise.name}</p>
-                          {exercise.grapplerFriendly && (
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-primary-500/20 text-primary-400 flex-shrink-0">
-                              Rootsler
-                            </span>
-                          )}
                           {adjustment && adjustment.adjustment >= 2 && (
                             <span className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 flex-shrink-0">
                               <TrendingUp className="w-3 h-3" />

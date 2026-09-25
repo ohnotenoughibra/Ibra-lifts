@@ -668,7 +668,7 @@ function Step2_ScheduleAndGo({
     <div className="space-y-5">
       <div className="mb-2">
         <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
-          Ibra Lifts \u00b7 02
+          Ibra Lifts · 02
         </div>
         <h2 className="font-display text-5xl md:text-6xl font-black tracking-tight leading-none text-white mb-3">
           When<br />you train.

@@ -372,7 +372,21 @@ export default function InjuryLogger({ onClose, onNavigate }: InjuryLoggerProps)
             animate={{ opacity: 1, y: 0 }}
             className="space-y-4"
           >
-            {/* Overall Risk Status */}
+            {/* Overall Risk Status — needs ~a week of training before a score means anything */}
+            {(() => {
+              const firstLog = [...workoutLogs, ...trainingSessions]
+                .filter(l => !(l as { _deleted?: boolean })._deleted)
+                .reduce((min, l) => Math.min(min, new Date(l.date).getTime()), Infinity);
+              return !Number.isFinite(firstLog) || Date.now() - firstLog < 7 * 864e5;
+            })() ? (
+              <div className="rounded-xl p-4 border border-grappler-700 bg-grappler-800/40">
+                <div className="flex items-center gap-2 mb-1">
+                  <Shield className="w-5 h-5 text-grappler-400" />
+                  <span className="font-semibold text-grappler-200">Risk check needs a week of training</span>
+                </div>
+                <p className="text-sm text-grappler-400">Log workouts and mat sessions for about a week and this will flag load spikes, imbalances and recovery gaps.</p>
+              </div>
+            ) : (
             <div className={cn(
               'rounded-xl p-4 border',
               getRiskColor(analysis.overallRisk)
@@ -391,6 +405,7 @@ export default function InjuryLogger({ onClose, onNavigate }: InjuryLoggerProps)
                 {analysis.overallRisk === 'critical' && 'High injury risk detected. Immediate attention recommended.'}
               </p>
             </div>
+            )}
 
             {/* Risk Factors */}
             {analysis.risks.length > 0 && (

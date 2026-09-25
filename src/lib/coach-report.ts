@@ -41,7 +41,17 @@ export function buildCoachReport(input: CoachReportInput): string {
   const lines: string[] = [];
   const today = new Date().toLocaleDateString();
   const name = input.user?.name ?? 'Athlete';
-  const sport = input.user?.combatSport ?? 'combat';
+  const SPORT_LABEL: Record<string, string> = { mma: 'MMA', grappling_gi: 'BJJ (gi)', grappling_nogi: 'BJJ (no-gi)', bjj: 'BJJ', wrestling: 'Wrestling', judo: 'Judo', boxing: 'Boxing', muay_thai: 'Muay Thai', kickboxing: 'Kickboxing' };
+  const rawSport = input.user?.combatSport as string | undefined;
+  const sport = rawSport ? (SPORT_LABEL[rawSport] ?? rawSport.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())) : 'Combat sports';
+  // Latest LIVE weigh-in by date, else the profile weight from onboarding.
+  const weighIns = input.bodyWeightLog
+    .filter(e => !(e as { _deleted?: boolean })._deleted)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const lastWeighIn = weighIns[weighIns.length - 1];
+  const bodyweightText = lastWeighIn
+    ? `${lastWeighIn.weight}${(lastWeighIn as { unit?: string }).unit ?? 'kg'} (latest)`
+    : input.user?.bodyWeightKg ? `${input.user.bodyWeightKg}kg (profile)` : '—';
 
   lines.push(`COACH REPORT · ${name} · ${today}`);
   lines.push('═'.repeat(46));
@@ -51,7 +61,7 @@ export function buildCoachReport(input: CoachReportInput): string {
   lines.push('ATHLETE');
   lines.push(`  Name:          ${fmt(input.user?.name)}`);
   lines.push(`  Sport:         ${sport}`);
-  lines.push(`  Bodyweight:    ${input.bodyWeightLog.length > 0 ? `${input.bodyWeightLog[input.bodyWeightLog.length - 1].weight}kg (latest)` : '—'}`);
+  lines.push(`  Bodyweight:    ${bodyweightText}`);
   lines.push(`  Streak:        ${input.currentStreak} days`);
   lines.push('');
 

@@ -516,6 +516,9 @@ export function suggestNextBlock(opts: {
     trend: plateauCount > 2 ? 'down' : 'stable',
   });
 
+  // Stats from < 4 logged sessions ("Exercises progressing 0/0") are noise.
+  if (recentLogs.length < 4) keyMetrics.length = 0;
+
   return {
     recommendedFocus,
     confidence,

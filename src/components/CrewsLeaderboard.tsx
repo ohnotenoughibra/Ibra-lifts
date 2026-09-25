@@ -27,6 +27,8 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
   const [error, setError] = useState<string | null>(null);
   const [activeCrewId, setActiveCrewId] = useState<string | null>(null);
   const [sheet, setSheet] = useState<null | 'create' | 'join'>(null);
+  // Crews live on the server: signed-out users get a sign-in prompt, not a raw "Unauthorized".
+  const [needsSignIn, setNeedsSignIn] = useState(false);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -40,8 +42,11 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
       setCrewsActive(data.length > 0);
       setActiveCrewId(prev => prev && data.some(c => c.id === prev) ? prev : (data[0]?.id ?? null));
       setError(null);
+      setNeedsSignIn(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
+      const msg = e instanceof Error ? e.message : 'Failed to load';
+      if (/unauthori[sz]ed|401|sign in/i.test(msg)) setNeedsSignIn(true);
+      else setError(msg);
     } finally {
       setLoading(false);
     }
@@ -60,7 +65,7 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
       await createCrew(n, metricsFromStore().displayName);
       setName(''); setSheet(null);
       await load();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed'); }
+    } catch (e) { const m = e instanceof Error ? e.message : 'Failed'; if (/unauthori[sz]ed|401/i.test(m)) setNeedsSignIn(true); else setError(m); }
     finally { setBusy(false); }
   }
 
@@ -73,7 +78,7 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
       await joinCrew(c, metricsFromStore().displayName);
       setCode(''); setSheet(null);
       await load();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed'); }
+    } catch (e) { const m = e instanceof Error ? e.message : 'Failed'; if (/unauthori[sz]ed|401/i.test(m)) setNeedsSignIn(true); else setError(m); }
     finally { setBusy(false); }
   }
 
@@ -81,7 +86,7 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
     if (!confirm(`Leave ${crew.name}?`)) return;
     setBusy(true);
     try { await leaveCrew(crew.id); await load(); }
-    catch (e) { setError(e instanceof Error ? e.message : 'Failed'); }
+    catch (e) { const m = e instanceof Error ? e.message : 'Failed'; if (/unauthori[sz]ed|401/i.test(m)) setNeedsSignIn(true); else setError(m); }
     finally { setBusy(false); }
   }
 
@@ -89,7 +94,7 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
     if (!confirm(`Delete ${crew.name} for everyone? This can't be undone.`)) return;
     setBusy(true);
     try { await deleteCrew(crew.id); await load(); }
-    catch (e) { setError(e instanceof Error ? e.message : 'Failed'); }
+    catch (e) { const m = e instanceof Error ? e.message : 'Failed'; if (/unauthori[sz]ed|401/i.test(m)) setNeedsSignIn(true); else setError(m); }
     finally { setBusy(false); }
   }
 
@@ -121,7 +126,14 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
           phones. Let content size naturally and the container scroll (matches
           the working CardioPlanner overlay). */}
       <div className="px-4 py-5 pb-24 max-w-md w-full mx-auto">
-        {loading ? (
+        {needsSignIn ? (
+          <div className="flex flex-col items-center text-center py-16 gap-3">
+            <Users className="w-10 h-10 text-primary-400" />
+            <h2 className="text-lg font-bold text-grappler-50">Sign in to use Crews</h2>
+            <p className="text-sm text-grappler-400 max-w-xs">Crews compare weekly sessions with your gym or training partners, so they need an account. Your training data stays on your phone either way.</p>
+            <a href="/login" className="btn btn-primary btn-md mt-2 gap-2"><LogIn className="w-4 h-4" /> Sign in</a>
+          </div>
+        ) : loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 text-grappler-500">
             <Loader2 className="w-7 h-7 animate-spin text-primary-400" />
             <p className="text-sm">Loading your crews...</p>

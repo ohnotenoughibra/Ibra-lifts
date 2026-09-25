@@ -76,8 +76,11 @@ export default function ToolsTab({ onNavigate }: Props) {
       .slice(0, 30);
   }, [search]);
 
-  const trainTools = useMemo(() => ALL_TOOLS.filter(t => t.tab === 'train'), []);
-  const bodyTools = useMemo(() => ALL_TOOLS.filter(t => t.tab === 'body'), []);
+  // Female-only tools (cycle tracking) only for athletes who can use them.
+  const sex = useAppStore(s => s.user?.sex);
+  const forUser = (t: Tool) => !t.gendered || sex === t.gendered || !sex;
+  const trainTools = useMemo(() => ALL_TOOLS.filter(t => t.tab === 'train' && forUser(t)), [sex]); // eslint-disable-line react-hooks/exhaustive-deps
+  const bodyTools = useMemo(() => ALL_TOOLS.filter(t => t.tab === 'body' && forUser(t)), [sex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Hold a tile to pin/unpin — the hint said so, but no handler existed.
   const pinnedSet = useMemo(() => new Set(pinned.map(p => p.id)), [pinned]);

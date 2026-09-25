@@ -244,9 +244,12 @@ interface ExploreTabProps {
   onNavigate: (view: OverlayView) => void;
   /** When set, only renders tools whose `tab` matches. Used by the Train and Body tabs to embed filtered tool sections. */
   filterTab?: 'train' | 'body';
+  /** Train/Progress tabs: only the context cards (Right now, For fighters) —
+   *  the full search/pins/all-tools list lives on the Tools tab. */
+  compact?: boolean;
 }
 
-export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
+export default function ExploreTab({ onNavigate, filterTab, compact = false }: ExploreTabProps) {
   const [search, setSearch] = useState('');
   const [pinnedIds, setPinnedIds] = useState<string[]>(readPins);
   const [usageMap, setUsageMap] = useState<Record<string, number>>(() => readJson(STORAGE_KEY_USAGE, {}));
@@ -454,6 +457,7 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
 
   return (
     <div className="space-y-5">
+      {!compact && (<>
       {/* ─── Header ─── */}
       <div className="flex items-start justify-between">
         <div>
@@ -497,6 +501,7 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
         )}
       </AnimatePresence>
 
+      </>)}
       {/* ─── SECTION 1: RIGHT NOW (hero section) ─── */}
       {!pinMode && !isSearching && rightNowSuggestions.length > 0 && (
         <div className="space-y-2.5">
@@ -574,6 +579,7 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
         </div>
       )}
 
+      {!compact && (<>
       {/* ─── SECTION 2: PINNED (compact icon row) ─── */}
       {!pinMode && !isSearching && pinnedTools.length > 0 && (
         <div className="space-y-2">
@@ -713,6 +719,7 @@ export default function ExploreTab({ onNavigate, filterTab }: ExploreTabProps) {
           </div>
         </div>
       ))}
+      </>)}
     </div>
   );
 }

@@ -45,6 +45,13 @@ test.describe('Air bike & sprints', () => {
     await page.getByRole('spinbutton', { name: 'Reps' }).fill('5');
     await page.getByRole('button', { name: 'Complete Set' }).click();
     await page.getByRole('button', { name: 'Skip Rest' }).click();
+    // The finisher is only offered once most of the lifting is done (≥ 60 % of sets)
+    for (let i = 0; i < 10; i++) {
+      const skip = page.getByRole('button', { name: 'Skip exercise' });
+      if (!(await skip.isVisible().catch(() => false))) break;
+      await skip.click();
+      await page.waitForTimeout(150);
+    }
     await page.getByRole('button', { name: 'Finish workout' }).click();
     await page.getByRole('button', { name: 'Add conditioning finisher' }).click();
     await expect(page.getByRole('button', { name: 'Start' })).toBeVisible();

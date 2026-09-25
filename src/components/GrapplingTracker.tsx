@@ -40,6 +40,8 @@ import { resolveWeightUnit } from '@/lib/units';
 // ---------------------------------------------------------------------------
 interface GrapplingTrackerProps {
   onClose: () => void;
+  /** Open straight into the log form ("Log Mat Session" shortcuts). */
+  startWithForm?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -166,7 +168,7 @@ function daysSince(date: Date): number {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
+export default function GrapplingTracker({ onClose, startWithForm = false }: GrapplingTrackerProps) {
   const {
     trainingSessions: rawTrainingSessions,
     addTrainingSession,
@@ -193,7 +195,7 @@ export default function GrapplingTracker({ onClose }: GrapplingTrackerProps) {
   };
 
   // UI state
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(startWithForm);
   const [activeTab, setActiveTab] = usePersistentState<'log' | 'combat' | 'lifting'>('ui:grappling-tab', 'log');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [editingIntensityId, setEditingIntensityId] = useState<string | null>(null);

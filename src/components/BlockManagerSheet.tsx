@@ -180,7 +180,9 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
                   <div className="flex gap-2">
                     <button
                       onClick={() => { if (guardActiveWorkout()) return; completeMesocycle(); onBlockAction('Block completed'); }}
-                      className="btn btn-primary btn-sm flex-1 gap-1.5 font-semibold"
+                      // Primary only near the end — on a fresh block "Complete" as the
+                      // main button invited finishing a block you haven't trained.
+                      className={cn('btn btn-sm flex-1 gap-1.5 font-semibold', progress.percentage >= 75 ? 'btn-primary' : 'btn-secondary')}
                     >
                       <Check className="w-3.5 h-3.5" />
                       Complete

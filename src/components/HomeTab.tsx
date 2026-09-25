@@ -48,7 +48,7 @@ import {
   Plus,
   Battery,
 } from 'lucide-react';
-import { cn, formatNumber, localDayKey } from '@/lib/utils';
+import { cn, formatNumber, localDayKey, chrono } from '@/lib/utils';
 import { useWeightUnit } from '@/hooks/useWeightUnit';
 import { resolveWeightUnit, type WeightUnit } from '@/lib/units';
 import { estimate1RM } from '@/lib/weight-estimator';
@@ -928,7 +928,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
   // ─── Contextual Nutrition — adjusted macros based on today's training type ───
   const contextualNutrition = useMemo(() => {
-    const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
+    const liveWeights = chrono(bodyWeightLog);
+    const latestWeight = liveWeights.length > 0 ? liveWeights[liveWeights.length - 1] : null;
     const bwLbs = latestWeight
       ? (latestWeight.unit === 'lbs' ? latestWeight.weight : latestWeight.weight * 2.205)
       : 175;
@@ -1038,7 +1039,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       todayType: directive.todayType,
       hasTrainedToday: directive.todayPerformance != null,
       todayProtein,
-      proteinTarget: macroTargets.protein || 0,
+      proteinTarget: contextualNutrition.adjustedTargets.protein || macroTargets.protein || 0,
       waterGlasses: waterTodayGlasses,
       waterTarget: 8,
       sleepHours: sleepHours ?? null,
@@ -1118,7 +1119,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       fightCampPhase: directive.fightCampTag,
       dietGoal: dietPhase?.isActive ? dietPhase.goal : null,
       proteinSoFar: todayProtein,
-      proteinTarget: macroTargets.protein || 0,
+      proteinTarget: contextualNutrition.adjustedTargets.protein || macroTargets.protein || 0,
       waterIntake: waterTodayGlasses,
       sleepHours: sleepHours ?? null,
       bodyWeightKg: bwKg,
@@ -1587,7 +1588,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     feedCards.push(
       <div key="combat-shortcuts" className="flex gap-2">
         <button
-          onClick={() => onNavigate('grappling')}
+          onClick={() => onNavigate('grappling', 'log')}
           className="flex-1 flex items-center justify-between bg-purple-500/10 border border-purple-500/20 rounded-xl px-3 py-2.5 hover:bg-purple-500/15 transition-colors active:scale-[0.98]"
         >
           <div className="flex items-center gap-2">
@@ -1847,7 +1848,22 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             </div>
           )}
 
-          {/* Hero readiness ring — centered, large */}
+          {/* Hero readiness ring — only when the score rests on a real signal.
+              A fresh profile used to read "98 — Peak. Send it." from defaults. */}
+          {!directive.readinessHasSignal ? (
+            <div className="flex flex-col items-center" data-testid="readiness-empty">
+              <div className="w-[140px] h-[140px] rounded-full border-[8px] border-grappler-800 flex flex-col items-center justify-center">
+                <span className="text-3xl font-black text-grappler-500">—</span>
+                <span className="text-[11px] uppercase tracking-widest text-grappler-500 mt-1">Readiness</span>
+              </div>
+              <p className="text-sm text-grappler-300 mt-3">No sleep or recovery data yet today.</p>
+              <div className="flex gap-2 mt-2">
+                <button onClick={() => onNavigate('quick_actions')} className="min-h-[40px] px-3 rounded-lg bg-primary-500/15 border border-primary-500/30 text-primary-300 text-sm font-medium">Log sleep (10 s)</button>
+                <button onClick={() => onNavigate('wearable')} className="min-h-[40px] px-3 rounded-lg bg-grappler-800 border border-grappler-700 text-grappler-300 text-sm">Connect Whoop</button>
+              </div>
+            </div>
+          ) : (
+          <>
           <ReadinessRing
             score={directive.readinessScore}
             size={140}
@@ -1868,6 +1884,8 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
              directive.readinessLevel === 'low' ? `${directive.readinessScore}% — Low. Go light today.` :
              `${directive.readinessScore}% — Rest recommended.`}
           </p>
+          </>
+          )}
           <WhoopFreshness onReconnect={() => onNavigate('wearable')} />
 
           {/* Height hint removed — low-value friction */}
@@ -1961,7 +1979,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           proteinGap={directive.proteinGap}
           nextWorkout={nextWorkout}
           todayProtein={todayProtein}
-          proteinTarget={macroTargets.protein}
+          proteinTarget={contextualNutrition.adjustedTargets.protein || macroTargets.protein}
           waterToday={waterTodayGlasses}
           sleepHours={sleepHours ?? null}
           alreadyLoggedSoreness={alreadyLoggedSorenessToday}

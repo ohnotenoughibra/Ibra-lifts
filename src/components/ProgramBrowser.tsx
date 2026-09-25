@@ -303,7 +303,7 @@ export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserPr
                   <span className="text-xl">{PROGRAM_CATALOG[recommendedFocus].icon}</span>
                   <div>
                     <h2 className="text-lg font-bold">{PROGRAM_CATALOG[recommendedFocus].label}</h2>
-                    <p className="text-xs opacity-70">{suggestion.suggestedWeeks} weeks &middot; {suggestion.confidence}% confidence</p>
+                    <p className="text-xs opacity-70">{suggestion.suggestedWeeks} weeks{suggestion.confidence >= 60 ? ' · strong fit for your recent training' : ''}</p>
                   </div>
                 </div>
               </div>

@@ -257,7 +257,7 @@ export default function SupplementTracker() {
                     <Plus className="w-3 h-3" />
                     {s.supplement.name.split(' ')[0]}
                     {s.macros && s.macros.protein > 0 && (
-                      <span className="text-[9px] text-primary-400 ml-0.5">
+                      <span className="text-[11px] text-primary-400 ml-0.5">
                         +{Math.round(s.macros.protein * s.supplement.servingsPerDose)}p
                       </span>
                     )}

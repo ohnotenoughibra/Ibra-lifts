@@ -58,7 +58,7 @@ export function ToolShell({ onClose, eyebrow, title, description, footer, childr
         <div className="px-4 pb-32 max-w-2xl mx-auto">
           {/* Editorial header — Onboarding pattern */}
           <header className="pt-2 pb-5">
-            <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
+            <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
               {eyebrow}
             </div>
             <h1 className="font-display text-4xl md:text-6xl font-black tracking-tight leading-none text-white mb-3">
@@ -104,12 +104,12 @@ export function Section({ title, hint, className, children }: SectionProps) {
       {(title || hint) && (
         <div className="flex items-baseline justify-between mb-3">
           {title && (
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-grappler-300">
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-grappler-300">
               {title}
             </h2>
           )}
           {hint && (
-            <span className="text-[10px] text-grappler-500">{hint}</span>
+            <span className="text-[11px] text-grappler-500">{hint}</span>
           )}
         </div>
       )}
@@ -146,7 +146,7 @@ export function HeroMetric({ value, unit, label, state, accent = 'info' }: HeroM
         {value}
         {unit && <span className="text-2xl text-grappler-400 ml-2 font-sans font-normal">{unit}</span>}
       </div>
-      <div className="text-[10px] uppercase tracking-[0.2em] text-grappler-500 mt-2">{label}</div>
+      <div className="text-[11px] uppercase tracking-[0.2em] text-grappler-500 mt-2">{label}</div>
       {state && (
         <div className={cn('text-sm font-bold mt-1', ACCENT_CLASS[accent])}>{state}</div>
       )}
@@ -210,8 +210,8 @@ export function Stat({ value, label, sub, accent = 'neutral' }: StatProps) {
       <div className={cn('font-mono text-2xl font-bold tabular-nums leading-tight', STAT_ACCENT[accent])}>
         {value}
       </div>
-      <div className="text-[10px] uppercase tracking-wider text-grappler-500 mt-1">{label}</div>
-      {sub && <div className="text-[10px] text-grappler-500">{sub}</div>}
+      <div className="text-[11px] uppercase tracking-wider text-grappler-500 mt-1">{label}</div>
+      {sub && <div className="text-[11px] text-grappler-500">{sub}</div>}
     </div>
   );
 }

@@ -530,7 +530,7 @@ export default function Dashboard({
       builder: <WorkoutBuilder onClose={closeOverlay} editTemplateId={overlayContext} />,
       nutrition: <NutritionTracker onClose={closeOverlay} />,
       wearable: <WearableIntegration onClose={closeOverlay} />,
-      competition: <CompetitionPrep onClose={closeOverlay} />,
+      competition: <CompetitionPrep onClose={closeOverlay} onNavigate={v => setOverlayView(v)} />,
       mobility: <MobilityWorkouts onClose={closeOverlay} />,
       coach: <WeeklyCoach onClose={closeOverlay} />,
       strength: <StrengthAnalysis onClose={closeOverlay} />,
@@ -778,7 +778,7 @@ export default function Dashboard({
                   <div className="font-display font-black text-lg leading-none tracking-tight text-white">
                     IBRA / LIFTS<span className="text-primary-500">.</span>
                   </div>
-                  <p className="text-[10px] uppercase tracking-wider text-grappler-500">{getLevelTitle(computed.level)}</p>
+                  <p className="text-[11px] uppercase tracking-wider text-grappler-500">{getLevelTitle(computed.level)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {/* Streak — the hero motivator */}

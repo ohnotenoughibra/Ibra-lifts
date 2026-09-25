@@ -163,7 +163,7 @@ function WaterRow({ glasses, target, onChange }: {
         />
         {overTarget && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[9px] font-bold text-white drop-shadow-sm">
+            <span className="text-[11px] font-bold text-white drop-shadow-sm">
               +{((glasses - target) * 250) >= 1000
                 ? `${(((glasses - target) * 250) / 1000).toFixed(1)}L`
                 : `${Math.round((glasses - target) * 250)}ml`} extra
@@ -445,37 +445,37 @@ export default function NutritionDashboard({ nutrition, onOpenLog }: NutritionDa
                 <div className="mt-2 px-3 py-2.5 bg-grappler-800/50 border border-grappler-700/30 rounded-xl">
                   <div className="grid grid-cols-4 gap-2 text-center">
                     <div>
-                      <p className="text-[10px] text-grappler-500 uppercase tracking-wide">Calories</p>
+                      <p className="text-[11px] text-grappler-500 uppercase tracking-wide">Calories</p>
                       <p className="text-xs text-grappler-500 line-through">{contextualNutrition.baseTargets.calories}</p>
                       <p className="text-sm font-semibold text-grappler-100">{contextualNutrition.adjustedTargets.calories}</p>
-                      <p className={cn('text-[10px] font-medium', contextualNutrition.adjustedTargets.calories >= contextualNutrition.baseTargets.calories ? 'text-green-400' : 'text-red-400')}>
+                      <p className={cn('text-[11px] font-medium', contextualNutrition.adjustedTargets.calories >= contextualNutrition.baseTargets.calories ? 'text-green-400' : 'text-red-400')}>
                         {contextualNutrition.adjustedTargets.calories >= contextualNutrition.baseTargets.calories ? '+' : ''}
                         {contextualNutrition.adjustedTargets.calories - contextualNutrition.baseTargets.calories}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-grappler-500 uppercase tracking-wide">Protein</p>
+                      <p className="text-[11px] text-grappler-500 uppercase tracking-wide">Protein</p>
                       <p className="text-xs text-grappler-500 line-through">{contextualNutrition.baseTargets.protein}g</p>
                       <p className="text-sm font-semibold text-grappler-100">{contextualNutrition.adjustedTargets.protein}g</p>
-                      <p className={cn('text-[10px] font-medium', contextualNutrition.adjustedTargets.protein >= contextualNutrition.baseTargets.protein ? 'text-green-400' : 'text-red-400')}>
+                      <p className={cn('text-[11px] font-medium', contextualNutrition.adjustedTargets.protein >= contextualNutrition.baseTargets.protein ? 'text-green-400' : 'text-red-400')}>
                         {contextualNutrition.adjustedTargets.protein >= contextualNutrition.baseTargets.protein ? '+' : ''}
                         {contextualNutrition.adjustedTargets.protein - contextualNutrition.baseTargets.protein}g
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-grappler-500 uppercase tracking-wide">Carbs</p>
+                      <p className="text-[11px] text-grappler-500 uppercase tracking-wide">Carbs</p>
                       <p className="text-xs text-grappler-500 line-through">{contextualNutrition.baseTargets.carbs}g</p>
                       <p className="text-sm font-semibold text-grappler-100">{contextualNutrition.adjustedTargets.carbs}g</p>
-                      <p className={cn('text-[10px] font-medium', contextualNutrition.adjustedTargets.carbs >= contextualNutrition.baseTargets.carbs ? 'text-green-400' : 'text-red-400')}>
+                      <p className={cn('text-[11px] font-medium', contextualNutrition.adjustedTargets.carbs >= contextualNutrition.baseTargets.carbs ? 'text-green-400' : 'text-red-400')}>
                         {contextualNutrition.adjustedTargets.carbs >= contextualNutrition.baseTargets.carbs ? '+' : ''}
                         {contextualNutrition.adjustedTargets.carbs - contextualNutrition.baseTargets.carbs}g
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-grappler-500 uppercase tracking-wide">Fat</p>
+                      <p className="text-[11px] text-grappler-500 uppercase tracking-wide">Fat</p>
                       <p className="text-xs text-grappler-500 line-through">{contextualNutrition.baseTargets.fat}g</p>
                       <p className="text-sm font-semibold text-grappler-100">{contextualNutrition.adjustedTargets.fat}g</p>
-                      <p className={cn('text-[10px] font-medium', contextualNutrition.adjustedTargets.fat >= contextualNutrition.baseTargets.fat ? 'text-green-400' : 'text-red-400')}>
+                      <p className={cn('text-[11px] font-medium', contextualNutrition.adjustedTargets.fat >= contextualNutrition.baseTargets.fat ? 'text-green-400' : 'text-red-400')}>
                         {contextualNutrition.adjustedTargets.fat >= contextualNutrition.baseTargets.fat ? '+' : ''}
                         {contextualNutrition.adjustedTargets.fat - contextualNutrition.baseTargets.fat}g
                       </p>

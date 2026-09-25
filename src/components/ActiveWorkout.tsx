@@ -150,12 +150,12 @@ function MiniPlateCalc({ weight, unit, singleSided = false }: { weight: number; 
         {loaded.map(p => String(p)).join(' + ')} {unit} {singleSided ? 'on working end' : 'each side'}
       </p>
       {singleSided && (
-        <p className="text-center text-[10px] text-grappler-500 mt-0.5">
+        <p className="text-center text-[11px] text-grappler-500 mt-0.5">
           Landmine — load one end only
         </p>
       )}
       {achievable && (
-        <p className="text-center text-[10px] text-yellow-400 mt-0.5">
+        <p className="text-center text-[11px] text-yellow-400 mt-0.5">
           ~{(remaining * sides).toFixed(1)} {unit} off with standard plates
         </p>
       )}
@@ -3340,7 +3340,7 @@ export default function ActiveWorkout() {
                 >
                   {allDone && <Check className="w-3 h-3" />}
                   <span className="max-w-[120px] truncate">{ex.exercise.name}</span>
-                  <span className="text-[10px] opacity-60">{completedSetsCount}/{totalSetsCount}</span>
+                  <span className="text-[11px] opacity-60">{completedSetsCount}/{totalSetsCount}</span>
                 </button>
               );
             })}

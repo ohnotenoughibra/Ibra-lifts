@@ -162,7 +162,7 @@ export default function InjuryAwareWorkout({ onClose }: Props) {
         <div className="space-y-3">
           {Object.entries(regionsByGroup).map(([group, items]) => (
             <div key={group}>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 mb-1.5">{group}</div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-grappler-500 mb-1.5">{group}</div>
               <div className="flex flex-wrap gap-1.5">
                 {items.map(r => (
                   <button

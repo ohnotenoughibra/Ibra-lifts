@@ -234,3 +234,14 @@ test.describe('Train tab — editing sessions', () => {
     await expect(names.nth(last - 1)).toHaveText(name);
   });
 });
+
+test('Fight Prep links to the camp timeline and back', async ({ page }) => {
+  await onboard(page);
+  await page.getByRole('tab', { name: 'Train' }).click();
+  await page.getByRole('button', { name: /Fight Prep/ }).click();
+  await expect(page.getByTestId('fight-prep-links')).toBeVisible();
+  await page.getByRole('button', { name: /Camp timeline/ }).click();
+  await expect(page.getByTestId('fight-prep-links')).not.toBeVisible();
+  await page.getByRole('button', { name: /back|close/i }).first().click();
+  await expect(page.getByTestId('fight-prep-links')).toBeVisible();
+});

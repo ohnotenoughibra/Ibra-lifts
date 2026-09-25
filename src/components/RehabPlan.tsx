@@ -223,7 +223,7 @@ function StartScreen({ injury, onClose, onStart }: { injury: InjuryEntry; onClos
         </ul>
       </Section>
 
-      <p className="text-[10px] text-grappler-500 text-center leading-relaxed">
+      <p className="text-[11px] text-grappler-500 text-center leading-relaxed">
         Educational tool — not medical advice. Severe injuries warrant a clinician.
       </p>
     </ToolShell>
@@ -295,7 +295,7 @@ function PlanView({ injury, switcher, onClose, onShowSession, onShowCheckIn, onS
           {timeline.phases.map(p => (
             <div key={p.phase} className="flex items-center gap-3 py-1.5 border-b border-grappler-800 last:border-0">
               <span className={cn(
-                'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0',
+                'w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0',
                 p.status === 'current' && 'bg-white text-grappler-950',
                 p.status === 'completed' && 'bg-emerald-500/30 text-emerald-300',
                 p.status === 'upcoming' && 'bg-grappler-800 text-grappler-500'
@@ -307,7 +307,7 @@ function PlanView({ injury, switcher, onClose, onShowSession, onShowCheckIn, onS
               </div>
               <span className="text-[11px] font-mono tabular-nums text-grappler-500">~{p.estimatedDays}d</span>
               {p.status === 'current' && (
-                <span className="text-[10px] uppercase tracking-[0.18em] text-white">Now</span>
+                <span className="text-[11px] uppercase tracking-[0.18em] text-white">Now</span>
               )}
             </div>
           ))}
@@ -442,7 +442,7 @@ function ExerciseRow({ exercise, completed, onToggle }: { exercise: RehabExercis
           </div>
           <p className="text-[11px] text-grappler-500">{exercise.loadGuidance}</p>
           {exercise.evidenceNote && (
-            <p className="text-[10px] text-emerald-400/80 italic mt-0.5">{exercise.evidenceNote}</p>
+            <p className="text-[11px] text-emerald-400/80 italic mt-0.5">{exercise.evidenceNote}</p>
           )}
           <button
             onClick={() => setExpanded(!expanded)}
@@ -582,7 +582,7 @@ function Slider({ label, value, onChange, description }: { label: string; value:
         onChange={e => onChange(Number(e.target.value))}
         className="w-full"
       />
-      <div className="flex justify-between text-[10px] text-grappler-600 mt-1 font-mono tabular-nums">
+      <div className="flex justify-between text-[11px] text-grappler-600 mt-1 font-mono tabular-nums">
         <span>0</span><span>5</span><span>10</span>
       </div>
       <span className="hidden">{accent}</span>

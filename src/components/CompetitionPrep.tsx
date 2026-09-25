@@ -29,6 +29,8 @@ import { resolveWeightUnit } from '@/lib/units';
 
 interface CompetitionPrepProps {
   onClose: () => void;
+  /** Opens the camp timeline / fight-camp nutrition (back returns here). */
+  onNavigate?: (view: 'camp_timeline' | 'fight_camp') => void;
 }
 
 const COMPETITION_TYPE_LABELS: Record<CompetitionType, string> = {
@@ -245,7 +247,7 @@ function getWeightProgress(current?: number, target?: number): number {
   return Math.max(0, Math.min(100, 100 - (overshoot / maxOvershoot) * 100));
 }
 
-export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
+export default function CompetitionPrep({ onClose, onNavigate }: CompetitionPrepProps) {
   const {
     user, competitions: rawEvents, addCompetition, deleteCompetition,
     weightCutPlans, createWeightCutPlan, bodyWeightLog, combatNutritionProfile,
@@ -310,19 +312,33 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
             <div>
               <h1 className="text-xl font-bold text-grappler-50 flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-yellow-500" />
-                Event Prep
+                Fight Prep
               </h1>
               <p className="text-sm text-grappler-400">Plan and peak for competitions</p>
             </div>
           </div>
           <button
             onClick={() => setShowAddForm(true)}
-            className="btn btn-primary btn-sm gap-1"
+            className="btn btn-primary btn-sm gap-1 whitespace-nowrap flex-shrink-0"
           >
             <Plus className="w-4 h-4" />
             Add Event
           </button>
         </div>
+
+        {/* One place for fight camp: timeline and nutrition live one tap away */}
+        {onNavigate && (
+          <div className="grid grid-cols-2 gap-2 mb-6" data-testid="fight-prep-links">
+            <button onClick={() => onNavigate('camp_timeline')} className="rounded-xl border border-grappler-700 bg-grappler-800/60 px-3 py-2.5 text-left">
+              <span className="block text-sm font-semibold text-grappler-100">Camp timeline</span>
+              <span className="block text-xs text-grappler-400">Phases to fight day</span>
+            </button>
+            <button onClick={() => onNavigate('fight_camp')} className="rounded-xl border border-grappler-700 bg-grappler-800/60 px-3 py-2.5 text-left">
+              <span className="block text-sm font-semibold text-grappler-100">Camp nutrition</span>
+              <span className="block text-xs text-grappler-400">Cut, refeed, fight-day fuel</span>
+            </button>
+          </div>
+        )}
 
         {/* Add Event Form */}
         <AnimatePresence>

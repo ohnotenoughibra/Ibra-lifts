@@ -123,12 +123,12 @@ export default function ReadinessRing({
             <span className={cn(
               'font-black leading-none tracking-tight',
               isWhite ? 'text-white' : config.text,
-              config.word.length > 4 ? 'text-[9px]' : 'text-[11px]',
+              config.word.length > 4 ? 'text-[11px]' : 'text-[11px]',
             )}>
               {isWhite ? score : config.word}
             </span>
             {!isWhite && (
-              <span className="text-[9px] font-bold text-grappler-500 mt-0.5 tabular-nums">{score}</span>
+              <span className="text-[11px] font-bold text-grappler-500 mt-0.5 tabular-nums">{score}</span>
             )}
           </>
         )}

@@ -420,7 +420,7 @@ export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserPr
                           {program.label}
                         </h4>
                         {isRecommended && (
-                          <span className="px-1.5 py-0.5 bg-primary-500/20 text-primary-400 rounded text-[10px] font-bold uppercase">
+                          <span className="px-1.5 py-0.5 bg-primary-500/20 text-primary-400 rounded text-[11px] font-bold uppercase">
                             Suggested
                           </span>
                         )}
@@ -466,11 +466,11 @@ export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserPr
                           <div className="flex gap-2">
                             <div className="flex-1 bg-black/15 rounded-lg p-2 text-center">
                               <p className="text-lg font-bold">{program.defaultWeeks}</p>
-                              <p className="text-[10px] opacity-50 uppercase">Weeks</p>
+                              <p className="text-[11px] opacity-50 uppercase">Weeks</p>
                             </div>
                             <div className="flex-1 bg-black/15 rounded-lg p-2 text-center">
                               <p className="text-sm font-bold capitalize">{program.defaultPeriodization}</p>
-                              <p className="text-[10px] opacity-50 uppercase">Periodization</p>
+                              <p className="text-[11px] opacity-50 uppercase">Periodization</p>
                             </div>
                           </div>
 
@@ -869,12 +869,12 @@ function WorkoutPreviewPanel({
           <div key={session.id} className="bg-grappler-900/60 rounded-lg p-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded bg-grappler-700 flex items-center justify-center text-[10px] text-grappler-400 font-bold">
+                <span className="w-5 h-5 rounded bg-grappler-700 flex items-center justify-center text-[11px] text-grappler-400 font-bold">
                   {sIdx + 1}
                 </span>
                 <h5 className="text-sm font-semibold text-grappler-100">{session.name}</h5>
               </div>
-              <span className="text-[10px] px-1.5 py-0.5 bg-grappler-700 text-grappler-400 rounded capitalize">
+              <span className="text-[11px] px-1.5 py-0.5 bg-grappler-700 text-grappler-400 rounded capitalize">
                 {session.type}
               </span>
             </div>
@@ -888,7 +888,7 @@ function WorkoutPreviewPanel({
                 </div>
               ))}
               {session.exercises.length > 5 && (
-                <p className="text-[10px] text-grappler-500">+{session.exercises.length - 5} more exercises</p>
+                <p className="text-[11px] text-grappler-500">+{session.exercises.length - 5} more exercises</p>
               )}
             </div>
           </div>

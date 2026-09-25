@@ -65,7 +65,7 @@ export default function WeekLayoutSheet({ trainingDays, combatTrainingDays, sess
             <h2 className="text-lg font-bold text-grappler-50">Your week</h2>
             <p className="text-xs text-grappler-400">Lift days and mat days. Your block moves onto them — nothing is rebuilt.</p>
           </div>
-          <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-full bg-grappler-800 flex items-center justify-center text-grappler-400 flex-shrink-0">
+          <button onClick={onClose} aria-label="Close week layout" className="w-8 h-8 rounded-full bg-grappler-800 flex items-center justify-center text-grappler-400 hover:text-grappler-200 flex-shrink-0" data-tight>
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -98,7 +98,7 @@ export default function WeekLayoutSheet({ trainingDays, combatTrainingDays, sess
                 data-testid={`mat-day-${d}`}
               >
                 {DAY_SHORT[d]}
-                <span className="text-[9px] font-medium capitalize">{c?.intensity ?? ''}</span>
+                <span className="text-[11px] font-medium capitalize">{c?.intensity ?? ''}</span>
               </button>
             );
           })}

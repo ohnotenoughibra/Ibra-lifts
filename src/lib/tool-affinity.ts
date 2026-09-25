@@ -79,16 +79,25 @@ export function getTopTools(feedback: FeatureFeedback[], n: number = 6): ToolAff
  * Get smart suggestions for Quick Access dock empty slots.
  * Returns tool IDs the user loves that aren't already pinned.
  */
+/** Starter suggestions so an empty dock offers something useful on day one. */
+const STARTER_COMBAT = ['grappling', 'nutrition', 'competition', 'conditioning'];
+const STARTER_GENERAL = ['nutrition', 'conditioning', 'mobility', 'builder'];
+
 export function getDockSuggestions(
   feedback: FeatureFeedback[],
   pinnedIds: string[],
-  maxSuggestions: number = 4
+  maxSuggestions: number = 4,
+  identity?: 'combat' | 'general' | string,
 ): string[] {
   const pinned = new Set(pinnedIds);
-  return computeToolAffinity(feedback)
+  const liked = computeToolAffinity(feedback)
     .filter(t => t.score > 0 && !pinned.has(t.toolId))
-    .slice(0, maxSuggestions)
     .map(t => t.toolId);
+  // Disliked tools are never suggested, even as a starter
+  const disliked = new Set(computeToolAffinity(feedback).filter(t => t.score < 0).map(t => t.toolId));
+  const starters = (identity === 'combat' ? STARTER_COMBAT : STARTER_GENERAL)
+    .filter(id => !pinned.has(id) && !disliked.has(id) && !liked.includes(id));
+  return [...liked, ...starters].slice(0, maxSuggestions);
 }
 
 /**

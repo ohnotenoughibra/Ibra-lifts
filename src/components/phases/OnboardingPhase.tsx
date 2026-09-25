@@ -22,7 +22,7 @@ export default function OnboardingPhase({
     >
       {/* Editorial heading — no gradient, no glow */}
       <div className="mb-5">
-        <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-2">
+        <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-2">
           No program yet
         </div>
         <h2 className="font-display text-3xl font-black tracking-tight leading-none text-white mb-2">

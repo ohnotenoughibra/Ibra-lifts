@@ -22,6 +22,23 @@
     min-height: 44px;
   }
 
+  /* Icon-only and compact buttons keep their look but get a 44×44 hit area:
+     an invisible ::after grows the tappable box to 44px in whichever
+     direction the button is smaller (never shrinks it). */
+  button[data-tight]:not(.absolute):not(.fixed):not(.sticky),
+  button[aria-label]:not(.absolute):not(.fixed):not(.sticky) {
+    position: relative;
+  }
+  button[data-tight]::after,
+  button[aria-label]::after {
+    content: '';
+    position: absolute;
+    top: min(0px, calc((100% - 44px) / 2));
+    bottom: min(0px, calc((100% - 44px) / 2));
+    left: min(0px, calc((100% - 44px) / 2));
+    right: min(0px, calc((100% - 44px) / 2));
+  }
+
   /* Kill native pull-to-refresh + page bounce on iOS / Android.
      User report: 'pull my phone down and everything disappears.'
      Setting overscroll-behavior: none on html prevents the document-level

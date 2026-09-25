@@ -158,7 +158,7 @@ function LoginForm() {
       >
         {/* Editorial wordmark */}
         <div className="mb-8">
-          <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
+          <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">
             Welcome back
           </div>
           <h1 className="font-display text-5xl md:text-6xl font-black tracking-tight leading-none text-white mb-3">

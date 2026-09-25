@@ -337,10 +337,10 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
                     </div>
                     {confirmDeleteId === log.id ? (
                       <div className="flex items-center gap-1 shrink-0">
-                        <button onClick={() => { deleteCycleLog(log.id); setConfirmDeleteId(null); }} className="p-0.5 rounded bg-red-500/20 text-red-400 text-[10px]" title="Confirm delete">
+                        <button onClick={() => { deleteCycleLog(log.id); setConfirmDeleteId(null); }} className="p-0.5 rounded bg-red-500/20 text-red-400 text-[11px]" title="Confirm delete">
                           yes
                         </button>
-                        <button onClick={() => setConfirmDeleteId(null)} className="p-0.5 text-[10px] text-grappler-400 hover:text-grappler-200">
+                        <button onClick={() => setConfirmDeleteId(null)} className="p-0.5 text-[11px] text-grappler-400 hover:text-grappler-200">
                           no
                         </button>
                       </div>

@@ -149,7 +149,7 @@ export default function WeeklyCalendar({
 
               {/* Day label */}
               <span className={cn(
-                'text-[10px] font-bold leading-none',
+                'text-[11px] font-bold leading-none',
                 isToday ? 'text-primary-300' : 'text-grappler-500',
               )}>
                 {label}
@@ -160,7 +160,7 @@ export default function WeeklyCalendar({
 
               {/* Type label */}
               <span className={cn(
-                'text-[9px] font-semibold leading-none',
+                'text-[11px] font-semibold leading-none',
                 meta.color,
               )}>
                 {meta.label}
@@ -177,7 +177,7 @@ export default function WeeklyCalendar({
 
       {/* Intensity warning strip */}
       {weekPlan.warnings.length > 0 && (
-        <p className="text-[10px] text-amber-400/70 mt-1.5 px-0.5 leading-tight truncate">
+        <p className="text-[11px] text-amber-400/70 mt-1.5 px-0.5 leading-tight truncate">
           {weekPlan.warnings[0]}
         </p>
       )}

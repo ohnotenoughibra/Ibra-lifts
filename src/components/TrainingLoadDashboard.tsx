@@ -140,7 +140,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
                 <h2 className={cn('text-sm font-bold leading-tight', colors.title)}>
                   {acwr.status === 'no_data' ? 'No Data' : zone.label}
                 </h2>
-                <p className="text-[10px] text-grappler-400">ACWR</p>
+                <p className="text-[11px] text-grappler-400">ACWR</p>
               </div>
             </div>
             <p className={cn('text-2xl font-black tabular-nums', colors.title)}>
@@ -167,7 +167,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
               />
             )}
           </div>
-          <div className="relative h-3.5 text-[10px] text-grappler-500 font-medium">
+          <div className="relative h-3.5 text-[11px] text-grappler-500 font-medium">
             <span className="absolute left-0">0</span>
             <span className="absolute" style={{ left: '40%', transform: 'translateX(-50%)' }}>0.8</span>
             <span className="absolute" style={{ left: '65%', transform: 'translateX(-50%)' }}>1.3</span>
@@ -185,15 +185,15 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
         {/* ── Acute vs Chronic + Delta ── */}
         <div className="grid grid-cols-3 gap-1.5">
           <div className="rounded-lg p-2.5 bg-grappler-800/50 border border-grappler-700/50 text-center">
-            <p className="text-[10px] text-grappler-500 uppercase">7-day</p>
+            <p className="text-[11px] text-grappler-500 uppercase">7-day</p>
             <p className="text-base font-black text-grappler-100 tabular-nums">{acwr.acute.toLocaleString()}</p>
           </div>
           <div className="rounded-lg p-2.5 bg-grappler-800/50 border border-grappler-700/50 text-center">
-            <p className="text-[10px] text-grappler-500 uppercase">28-day avg</p>
+            <p className="text-[11px] text-grappler-500 uppercase">28-day avg</p>
             <p className="text-base font-black text-grappler-100 tabular-nums">{acwr.chronic.toLocaleString()}</p>
           </div>
           <div className="rounded-lg p-2.5 bg-grappler-800/50 border border-grappler-700/50 text-center">
-            <p className="text-[10px] text-grappler-500 uppercase">Week Δ</p>
+            <p className="text-[11px] text-grappler-500 uppercase">Week Δ</p>
             <p className={cn('text-base font-black tabular-nums',
               weekDelta > 0 ? 'text-amber-400' : weekDelta < 0 ? 'text-blue-400' : 'text-grappler-400'
             )}>
@@ -204,7 +204,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
 
         {/* ── Weekly Load Bars ── */}
         <div>
-          <h3 className="text-[10px] font-semibold text-grappler-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          <h3 className="text-[11px] font-semibold text-grappler-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
             <BarChart3 className="w-3 h-3" /> Weekly Load
           </h3>
           <div className="space-y-1.5">
@@ -246,13 +246,13 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
 
         {/* ── 28-Day Intensity Heatmap ── */}
         <div>
-          <h3 className="text-[10px] font-semibold text-grappler-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          <h3 className="text-[11px] font-semibold text-grappler-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
             <Calendar className="w-3 h-3" /> 28-Day Intensity
           </h3>
           {/* Day-of-week labels */}
           <div className="grid grid-cols-7 gap-1 mb-1">
             {HEATMAP_DAY_LABELS.map((d, i) => (
-              <span key={i} className="text-center text-[9px] text-grappler-600 font-medium">{d}</span>
+              <span key={i} className="text-center text-[11px] text-grappler-600 font-medium">{d}</span>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-1">

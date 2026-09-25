@@ -141,7 +141,7 @@ export default function AthleticBenchmarks({ onClose, onNavigate }: Props) {
                   <div className="flex items-baseline gap-2 mb-0.5">
                     <h3 className="text-sm font-bold text-white truncate">{spec.name}</h3>
                     {summary.tier !== 'untested' && (
-                      <span className="text-[10px] uppercase tracking-[0.18em] text-grappler-500">
+                      <span className="text-[11px] uppercase tracking-[0.18em] text-grappler-500">
                         {tierLabel(summary.tier)}
                       </span>
                     )}

@@ -285,7 +285,7 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
                           aria-label={`Move ${planned.name} earlier`}
                           className="w-7 h-5 flex items-center justify-center text-grappler-400 hover:text-grappler-100 disabled:opacity-20"
                         ><ChevronUp className="w-4 h-4" /></button>
-                        <span className="text-[10px] font-bold text-grappler-500 text-center">{i + 1}</span>
+                        <span className="text-[11px] font-bold text-grappler-500 text-center">{i + 1}</span>
                         <button
                           onClick={() => reorderMesocycleQueue(i, i + 1)}
                           disabled={i === mesocycleQueue.length - 1}
@@ -394,7 +394,7 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
                             {block.goalFocus.replace(/_/g, ' ')} · {block.weeks.length}w · {doneSessions}/{totalSessions} sessions
                           </p>
                         </div>
-                        <span className={cn('text-[10px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0', badge.cls)}>
+                        <span className={cn('text-[11px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0', badge.cls)}>
                           {badge.label}
                         </span>
                         <ChevronRight className="w-4 h-4 text-grappler-500 flex-shrink-0" />
@@ -450,7 +450,7 @@ function BlockReport({ block, history, workoutLogs, weightUnit, confirmDelete, o
             {block.goalFocus.replace(/_/g, ' ')} focus · {block.weeks.length}w · {block.weeks.reduce((s, w) => s + w.sessions.length, 0)} sessions
           </p>
         </div>
-        <span className={cn('text-[10px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0', badge.cls)}>
+        <span className={cn('text-[11px] font-bold uppercase px-2 py-0.5 rounded-full flex-shrink-0', badge.cls)}>
           {badge.label}
         </span>
       </div>
@@ -561,12 +561,12 @@ function BlockReport({ block, history, workoutLogs, weightUnit, confirmDelete, o
                       style={{ width: `${maxWeekVol > 0 ? (report.volumeByWeek[i] / maxWeekVol) * 100 : 0}%` }}
                     />
                     {report.volumeByWeek[i] > 0 && (
-                      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-grappler-200">
+                      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-medium text-grappler-200">
                         {formatVolume(report.volumeByWeek[i])}
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-grappler-500 w-8 text-right">
+                  <span className="text-[11px] text-grappler-500 w-8 text-right">
                     {week.workoutsCompleted}/{week.workoutsPlanned}
                   </span>
                 </div>
@@ -587,7 +587,7 @@ function BlockReport({ block, history, workoutLogs, weightUnit, confirmDelete, o
             {report.topExercisesByVolume.slice(0, 5).map((ex, i) => (
               <div key={ex.exerciseId} className="flex items-center gap-2">
                 <span className={cn(
-                  'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0',
+                  'w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0',
                   i === 0 ? 'bg-yellow-500/20 text-yellow-400' :
                   i === 1 ? 'bg-grappler-400/20 text-grappler-300' :
                   i === 2 ? 'bg-blue-500/20 text-blue-400' :
@@ -600,7 +600,7 @@ function BlockReport({ block, history, workoutLogs, weightUnit, confirmDelete, o
                     {ex.exerciseName}
                     {ex.hadPR && <Star className="w-2.5 h-2.5 text-yellow-400 shrink-0" />}
                   </p>
-                  <p className="text-[10px] text-grappler-500">
+                  <p className="text-[11px] text-grappler-500">
                     {ex.totalSets} sets · {formatVolume(ex.totalVolume)} {weightUnit} · Best: {ex.bestWeight}{weightUnit}
                   </p>
                 </div>
@@ -660,25 +660,25 @@ function BlockReport({ block, history, workoutLogs, weightUnit, confirmDelete, o
           </h4>
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-grappler-800/60 rounded-lg p-2 text-center">
-              <p className="text-[10px] text-grappler-500">Volume</p>
+              <p className="text-[11px] text-grappler-500">Volume</p>
               <p className={cn('text-xs font-medium', report.comparison.volumeDeltaPct > 0 ? 'text-green-400' : report.comparison.volumeDeltaPct < 0 ? 'text-red-400' : 'text-grappler-400')}>
                 {report.comparison.volumeDeltaPct > 0 ? '+' : ''}{report.comparison.volumeDeltaPct}%
               </p>
             </div>
             <div className="bg-grappler-800/60 rounded-lg p-2 text-center">
-              <p className="text-[10px] text-grappler-500">RPE</p>
+              <p className="text-[11px] text-grappler-500">RPE</p>
               <p className={cn('text-xs font-medium', report.comparison.rpeDelta < 0 ? 'text-green-400' : report.comparison.rpeDelta > 0 ? 'text-red-400' : 'text-grappler-400')}>
                 {report.comparison.rpeDelta > 0 ? '+' : ''}{report.comparison.rpeDelta}
               </p>
             </div>
             <div className="bg-grappler-800/60 rounded-lg p-2 text-center">
-              <p className="text-[10px] text-grappler-500">Sessions</p>
+              <p className="text-[11px] text-grappler-500">Sessions</p>
               <p className={cn('text-xs font-medium', report.comparison.sessionsDelta > 0 ? 'text-green-400' : report.comparison.sessionsDelta < 0 ? 'text-red-400' : 'text-grappler-400')}>
                 {report.comparison.sessionsDelta > 0 ? '+' : ''}{report.comparison.sessionsDelta}
               </p>
             </div>
             <div className="bg-grappler-800/60 rounded-lg p-2 text-center">
-              <p className="text-[10px] text-grappler-500">PRs</p>
+              <p className="text-[11px] text-grappler-500">PRs</p>
               <p className={cn('text-xs font-medium', report.comparison.prsDelta > 0 ? 'text-green-400' : report.comparison.prsDelta < 0 ? 'text-red-400' : 'text-grappler-400')}>
                 {report.comparison.prsDelta > 0 ? '+' : ''}{report.comparison.prsDelta}
               </p>

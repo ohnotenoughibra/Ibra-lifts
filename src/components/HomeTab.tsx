@@ -229,7 +229,7 @@ function ReadinessCard() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-grappler-200">{f.label}</span>
                     <span className={cn(
-                      'text-[10px] font-bold tabular-nums',
+                      'text-[11px] font-bold tabular-nums',
                       f.score >= 50 ? 'text-yellow-400' : f.score >= 30 ? 'text-orange-400' : 'text-red-400'
                     )}>{f.score}</span>
                   </div>
@@ -275,7 +275,7 @@ function ReadinessCard() {
                     <div className={cn('h-full rounded-full transition-all', getBarColor(f.score))} style={{ width: `${Math.max(3, f.score)}%` }} />
                   </div>
                   <span className={cn(
-                    'text-[10px] font-mono w-5 text-right',
+                    'text-[11px] font-mono w-5 text-right',
                     f.score >= 70 ? 'text-green-400' : f.score >= 50 ? 'text-yellow-400' : f.score >= 30 ? 'text-orange-400' : 'text-red-400'
                   )}>{f.score}</span>
                 </div>
@@ -2418,7 +2418,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           {(() => {
             const emptyCount = DOCK_SLOTS - Math.min(pinnedIds.length, DOCK_SLOTS);
             if (emptyCount === 0) return null;
-            const suggestions = getDockSuggestions(featureFeedback, pinnedIds, emptyCount);
+            const suggestions = getDockSuggestions(featureFeedback, pinnedIds, emptyCount, user?.trainingIdentity);
             return Array.from({ length: emptyCount }).map((_, i) => {
               const suggestedTool = suggestions[i] ? TOOL_MAP.get(suggestions[i]) : null;
               if (suggestedTool && !dockEditMode) {

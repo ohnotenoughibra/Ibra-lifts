@@ -670,7 +670,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
                       </div>
                       <p className="text-xs text-grappler-400 leading-relaxed">{c.detail}</p>
                       {c.confidence === 'moderate' && (
-                        <p className="text-[10px] text-grappler-500 mt-1.5">
+                        <p className="text-[11px] text-grappler-500 mt-1.5">
                           Related through one muscle group — weaker signal than a full pattern match.
                         </p>
                       )}
@@ -1050,7 +1050,7 @@ function PowerProfileSection({ fvProfile }: { fvProfile: FVProfileResult }) {
 
         {/* Imbalance bar — always shown */}
         <div className="mt-3">
-          <div className="flex justify-between text-[10px] text-grappler-500 mb-1">
+          <div className="flex justify-between text-[11px] text-grappler-500 mb-1">
             <span>Force</span>
             <span>Balanced</span>
             <span>Velocity</span>
@@ -1108,15 +1108,15 @@ function PowerProfileSection({ fvProfile }: { fvProfile: FVProfileResult }) {
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   <div className="text-center">
                     <div className="text-lg font-bold text-red-400">{prescription.forcePercent}%</div>
-                    <div className="text-[10px] text-grappler-500 uppercase">Force</div>
+                    <div className="text-[11px] text-grappler-500 uppercase">Force</div>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-grappler-200">{prescription.balancedPercent}%</div>
-                    <div className="text-[10px] text-grappler-500 uppercase">Balanced</div>
+                    <div className="text-[11px] text-grappler-500 uppercase">Balanced</div>
                   </div>
                   <div className="text-center">
                     <div className="text-lg font-bold text-sky-400">{prescription.velocityPercent}%</div>
-                    <div className="text-[10px] text-grappler-500 uppercase">Velocity</div>
+                    <div className="text-[11px] text-grappler-500 uppercase">Velocity</div>
                   </div>
                 </div>
                 {/* Visual split bar */}
@@ -1130,11 +1130,11 @@ function PowerProfileSection({ fvProfile }: { fvProfile: FVProfileResult }) {
               {/* Rep ranges + rest */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-grappler-800/40 rounded-lg p-3">
-                  <p className="text-[10px] text-grappler-500 uppercase mb-1">Rep Ranges</p>
+                  <p className="text-[11px] text-grappler-500 uppercase mb-1">Rep Ranges</p>
                   <p className="text-xs text-grappler-200">{prescription.repRanges}</p>
                 </div>
                 <div className="bg-grappler-800/40 rounded-lg p-3">
-                  <p className="text-[10px] text-grappler-500 uppercase mb-1">Rest Periods</p>
+                  <p className="text-[11px] text-grappler-500 uppercase mb-1">Rest Periods</p>
                   <p className="text-xs text-grappler-200">{prescription.restPeriods}</p>
                 </div>
               </div>
@@ -1156,7 +1156,7 @@ function PowerProfileSection({ fvProfile }: { fvProfile: FVProfileResult }) {
                         className="flex items-center gap-2 bg-grappler-800 rounded-lg p-2.5"
                       >
                         <div className="w-5 h-5 rounded-full bg-primary-500/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-[10px] font-bold text-primary-400">{i + 1}</span>
+                          <span className="text-[11px] font-bold text-primary-400">{i + 1}</span>
                         </div>
                         <span className="text-xs text-grappler-200">{exercise}</span>
                       </motion.div>

@@ -98,7 +98,7 @@ function LevelRing({ progress, level, size = 128, stroke = 5 }: {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-[32px] font-black text-grappler-50 leading-none tabular-nums">{level}</span>
-        <span className="text-[9px] text-grappler-400 uppercase tracking-[0.2em] mt-0.5">Level</span>
+        <span className="text-[11px] text-grappler-400 uppercase tracking-[0.2em] mt-0.5">Level</span>
       </div>
     </div>
   );
@@ -729,7 +729,7 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-grappler-800/60 ring-1 ring-grappler-700/40 active:scale-95 transition-transform"
                 >
                   <span className="text-sm">{ub.badge.icon}</span>
-                  <span className="text-[10px] font-medium text-grappler-300 truncate max-w-[80px]">{ub.badge.name}</span>
+                  <span className="text-[11px] font-medium text-grappler-300 truncate max-w-[80px]">{ub.badge.name}</span>
                 </button>
               ))}
             </div>

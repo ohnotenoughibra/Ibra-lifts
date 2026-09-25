@@ -88,7 +88,7 @@ export default function EnergySystems({ onClose }: Props) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-2 mb-0.5">
                   <h3 className="text-sm font-bold text-white truncate">{p.name}</h3>
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 whitespace-nowrap">
+                  <span className="text-[11px] uppercase tracking-[0.18em] text-grappler-500 whitespace-nowrap">
                     {SYSTEM_LABEL[p.energySystem]}
                   </span>
                 </div>
@@ -111,20 +111,20 @@ export default function EnergySystems({ onClose }: Props) {
             return (
               <div key={key} className="flex items-baseline justify-between gap-3 py-1.5 border-b border-grappler-800 last:border-0">
                 <div className="flex items-baseline gap-2 min-w-0">
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-grappler-500 font-bold w-12">
+                  <span className="text-[11px] uppercase tracking-[0.18em] text-grappler-500 font-bold w-12">
                     Z{idx + 1}
                   </span>
                   <span className="text-xs text-grappler-300">{tags[idx]}</span>
                 </div>
                 <span className="font-mono text-sm tabular-nums text-white">
                   {z.min}<span className="text-grappler-500">–</span>{z.max}
-                  <span className="text-[10px] text-grappler-500 ml-1">bpm</span>
+                  <span className="text-[11px] text-grappler-500 ml-1">bpm</span>
                 </span>
               </div>
             );
           })}
         </div>
-        <p className="text-[10px] text-grappler-500 mt-3 leading-relaxed">
+        <p className="text-[11px] text-grappler-500 mt-3 leading-relaxed">
           Tanaka max HR for age {userAge}, Karvonen reserve from resting HR {userRestingHR}.
         </p>
       </Section>
@@ -202,12 +202,12 @@ function ProtocolDetail({ protocol, zones, onBack, onClose, onStart }: {
                 )}
               >
                 {prettyModality(m)}
-                {primary && <span className="ml-1 text-[9px] text-amber-400">★</span>}
+                {primary && <span className="ml-1 text-[11px] text-amber-400">★</span>}
               </button>
             );
           })}
         </div>
-        <p className="text-[10px] text-grappler-500 mt-2">
+        <p className="text-[11px] text-grappler-500 mt-2">
           Recommended: {protocol.modalityRecommendations.map(prettyModality).join(', ')}
         </p>
       </Section>

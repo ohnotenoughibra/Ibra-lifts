@@ -40,7 +40,7 @@ export default function BlockCompletePhase({
     >
       {/* Editorial heading */}
       <div className="mb-5">
-        <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-primary-400 mb-2">
+        <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-primary-400 mb-2">
           Block Complete
         </div>
         <h3 className="font-display text-3xl font-black tracking-tight leading-none text-white mb-2">

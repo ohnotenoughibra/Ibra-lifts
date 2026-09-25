@@ -3,6 +3,20 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.20.0] - 2026-09-25
+
+**~770 exercises to swap to and search, a swap that knows what the movement trains, and sync that can't lose a workout to a race.**
+
+### Added
+- **Open exercise library** — 567 exercises from free-exercise-db (public domain) on top of the 204 curated ones: searchable and swappable everywhere (swap sheet, Add exercise, Builder, logging a past workout). Duplicates of curated lifts were left out, and your programmes still use the curated set only. The library loads after the app opens, so start-up isn't slower.
+
+### Changed
+- **Smarter swaps** — suggestions match the job first (horizontal vs vertical press, row vs pull-up, hinge vs hip thrust vs leg curl, split squat vs squat), then muscles and equipment. Exercises you've logged before rank higher; no more lists full of near-identical variants.
+
+### Fixed
+- **Sync race** — two devices (or a phone's queued push and a live one) saving at the same moment could overwrite each other; the server now locks your record while merging.
+- **Trimmed-device pushes** — a phone holding only its recent slice of history had every push rejected as "data loss"; the check now looks at the merged result.
+
 ## [2.19.0] - 2026-09-25
 
 **Full-app audit: data you can trust, science that checks out, and screens without fake numbers.**

@@ -1,10 +1,10 @@
 # ACTIVE: Workouts / Swap / Live / UX overhaul (2026-09-24)
 
 Plan: `tasks/plan-2026-09-24-workouts-ux.md` · Audit: `tasks/audit-2026-09-24-workouts.md`
-Shipped locally through v2.19.0 (2026-09-25): phases 0–4, live-workout QoL, air bike & sprints, full-app audit fixes (data, science, UX).
+Shipped locally through v2.20.0 (2026-09-25; 2.20: open exercise library + swap engine, sync row lock): phases 0–4, live-workout QoL, air bike & sprints, full-app audit fixes (data, science, UX).
 Still open (known, not yet fixed):
-- Plan phases: exercise taxonomy + larger library (free-exercise-db), unified swap engine, generator slot variety, data-driven templates, ActiveWorkout split, UX shell (one sheet header, 12px/44px minimums, 4 tabs).
-- Server: sync write race (SELECT … FOR UPDATE), richness guard drops pushes, Whoop OAuth state fails open, /api/whoop/data has no auth, localStorage backup + unbounded arrays.
+- Plan phases: generator slot variety (library is search/swap-only for now), data-driven templates, ActiveWorkout split, UX shell (one sheet header, 12px/44px minimums, 4 tabs).
+- Server: Whoop OAuth state fails open (iOS PWA cookie jars make a server check risky — needs device testing), /api/whoop/data has no auth, localStorage backup + unbounded arrays.
 - Science: HRV CV on ln(rMSSD) with 7-day mean; streak shield bridging; DietCoach weekly change by date windows; UTC day keys in a few components.
 - UX: one header style for all tools; merge Fight Prep / Camp Timeline; Quick Access empty slots; "0g" chip on Today.
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { formatTarget, formatSetsTarget } from '@/lib/prescription-format';
+import { formatTarget } from '@/lib/prescription-format';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore, type ActiveWorkoutThrottle } from '@/lib/store';
@@ -8,11 +8,18 @@ import { useToast } from './Toast';
 import ExerciseSwapSheet from './ExerciseSwapSheet';
 import { suggestNextLoad, getLoadProfile, formatLoad, nextLoadStep, roundForImplement } from '@/lib/next-load';
 import { useWakeLock } from '@/lib/use-wake-lock';
-import { recommendFinisher, totalSeconds as sprintTotalSeconds } from '@/lib/sprint-protocols';
+import { recommendFinisher } from '@/lib/sprint-protocols';
 import { matContext } from '@/lib/mat-aware';
 import dynamic from 'next/dynamic';
+import WorkoutHistoryModal from './active-workout/WorkoutHistoryModal';
+import FinishWorkoutModal from './active-workout/FinishWorkoutModal';
+import VolumeGapPrompt from './active-workout/VolumeGapPrompt';
+import RestTipsPanel from './active-workout/RestTipsPanel';
+import AddExerciseModal from './active-workout/AddExerciseModal';
+import WorkoutOverview from './active-workout/WorkoutOverview';
+import MiniPlateCalc from './active-workout/MiniPlateCalc';
 const SprintTimer = dynamic(() => import('./SprintTimer'), { ssr: false });
-import { quickAdjustOptions, stepWeight, personalBest, repsToBeat, lastTimeSets, warmupRamp, sessionEta, sessionDeltas } from '@/lib/live-session';
+import { quickAdjustOptions, stepWeight, personalBest, repsToBeat, lastTimeSets, warmupRamp, sessionEta } from '@/lib/live-session';
 import { useShallow } from 'zustand/react/shallow';
 import { useSwipe } from '@/lib/use-swipe';
 import { useRestTimer } from '@/hooks/useRestTimer';
@@ -30,138 +37,44 @@ import {
   Save,
   Shuffle,
   SkipForward,
-  Moon,
-  Utensils,
-  Brain,
   Zap,
-  Heart,
   AlertTriangle,
   TrendingUp,
   Video,
   ListChecks,
   Dumbbell,
   ChevronDown,
-  Clock,
-  Activity,
-  Battery,
-  Shield,
-  ArrowDown,
-  ArrowUp,
   Info,
   Pause,
-  ArrowLeftRight,
-} from 'lucide-react';
+  ArrowLeftRight,} from 'lucide-react';
 import { cn, formatTime, chrono } from '@/lib/utils';
-import { resolveWeightUnit, convertWeight, barWeight as getBarWeight } from '@/lib/units';
+import { resolveWeightUnit, convertWeight } from '@/lib/units';
 import { carryOverLoad, prescribedPercentOf1RM } from '@/lib/load-model';
 import { BufferedNumberInput } from './BufferedNumberInput';
 import { calculate1RM, getVolumeGaps } from '@/lib/workout-generator';
 import { getRandomTip } from '@/lib/knowledge';
-import { exercises as exerciseLibrary, getAlternativesForExercise, getRecommendedAlternatives, getExerciseById, searchExercises, ExerciseRecommendation } from '@/lib/exercises';
+import { exercises as exerciseLibrary, getAlternativesForExercise, searchExercises } from '@/lib/exercises';
 import { calculateReadiness, whoopRecoveryToReadiness, calculatePersonalBaseline } from '@/lib/auto-adjust';
-import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
+import { SetLog, PreWorkoutCheckIn, ExerciseFeedback, WeightUnit, WorkoutLog, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { getSuggestedWeight } from '@/lib/auto-adjust';
 import { estimateFirstTimeWeight, WeightEstimate } from '@/lib/weight-estimator';
-import { applyThrottle, getThrottleConfig, getThrottleInsights, getThrottleSummary, type ThrottleResult, type ThrottleLevel } from '@/lib/readiness-throttle';
+import { applyThrottle, type ThrottleLevel } from '@/lib/readiness-throttle';
 import { calculateReadiness as calcFullReadiness } from '@/lib/performance-engine';
 import { getCoachMessages, type CoachMessage, type CoachContext } from '@/lib/corner-coach';
 import { regulateRPE, type RPERegulation } from '@/lib/rpe-regulator';
-import { generateSmartWarmUp, type WarmUpProtocol, type WarmUpStep } from '@/lib/warmup-generator';
+import { generateSmartWarmUp, type WarmUpProtocol } from '@/lib/warmup-generator';
 import { detectSupersetCandidates } from '@/lib/superset-engine';
-import { parseTempo, initTempoState, tickTempo, stopTempo, formatTUT, PHASE_LABELS, PHASE_COLORS, PHASE_BG_COLORS, type TempoState, type TempoPrescription } from '@/lib/tempo-engine';
+import { parseTempo, initTempoState, tickTempo, formatTUT, PHASE_LABELS, PHASE_COLORS, PHASE_BG_COLORS, type TempoState, type TempoPrescription } from '@/lib/tempo-engine';
 import { getActiveInjuryAdaptations } from '@/lib/injury-science';
-import { Building2, Home, Backpack, Search, StickyNote, Trash2 } from 'lucide-react';
+import { StickyNote, Trash2 } from 'lucide-react';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
-import { getSessionAdjustments } from '@/lib/concurrent-training';
 
-// ---------------------------------------------------------------------------
-// Mini Plate Calculator — shown during rest overlay
-// ---------------------------------------------------------------------------
 // Stable fallbacks for store selectors — an inline `?? []` / `?? {}` returns a
 // fresh reference every evaluation and forces a re-render on every store update.
 const EMPTY_ARR: never[] = [];
 const EMPTY_WATER_LOG: Record<string, number> = {};
 const DEFAULT_MACRO_TARGETS = { calories: 2500, protein: 180, carbs: 300, fat: 80 };
 
-const PLATES_LBS = [45, 35, 25, 10, 5, 2.5];
-const PLATES_KG = [25, 20, 15, 10, 5, 2.5, 1.25];
-const PLATE_COLORS: Record<number, string> = {
-  45: 'bg-red-500', 35: 'bg-blue-500', 25: 'bg-yellow-500', 20: 'bg-blue-500',
-  15: 'bg-yellow-500', 10: 'bg-green-500', 5: 'bg-white', 2.5: 'bg-gray-400', 1.25: 'bg-gray-400',
-};
-
-function MiniPlateCalc({ weight, unit, singleSided = false }: { weight: number; unit: WeightUnit; singleSided?: boolean }) {
-  const barWeight = getBarWeight(unit);
-  const plates = unit === 'kg' ? PLATES_KG : PLATES_LBS;
-
-  if (weight <= barWeight) return null;
-
-  // Landmine / single-end exercises load all plates onto ONE sleeve, so the
-  // working end carries the full plate weight (not half). Standard barbells
-  // split it across two sides.
-  const sides = singleSided ? 1 : 2;
-  const sideLoad = (weight - barWeight) / sides;
-  const loaded: number[] = [];
-  let remaining = sideLoad;
-  for (const plate of plates) {
-    while (remaining >= plate - 0.001) {
-      loaded.push(plate);
-      remaining -= plate;
-    }
-  }
-  const achievable = remaining > 0.01;
-
-  if (loaded.length === 0) return null;
-
-  return (
-    <div className="mt-3">
-      {/* Visual barbell with plates */}
-      <div className="flex items-center justify-center gap-0.5 mb-1.5">
-        {singleSided ? (
-          // Anchored pivot on the left, all plates on the working (right) end
-          <span className="w-3 h-3 rounded-full bg-grappler-600 mr-0.5" title="Floor anchor / pivot" />
-        ) : (
-          <div className="flex items-center gap-0.5">
-            {[...loaded].reverse().map((p, i) => (
-              <div
-                key={i}
-                className={cn('rounded-sm', PLATE_COLORS[p] || 'bg-gray-500')}
-                style={{ width: 8, height: Math.max(18, Math.min(40, p * (unit === 'kg' ? 1.5 : 0.8))) }}
-                title={`${p} ${unit}`}
-              />
-            ))}
-          </div>
-        )}
-        <div className={cn('h-2.5 bg-grappler-500 rounded-full', singleSided ? 'w-10' : 'w-14')} />
-        <div className="flex items-center gap-0.5">
-          {loaded.map((p, i) => (
-            <div
-              key={i}
-              className={cn('rounded-sm', PLATE_COLORS[p] || 'bg-gray-500')}
-              style={{ width: 8, height: Math.max(18, Math.min(40, p * (unit === 'kg' ? 1.5 : 0.8))) }}
-              title={`${p} ${unit}`}
-            />
-          ))}
-        </div>
-      </div>
-      {/* Text breakdown */}
-      <p className="text-center text-xs text-grappler-300 font-medium">
-        <Dumbbell className="w-3 h-3 inline mr-1 text-grappler-400" />
-        {loaded.map(p => String(p)).join(' + ')} {unit} {singleSided ? 'on working end' : 'each side'}
-      </p>
-      {singleSided && (
-        <p className="text-center text-[11px] text-grappler-500 mt-0.5">
-          Landmine — load one end only
-        </p>
-      )}
-      {achievable && (
-        <p className="text-center text-[11px] text-yellow-400 mt-0.5">
-          ~{(remaining * sides).toFixed(1)} {unit} off with standard plates
-        </p>
-      )}
-    </div>
-  );
-}
 
 export default function ActiveWorkout() {
   const {
@@ -1475,942 +1388,59 @@ export default function ActiveWorkout() {
       {/* Workout Overview Modal */}
       <AnimatePresence mode="wait">
         {showOverview && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="flex-1 overflow-y-auto p-4 pb-40">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <button
-                  onClick={() => cancelWorkout()}
-                  className="btn btn-ghost btn-sm"
-                  aria-label="Close workout overview"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-                <h1 className="text-lg font-bold text-grappler-50">Today&apos;s Workout</h1>
-                <div className="w-10" />
-              </div>
-
-              {/* Draft Recovery Banner */}
-              {showDraftRecovery && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-r from-sky-500/20 to-blue-500/10 border border-sky-500/30 rounded-xl p-4 mb-5"
-                >
-                  <div className="flex items-start gap-3">
-                    <RotateCcw className="w-5 h-5 text-sky-400 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <h3 className="font-bold text-sky-300 text-sm">Workout Recovered</h3>
-                      <p className="text-xs text-sky-400/80 mt-1">
-                        You had an in-progress workout. Your sets and data have been preserved.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => setShowDraftRecovery(false)}
-                      className="flex-1 btn btn-sm bg-sky-500/20 text-sky-300 border border-sky-500/30 hover:bg-sky-500/30"
-                    >
-                      Continue Workout
-                    </button>
-                    <button
-                      onClick={() => setShowCancelConfirm(true)}
-                      className="btn btn-sm btn-secondary"
-                    >
-                      Discard
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Session Info */}
-              <div className={cn(
-                'rounded-xl p-5 mb-5 border text-center',
-                activeWorkout.session.type === 'strength' && 'bg-red-500/10 border-red-500/30',
-                activeWorkout.session.type === 'hypertrophy' && 'bg-purple-500/10 border-purple-500/30',
-                activeWorkout.session.type === 'power' && 'bg-blue-500/10 border-blue-500/30',
-              )}>
-                <h2 className="text-2xl font-black text-grappler-50 mb-1">
-                  {activeWorkout.session.name}
-                </h2>
-                <p className={cn(
-                  'text-sm font-medium capitalize mb-3',
-                  activeWorkout.session.type === 'strength' && 'text-red-400',
-                  activeWorkout.session.type === 'hypertrophy' && 'text-purple-400',
-                  activeWorkout.session.type === 'power' && 'text-blue-400',
-                )}>
-                  {activeWorkout.session.type} Session
-                </p>
-                <div className="flex items-center justify-center gap-4 text-sm text-grappler-400">
-                  <span className="flex items-center gap-1">
-                    <Dumbbell className="w-4 h-4" />
-                    {activeWorkout.session.exercises.length} exercises
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <ListChecks className="w-4 h-4" />
-                    {totalSets} sets
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    ~{activeWorkout.session.estimatedDuration} min
-                  </span>
-                </div>
-              </div>
-
-              {/* Quick Readiness — moved above exercises so it's visible on mobile */}
-              <div className="mb-5">
-                <p className="text-xs text-grappler-400 mb-2 font-medium flex items-center gap-1.5">
-                  <Brain className="w-3.5 h-3.5" /> How are you feeling?
-                </p>
-                <div className="grid grid-cols-4 gap-2">
-                  {([
-                    { id: 'great' as const, label: 'Great', color: 'green' },
-                    { id: 'good' as const, label: 'Good', color: 'primary' },
-                    { id: 'okay' as const, label: 'Okay', color: 'yellow' },
-                    { id: 'rough' as const, label: 'Rough', color: 'red' },
-                  ]).map((opt) => (
-                    <button
-                      key={opt.id}
-                      onClick={() => setFeeling(opt.id)}
-                      className={cn(
-                        'py-2.5 rounded-xl text-center transition-all',
-                        feeling === opt.id
-                          ? opt.color === 'green' ? 'bg-green-500/20 border border-green-500/50 ring-1 ring-green-500/20'
-                          : opt.color === 'primary' ? 'bg-primary-500/20 border border-primary-500/50 ring-1 ring-primary-500/20'
-                          : opt.color === 'yellow' ? 'bg-yellow-500/20 border border-yellow-500/50 ring-1 ring-yellow-500/20'
-                          : 'bg-red-500/20 border border-red-500/50 ring-1 ring-red-500/20'
-                          : 'bg-grappler-800/60 border border-grappler-700/50'
-                      )}
-                    >
-                      <p className={cn('text-xs font-medium',
-                        feeling === opt.id ? 'text-grappler-100' : 'text-grappler-400'
-                      )}>{opt.label}</p>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Optional fine-tune toggle */}
-                <button
-                  onClick={() => setShowCheckInDetail(!showCheckInDetail)}
-                  className="w-full mt-2 text-xs text-grappler-400 hover:text-grappler-300 py-1 flex items-center justify-center gap-1"
-                >
-                  Fine-tune
-                  <ChevronDown className={cn('w-3 h-3 transition-transform', showCheckInDetail && 'rotate-180')} />
-                </button>
-
-                <AnimatePresence>
-                  {showCheckInDetail && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="pt-2 space-y-2">
-                        {/* Sleep row */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="bg-grappler-800/40 rounded-lg p-2.5">
-                            <label className="text-xs text-grappler-400 mb-1 flex items-center gap-1">
-                              <Moon className="w-3 h-3" /> Sleep
-                            </label>
-                            <div className="flex gap-0.5">
-                              {[1, 2, 3, 4, 5].map((v) => (
-                                <button
-                                  key={v}
-                                  onClick={() => setCheckIn({ ...checkIn, sleepQuality: v })}
-                                  className={cn(
-                                    'flex-1 py-1 rounded text-xs font-medium',
-                                    checkIn.sleepQuality === v
-                                      ? v <= 2 ? 'bg-red-500 text-white' : v >= 4 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
-                                      : 'bg-grappler-700 text-grappler-500'
-                                  )}
-                                >{v}</button>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="bg-grappler-800/40 rounded-lg p-2.5">
-                            <label className="text-xs text-grappler-400 mb-1 block">Hours</label>
-                            <div className="flex items-center gap-1.5">
-                              <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.max(0, checkIn.sleepHours - 0.5) })}
-                                className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center"
-                                aria-label="Decrease sleep hours">
-                                <Minus className="w-2.5 h-2.5 text-grappler-300" />
-                              </button>
-                              <span className="text-sm font-bold text-grappler-50 flex-1 text-center">{checkIn.sleepHours}h</span>
-                              <button onClick={() => setCheckIn({ ...checkIn, sleepHours: Math.min(12, checkIn.sleepHours + 0.5) })}
-                                className="w-6 h-6 rounded bg-grappler-700 flex items-center justify-center"
-                                aria-label="Increase sleep hours">
-                                <Plus className="w-2.5 h-2.5 text-grappler-300" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                        {/* Stress + Soreness compact row */}
-                        <div className="grid grid-cols-2 gap-2">
-                          {([
-                            { label: 'Stress', key: 'stress' as const, icon: Brain },
-                            { label: 'Soreness', key: 'soreness' as const, icon: Heart },
-                          ]).map(({ label, key, icon: Icon }) => (
-                            <div key={key} className="bg-grappler-800/40 rounded-lg p-2.5">
-                              <label className="text-xs text-grappler-400 mb-1 flex items-center gap-1">
-                                <Icon className="w-3 h-3" /> {label}
-                              </label>
-                              <div className="flex gap-0.5">
-                                {[1, 2, 3, 4, 5].map((v) => (
-                                  <button
-                                    key={v}
-                                    onClick={() => setCheckIn({ ...checkIn, [key]: v })}
-                                    className={cn(
-                                      'flex-1 py-1 rounded text-xs font-medium',
-                                      checkIn[key] === v
-                                        ? v >= 4 ? 'bg-red-500 text-white' : v <= 2 ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
-                                        : 'bg-grappler-700 text-grappler-500'
-                                    )}
-                                  >{v}</button>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Whoop Readiness Card */}
-              {latestWhoopData && whoopReadiness && !whoopApplied && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={cn(
-                    'rounded-xl p-4 mb-4 border',
-                    whoopReadiness.score >= 67
-                      ? 'bg-green-500/10 border-green-500/30'
-                      : whoopReadiness.score >= 34
-                        ? 'bg-yellow-500/10 border-yellow-500/30'
-                        : 'bg-red-500/10 border-red-500/30'
-                  )}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <Activity className="w-4 h-4 text-green-400" />
-                    <span className="text-sm font-semibold text-grappler-100">Whoop Recovery</span>
-                  </div>
-
-                  {/* Metrics Row */}
-                  <div className="grid grid-cols-4 gap-2 mb-3">
-                    <div className="text-center">
-                      <Battery className={cn('w-4 h-4 mx-auto mb-0.5',
-                        (latestWhoopData.recoveryScore ?? 0) >= 67 ? 'text-green-400' :
-                        (latestWhoopData.recoveryScore ?? 0) >= 34 ? 'text-yellow-400' : 'text-red-400'
-                      )} />
-                      <p className={cn('text-lg font-bold',
-                        (latestWhoopData.recoveryScore ?? 0) >= 67 ? 'text-green-400' :
-                        (latestWhoopData.recoveryScore ?? 0) >= 34 ? 'text-yellow-400' : 'text-red-400'
-                      )}>
-                        {latestWhoopData.recoveryScore ?? '--'}%
-                      </p>
-                      <p className="text-xs text-grappler-400">Recovery</p>
-                    </div>
-                    <div className="text-center">
-                      <Zap className="w-4 h-4 mx-auto mb-0.5 text-blue-400" />
-                      <p className="text-lg font-bold text-grappler-100">
-                        {latestWhoopData.strain?.toFixed(1) ?? '--'}
-                      </p>
-                      <p className="text-xs text-grappler-400">Strain</p>
-                    </div>
-                    <div className="text-center">
-                      <Moon className="w-4 h-4 mx-auto mb-0.5 text-indigo-400" />
-                      <p className="text-lg font-bold text-grappler-100">
-                        {latestWhoopData.sleepHours?.toFixed(1) ?? '--'}h
-                      </p>
-                      <p className="text-xs text-grappler-400">Sleep</p>
-                    </div>
-                    <div className="text-center">
-                      <Zap className="w-4 h-4 mx-auto mb-0.5 text-blue-400" />
-                      <p className="text-lg font-bold text-grappler-100">
-                        {latestWhoopData.caloriesBurned?.toLocaleString() ?? '--'}
-                      </p>
-                      <p className="text-xs text-grappler-400">kcal</p>
-                    </div>
-                  </div>
-
-                  {/* Recommendation + Visual Diff */}
-                  <div className={cn(
-                    'rounded-lg p-3 mb-3 text-sm',
-                    whoopReadiness.recommendation === 'reduce' ? 'bg-red-500/10' :
-                    whoopReadiness.recommendation === 'increase' ? 'bg-green-500/10' : 'bg-grappler-800/50'
-                  )}>
-                    {whoopReadiness.recommendation === 'reduce' && (
-                      <div className="flex items-start gap-2">
-                        <ArrowDown className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-medium text-red-300">Lower intensity suggested</p>
-                          <p className="text-xs text-red-400/80 mt-0.5">
-                            -1 set per exercise, RPE reduced by 1
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {whoopReadiness.recommendation === 'increase' && (
-                      <div className="flex items-start gap-2">
-                        <ArrowUp className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-medium text-green-300">Push harder today</p>
-                          <p className="text-xs text-green-400/80 mt-0.5">
-                            +1 set per exercise, RPE bumped +0.5
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {whoopReadiness.recommendation === 'maintain' && (
-                      <div className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-grappler-300 flex-shrink-0 mt-0.5" />
-                        <p className="font-medium text-grappler-300">On track — follow the plan as-is</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Follow Whoop vs Follow Plan */}
-                  {whoopReadiness.recommendation !== 'maintain' && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => {
-                          if (activeWorkout) {
-                            preWhoopSnapshot.current = {
-                              session: activeWorkout.session,
-                              exerciseLogs: activeWorkout.exerciseLogs,
-                            };
-                          }
-                          applyWhoopAdjustment();
-                          setWhoopFollowed(true);
-                          setWhoopApplied(true);
-                        }}
-                        className={cn(
-                          'btn btn-sm gap-1.5 font-medium',
-                          whoopReadiness.recommendation === 'reduce'
-                            ? 'bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30'
-                            : 'bg-green-500/20 text-green-300 border border-green-500/30 hover:bg-green-500/30'
-                        )}
-                      >
-                        <Activity className="w-3.5 h-3.5" />
-                        Follow Whoop
-                      </button>
-                      <button
-                        onClick={() => setWhoopApplied(true)}
-                        className="btn btn-sm btn-secondary gap-1.5 font-medium"
-                      >
-                        <Dumbbell className="w-3.5 h-3.5" />
-                        Follow Plan
-                      </button>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-
-              {/* Whoop Applied Confirmation */}
-              {whoopApplied && latestWhoopData && (
-                <div className={cn(
-                  'rounded-lg px-3 py-2 mb-4 flex items-center justify-between text-xs',
-                  whoopReadiness?.recommendation === 'reduce'
-                    ? 'bg-red-500/10 text-red-300'
-                    : whoopReadiness?.recommendation === 'increase'
-                      ? 'bg-green-500/10 text-green-300'
-                      : 'bg-grappler-800/50 text-grappler-300'
-                )}>
-                  <div className="flex items-center gap-2">
-                    <Activity className="w-3.5 h-3.5" />
-                    Recovery {latestWhoopData.recoveryScore}% &middot; Strain {latestWhoopData.strain?.toFixed(1)} &middot; {latestWhoopData.caloriesBurned} kcal
-                  </div>
-                  <button
-                    onClick={() => {
-                      // If Whoop adjustment was applied, restore original workout
-                      if (whoopFollowed && preWhoopSnapshot.current && activeWorkout) {
-                        useAppStore.setState({
-                          activeWorkout: {
-                            ...activeWorkout,
-                            session: preWhoopSnapshot.current.session,
-                            exerciseLogs: preWhoopSnapshot.current.exerciseLogs,
-                          },
-                        });
-                      }
-                      setWhoopFollowed(false);
-                      setWhoopApplied(false);
-                    }}
-                    className="text-grappler-400 hover:text-grappler-200 underline underline-offset-2 ml-2 flex-shrink-0"
-                  >
-                    Change
-                  </button>
-                </div>
-              )}
-
-              {/* Grappling Question */}
-              {showGrapplingQ && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-xl p-4 mb-4 bg-grappler-800/60 border border-grappler-700/50"
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <Shield className="w-4 h-4 text-lime-400" />
-                    <span className="text-sm font-semibold text-grappler-100">Grappling today?</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {([
-                      { v: 'none' as const, label: 'No', color: 'bg-grappler-700 text-grappler-300' },
-                      { v: 'light' as const, label: 'Light', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
-                      { v: 'moderate' as const, label: 'Moderate', color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' },
-                      { v: 'hard' as const, label: 'Hard', color: 'bg-red-500/20 text-red-300 border-red-500/30' },
-                    ]).map(opt => (
-                      <button
-                        key={opt.v}
-                        onClick={() => {
-                          setGrapplingToday(opt.v);
-                          setShowGrapplingQ(false);
-                          // Auto-reduce volume for moderate/hard grappling
-                          if (opt.v === 'hard' || opt.v === 'moderate') {
-                            const { activeWorkout: aw } = useAppStore.getState();
-                            if (aw) {
-                              const setReduction = opt.v === 'hard' ? 2 : 1;
-                              const rpeReduction = opt.v === 'hard' ? 2 : 1;
-                              let totalSetsRemoved = 0;
-                              let totalRpeReduced = 0;
-
-                              const reduced = aw.session.exercises.map(ex => {
-                                const newSets = Math.max(2, ex.sets - setReduction);
-                                const newRpe = Math.max(5, ex.prescription.rpe - rpeReduction);
-                                totalSetsRemoved += ex.sets - newSets;
-                                if (ex.prescription.rpe !== newRpe) totalRpeReduced++;
-                                return {
-                                  ...ex,
-                                  sets: newSets,
-                                  prescription: { ...ex.prescription, rpe: newRpe },
-                                };
-                              });
-                              const reducedLogs = aw.exerciseLogs.map((log, i) => ({
-                                ...log,
-                                sets: log.sets.slice(0, reduced[i].sets).map(s => ({
-                                  ...s, rpe: reduced[i].prescription.rpe
-                                })),
-                              }));
-                              useAppStore.setState({
-                                activeWorkout: {
-                                  ...aw,
-                                  session: { ...aw.session, exercises: reduced },
-                                  exerciseLogs: reducedLogs,
-                                },
-                              });
-                              setGrapplingReduction({
-                                level: opt.v,
-                                setsRemoved: totalSetsRemoved,
-                                rpeReduced: totalRpeReduced,
-                              });
-                            }
-                          }
-                        }}
-                        className={cn(
-                          'py-2 rounded-lg text-xs font-medium border transition-all',
-                          grapplingToday === opt.v
-                            ? opt.color
-                            : 'bg-grappler-800/50 text-grappler-500 border-grappler-700'
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                  {grapplingToday !== 'none' && !showGrapplingQ && (
-                    <p className="text-xs text-grappler-400 mt-2">
-                      Volume adjusted for {grapplingToday} grappling session
-                    </p>
-                  )}
-                </motion.div>
-              )}
-
-              {/* Grappling "No" Banner - Allow changing */}
-              {!showGrapplingQ && grapplingToday === 'none' && (
-                <div className="rounded-xl px-3 py-2.5 mb-4 text-xs bg-grappler-800/50 border border-grappler-700/50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-3.5 h-3.5 text-grappler-500" />
-                      <span className="font-medium text-grappler-400">No grappling today</span>
-                    </div>
-                    <button
-                      onClick={() => setShowGrapplingQ(true)}
-                      className="text-grappler-400 hover:text-grappler-200 text-xs underline"
-                    >
-                      Change
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Grappling Applied Banner */}
-              {!showGrapplingQ && grapplingToday !== 'none' && (
-                <div className={cn(
-                  'rounded-xl px-3 py-2.5 mb-4 text-xs',
-                  grapplingToday === 'hard' ? 'bg-red-500/10 border border-red-500/20' :
-                  grapplingToday === 'moderate' ? 'bg-yellow-500/10 border border-yellow-500/20' :
-                  'bg-lime-500/10 border border-lime-500/20'
-                )}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Shield className={cn('w-3.5 h-3.5',
-                        grapplingToday === 'hard' ? 'text-red-400' :
-                        grapplingToday === 'moderate' ? 'text-yellow-400' : 'text-lime-400'
-                      )} />
-                      <span className={cn('font-medium',
-                        grapplingToday === 'hard' ? 'text-red-300' :
-                        grapplingToday === 'moderate' ? 'text-yellow-300' : 'text-lime-300'
-                      )}>
-                        {grapplingToday === 'light' ? 'Light' : grapplingToday === 'moderate' ? 'Moderate' : 'Hard'} grappling planned
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setShowGrapplingQ(true)}
-                      className="text-grappler-400 hover:text-grappler-200 text-xs underline"
-                    >
-                      Change
-                    </button>
-                  </div>
-                  {grapplingReduction && (grapplingReduction.setsRemoved > 0 || grapplingReduction.rpeReduced > 0) && (
-                    <div className="mt-1.5 ml-5.5 flex items-center gap-3 text-grappler-400">
-                      {grapplingReduction.setsRemoved > 0 && (
-                        <span className="flex items-center gap-1">
-                          <ArrowDown className="w-3 h-3" />
-                          {grapplingReduction.setsRemoved} sets removed
-                        </span>
-                      )}
-                      {grapplingReduction.rpeReduced > 0 && (
-                        <span className="flex items-center gap-1">
-                          <ArrowDown className="w-3 h-3" />
-                          RPE lowered on {grapplingReduction.rpeReduced} exercises
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Location Quick-Switch (minimal) */}
-              <div className="flex items-center gap-1.5 bg-grappler-800/50 rounded-xl p-1.5 mb-5">
-                {DEFAULT_EQUIPMENT_PROFILES.map((profile) => {
-                  const IconMap: Record<string, any> = { gym: Building2, home: Home, travel: Backpack };
-                  const PIcon = IconMap[profile.name] || Dumbbell;
-                  const isActive = activeEquipmentProfile === profile.name;
-                  const isPending = showLocationConfirm === profile.name;
-                  return (
-                    <button
-                      key={profile.name}
-                      onClick={() => {
-                        if (isActive) return;
-                        if (isPending) {
-                          // Second tap confirms
-                          adaptWorkoutToProfile(profile.name);
-                          setShowLocationConfirm(null);
-                        } else {
-                          setShowLocationConfirm(profile.name);
-                        }
-                      }}
-                      className={cn(
-                        'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all',
-                        isActive
-                          ? 'bg-primary-500 text-white shadow-md'
-                          : isPending
-                          ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 animate-pulse'
-                          : 'text-grappler-400 hover:text-grappler-200 hover:bg-grappler-700/50'
-                      )}
-                    >
-                      <PIcon className="w-3.5 h-3.5" />
-                      {isPending ? 'Tap to confirm' : profile.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {/* Minimal hint when pending */}
-              <AnimatePresence>
-                {showLocationConfirm && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    className="text-xs text-grappler-400 text-center -mt-4 mb-4"
-                  >
-                    Exercises will adapt to {showLocationConfirm} equipment
-                    <button
-                      onClick={() => setShowLocationConfirm(null)}
-                      className="ml-2 text-grappler-400 hover:text-grappler-300 underline"
-                    >
-                      cancel
-                    </button>
-                  </motion.p>
-                )}
-              </AnimatePresence>
-
-              {/* Injury Warning Banner */}
-              {hasActiveInjuries && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-r from-amber-500/15 to-orange-500/10 border border-amber-500/30 rounded-xl p-3.5 mb-4"
-                >
-                  <div className="flex items-start gap-2.5">
-                    <AlertTriangle className="w-4.5 h-4.5 text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-bold text-amber-300">
-                        {injuryAdaptations.classifications.length === 1
-                          ? `Active injury: ${injuryAdaptations.classifications[0].bodyRegion.replace(/_/g, ' ')}`
-                          : `${injuryAdaptations.classifications.length} active injuries`
-                        }
-                      </h4>
-                      <p className="text-xs text-amber-400/80 mt-0.5">
-                        {injuryAdaptations.allAvoidExercises.length > 0
-                          ? `${injuryAdaptations.allAvoidExercises.length} exercises flagged — look for warning icons below`
-                          : 'Volume and intensity have been auto-adjusted'
-                        }
-                      </p>
-                      {injuryAdaptations.allModifiedExercises.length > 0 && (
-                        <div className="mt-2 space-y-1">
-                          {injuryAdaptations.allModifiedExercises.slice(0, 3).map((mod, mi) => (
-                            <p key={mi} className="text-xs text-amber-400/70 flex items-start gap-1.5">
-                              <span className="text-amber-500 mt-px">-</span>
-                              <span><span className="text-amber-300 font-medium">{mod.exerciseId.replace(/-/g, ' ')}</span>: {mod.modification}</span>
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Mat-aware adjustment (fight-week taper / hard sparring nearby) */}
-              {activeWorkout.matAdjust && (
-                activeWorkout.matAdjust.undone ? (
-                  <p className="mb-4 text-xs text-grappler-500" data-testid="mat-adjust">Training as planned ({activeWorkout.matAdjust.reason.split(' — ')[0].toLowerCase()}).</p>
-                ) : (
-                  <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3" data-testid="mat-adjust">
-                    <p className="text-sm font-semibold text-amber-200">{activeWorkout.matAdjust.reason}</p>
-                    <p className="text-xs text-amber-300/80 mt-0.5">{activeWorkout.matAdjust.summary}</p>
-                    <button onClick={undoMatAdjustment} className="mt-2 min-h-[36px] text-xs font-semibold text-amber-200 underline underline-offset-2">
-                      Train as planned
-                    </button>
-                  </div>
-                )
-              )}
-
-              {/* Readiness Auto-Throttle Banner */}
-              {throttleResult && throttleResult.config.level !== 'green' && !throttleDismissed && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={cn(
-                    'rounded-xl p-4 mb-4 border',
-                    throttleResult.config.level === 'peak' ? 'bg-emerald-500/10 border-emerald-500/30' :
-                    throttleResult.config.level === 'yellow' ? 'bg-yellow-500/10 border-yellow-500/30' :
-                    throttleResult.config.level === 'orange' ? 'bg-orange-500/10 border-orange-500/30' :
-                    'bg-red-500/10 border-red-500/30'
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-2.5 flex-1">
-                      <div className={cn(
-                        'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                        throttleResult.config.level === 'peak' ? 'bg-emerald-500/20' :
-                        throttleResult.config.level === 'yellow' ? 'bg-yellow-500/20' :
-                        throttleResult.config.level === 'orange' ? 'bg-orange-500/20' :
-                        'bg-red-500/20'
-                      )}>
-                        <Battery className={cn(
-                          'w-4 h-4',
-                          throttleResult.config.level === 'peak' ? 'text-emerald-400' :
-                          throttleResult.config.level === 'yellow' ? 'text-yellow-400' :
-                          throttleResult.config.level === 'orange' ? 'text-orange-400' :
-                          'text-red-400'
-                        )} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className={cn(
-                          'text-sm font-bold',
-                          throttleResult.config.level === 'peak' ? 'text-emerald-300' :
-                          throttleResult.config.level === 'yellow' ? 'text-yellow-300' :
-                          throttleResult.config.level === 'orange' ? 'text-orange-300' :
-                          'text-red-300'
-                        )}>
-                          Auto-Throttle: {throttleResult.config.label}
-                        </h4>
-                        <p className="text-xs text-grappler-400 mt-0.5">
-                          {throttleResult.config.message}
-                        </p>
-                        <p className="text-xs text-grappler-400 mt-1">
-                          {getThrottleSummary(throttleResult)}
-                        </p>
-                        {throttleResult.droppedExercises.length > 0 && (
-                          <p className="text-xs text-grappler-400 mt-1">
-                            Dropped: {throttleResult.droppedExercises.join(', ')}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setThrottleDismissed(true)}
-                      className="text-grappler-500 hover:text-grappler-300 p-1"
-                      aria-label="Dismiss auto-throttle notice"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-
-
-              {/* ─── Combat Load Banner — concurrent training interference ─── */}
-              {(() => {
-                const isCombat = user?.trainingIdentity === 'combat';
-                // The mat-aware adjustment above already acted on this — don't repeat it.
-                if (activeWorkout.matAdjust && !activeWorkout.matAdjust.undone) return null;
-                if (!isCombat || !trainingSessions || trainingSessions.length === 0) return null;
-                const recent = trainingSessions.filter((s: { date: string | Date }) => {
-                  const d = new Date(s.date);
-                  const now = new Date();
-                  return (now.getTime() - d.getTime()) / 86_400_000 <= 2;
-                });
-                if (recent.length === 0) return null;
-                const exercises = activeWorkout?.exerciseLogs?.map((log) => {
-                  const exDef = getExerciseById(log.exerciseId);
-                  return { muscleGroups: exDef?.primaryMuscles as string[] ?? ['full_body'] };
-                }) ?? [{ muscleGroups: ['full_body'] }];
-                const workoutType = activeWorkout?.session?.type ?? 'hypertrophy';
-                const adj = getSessionAdjustments(recent, { type: workoutType, exercises });
-                if (adj.overallVolumeMultiplier >= 0.95) return null;
-                const volPct = Math.round((1 - adj.overallVolumeMultiplier) * 100);
-                return (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={cn(
-                      'h-8 flex items-center justify-center gap-1.5 rounded-lg mb-3 text-xs font-medium',
-                      adj.shouldSkip
-                        ? 'bg-red-500/15 border border-red-500/30 text-red-300'
-                        : adj.overallVolumeMultiplier < 0.8
-                          ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300'
-                          : 'bg-blue-500/15 border border-blue-500/30 text-blue-300'
-                    )}
-                  >
-                    <Shield className="w-3 h-3" />
-                    {adj.shouldSkip
-                      ? 'High combat fatigue — consider recovery instead'
-                      : `Combat load detected: volume -${volPct}%`}
-                  </motion.div>
-                );
-              })()}
-              {/* Smart Warm-Up Card */}
-              {warmUpProtocol && warmUpProtocol.steps.length > 0 && (
-                <div className="mb-4">
-                  <button
-                    onClick={() => setShowWarmUp(!showWarmUp)}
-                    className="w-full rounded-xl p-3.5 bg-gradient-to-r from-amber-500/10 to-orange-500/5 border border-amber-500/20 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                        <Zap className="w-4 h-4 text-amber-400" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-sm font-bold text-amber-300">Smart Warm-Up</p>
-                        <p className="text-xs text-grappler-400">
-                          {warmUpProtocol.totalDuration} min · {warmUpProtocol.steps.length} steps · {warmUpProtocol.rampUpSets.length} ramp-up sets
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronDown className={cn('w-4 h-4 text-grappler-500 transition-transform', showWarmUp && 'rotate-180')} />
-                  </button>
-                  <AnimatePresence>
-                    {showWarmUp && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="pt-2 space-y-1.5">
-                          {warmUpProtocol.steps.map((step, i) => (
-                            <div
-                              key={i}
-                              className={cn(
-                                'flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs',
-                                step.type === 'cardio' ? 'bg-blue-500/10 text-blue-300' :
-                                step.type === 'dynamic_stretch' ? 'bg-teal-500/10 text-teal-300' :
-                                step.type === 'activation' ? 'bg-violet-500/10 text-violet-300' :
-                                'bg-amber-500/10 text-amber-300'
-                              )}
-                            >
-                              <span className="w-5 h-5 rounded-full bg-grappler-800 flex items-center justify-center text-xs font-bold text-grappler-400 flex-shrink-0">
-                                {i + 1}
-                              </span>
-                              <div className="flex-1 min-w-0">
-                                <span className="font-medium">{step.name}</span>
-                                {step.cue && <span className="text-grappler-500 ml-1">— {step.cue}</span>}
-                              </div>
-                              <span className="text-xs text-grappler-400 flex-shrink-0">
-                                {step.duration >= 60 ? `${Math.round(step.duration / 60)}m` : `${step.duration}s`}
-                                {step.sets && step.sets > 1 ? ` ×${step.sets}` : ''}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-
-              {/* Superset Suggestions */}
-              {supersetCandidates.length > 0 && (
-                <div className="mb-4 rounded-xl p-3 bg-violet-500/10 border border-violet-500/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Shuffle className="w-3.5 h-3.5 text-violet-400" />
-                    <p className="text-xs font-bold text-violet-300">Superset Opportunities</p>
-                  </div>
-                  {supersetCandidates.map((pair, i) => (
-                    <p key={i} className="text-xs text-violet-300/80 mt-1">
-                      {pair.reason}
-                    </p>
-                  ))}
-                </div>
-              )}
-
-              {/* Exercise List */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <h3 className="text-sm font-semibold text-grappler-300 uppercase tracking-wide">
-                    Exercise Plan
-                  </h3>
-                  {!hasPrimer && (
-                    <button
-                      onClick={handleAddPowerPrimer}
-                      className="flex items-center gap-1 text-xs font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 min-h-[36px]"
-                      aria-label="Add power primer"
-                    >
-                      <Zap className="w-3.5 h-3.5" /> + Power primer · 8–10 min
-                    </button>
-                  )}
-                </div>
-                {activeWorkout.session.exercises.map((ex, i) => {
-                  const prevPerf = getExerciseHistory(ex.exerciseId);
-                  const exIdLower = ex.exerciseId.toLowerCase();
-                  const isInjuryFlagged = hasActiveInjuries && injuryAdaptations.allAvoidExercises.some(
-                    avoidId => exIdLower.includes(avoidId.toLowerCase())
-                  );
-                  const injuryMod = hasActiveInjuries
-                    ? injuryAdaptations.allModifiedExercises.find(
-                        m => exIdLower.includes(m.exerciseId.toLowerCase())
-                      )
-                    : undefined;
-                  return (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className={cn(
-                        'bg-grappler-800/60 rounded-xl p-4 border',
-                        isInjuryFlagged ? 'border-amber-500/40' : 'border-grappler-700/50'
-                      )}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className={cn(
-                            'w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0',
-                            isInjuryFlagged ? 'bg-amber-500/20 text-amber-400' :
-                            activeWorkout.session.type === 'strength' ? 'bg-red-500/20 text-red-400' :
-                            activeWorkout.session.type === 'hypertrophy' ? 'bg-purple-500/20 text-purple-400' :
-                            'bg-blue-500/20 text-blue-400',
-                          )}>
-                            {isInjuryFlagged ? <AlertTriangle className="w-4 h-4" /> : i + 1}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-grappler-100">{ex.exercise.name}</p>
-                            <p className="text-xs text-grappler-400 mt-0.5">
-                              {ex.sets} × {formatTarget(ex.prescription.targetReps, ex.exercise)}{ex.exercise.isUnilateral ? ' /side' : ''} @ RPE {ex.prescription.rpe}
-                              {ex.prescription.percentageOf1RM && (
-                                <span className="text-primary-400 ml-1">~{prescribedPercentOf1RM(ex.prescription.targetReps, ex.prescription.rpe)}% 1RM</span>
-                              )}
-                            </p>
-                            <p className="text-xs text-grappler-400 mt-0.5">
-                              Rest: {Math.floor(ex.prescription.restSeconds / 60)}:{(ex.prescription.restSeconds % 60).toString().padStart(2, '0')}
-                              {' '}| {ex.exercise.primaryMuscles.slice(0, 2).join(', ')}
-                            </p>
-                            {/* Injury modification hint */}
-                            {injuryMod && (
-                              <p className="text-xs text-amber-400/80 mt-1 flex items-center gap-1">
-                                <Shield className="w-3 h-3 flex-shrink-0" />
-                                {injuryMod.modification}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                          <button
-                            onClick={() => setFormCheckExercise({ name: ex.exercise.name, videoUrl: ex.exercise.videoUrl })}
-                            className="p-2 rounded-lg bg-grappler-700/50 hover:bg-grappler-600/50 text-grappler-400 hover:text-primary-400 transition-colors"
-                            title="Check form"
-                            aria-label="Check form video"
-                          >
-                            <Video className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => setOverviewSwapIndex(i)}
-                            className={cn(
-                              'p-2 rounded-lg transition-colors',
-                              isInjuryFlagged
-                                ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
-                                : 'bg-grappler-700/50 hover:bg-grappler-600/50 text-grappler-400 hover:text-primary-400'
-                            )}
-                            title={isInjuryFlagged ? 'Swap — flagged for injury' : 'Swap exercise'}
-                            aria-label={isInjuryFlagged ? 'Swap exercise — flagged for injury' : 'Swap exercise'}
-                          >
-                            <Shuffle className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                      {prevPerf && (
-                        <div className="mt-2 ml-11 flex items-center gap-1">
-                          <TrendingUp className="w-3 h-3 text-primary-400" />
-                          <p className="text-xs text-primary-400">
-                            Last: {prevPerf.weight} {weightUnit} x {prevPerf.reps}
-                            {prevPerf.rpe ? ` @ RPE ${prevPerf.rpe}` : ''}
-                          </p>
-                        </div>
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Bottom CTA — always submits check-in */}
-            <div className="fixed bottom-0 left-0 right-0 bg-grappler-900 border-t border-grappler-800 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-              <button
-                onClick={() => {
-                  submitPreCheckIn();
-                  markWorkoutOverviewDone();
-                  setShowOverview(false);
-                }}
-                className="btn btn-primary btn-lg w-full gap-2"
-              >
-                <Zap className="w-5 h-5" />
-                Start Workout
-              </button>
-            </div>
-          </motion.div>
+          <WorkoutOverview
+            cancelWorkout={cancelWorkout}
+            showDraftRecovery={showDraftRecovery}
+            setShowDraftRecovery={setShowDraftRecovery}
+            setShowCancelConfirm={setShowCancelConfirm}
+            activeWorkout={activeWorkout}
+            totalSets={totalSets}
+            setFeeling={setFeeling}
+            feeling={feeling}
+            setShowCheckInDetail={setShowCheckInDetail}
+            showCheckInDetail={showCheckInDetail}
+            setCheckIn={setCheckIn}
+            checkIn={checkIn}
+            latestWhoopData={latestWhoopData}
+            whoopReadiness={whoopReadiness}
+            whoopApplied={whoopApplied}
+            preWhoopSnapshot={preWhoopSnapshot}
+            applyWhoopAdjustment={applyWhoopAdjustment}
+            setWhoopFollowed={setWhoopFollowed}
+            setWhoopApplied={setWhoopApplied}
+            whoopFollowed={whoopFollowed}
+            showGrapplingQ={showGrapplingQ}
+            setGrapplingToday={setGrapplingToday}
+            setShowGrapplingQ={setShowGrapplingQ}
+            setGrapplingReduction={setGrapplingReduction}
+            grapplingToday={grapplingToday}
+            grapplingReduction={grapplingReduction}
+            activeEquipmentProfile={activeEquipmentProfile}
+            showLocationConfirm={showLocationConfirm}
+            adaptWorkoutToProfile={adaptWorkoutToProfile}
+            setShowLocationConfirm={setShowLocationConfirm}
+            hasActiveInjuries={hasActiveInjuries}
+            injuryAdaptations={injuryAdaptations}
+            undoMatAdjustment={undoMatAdjustment}
+            throttleResult={throttleResult}
+            throttleDismissed={throttleDismissed}
+            setThrottleDismissed={setThrottleDismissed}
+            user={user}
+            trainingSessions={trainingSessions}
+            warmUpProtocol={warmUpProtocol}
+            setShowWarmUp={setShowWarmUp}
+            showWarmUp={showWarmUp}
+            supersetCandidates={supersetCandidates}
+            hasPrimer={hasPrimer}
+            handleAddPowerPrimer={handleAddPowerPrimer}
+            getExerciseHistory={getExerciseHistory}
+            setFormCheckExercise={setFormCheckExercise}
+            setOverviewSwapIndex={setOverviewSwapIndex}
+            weightUnit={weightUnit}
+            submitPreCheckIn={submitPreCheckIn}
+            markWorkoutOverviewDone={markWorkoutOverviewDone}
+            setShowOverview={setShowOverview}
+          />
         )}
       </AnimatePresence>
 
@@ -2464,248 +1494,24 @@ export default function ActiveWorkout() {
       {/* Add Exercise Modal */}
       <AnimatePresence>
         {showAddExerciseModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-          >
-            <motion.div
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              className="card p-6 w-full max-w-md max-h-[85vh] flex flex-col"
-            >
-              <h2 className="text-lg font-bold text-grappler-50 mb-3">Add Exercise</h2>
-
-              {/* Search */}
-              <div className="relative mb-3">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grappler-500" />
-                <input
-                  type="text"
-                  value={addExerciseSearch}
-                  onChange={(e) => setAddExerciseSearch(e.target.value)}
-                  placeholder="Search exercises..."
-                  className="w-full pl-9 pr-3 py-2 rounded-lg bg-grappler-800 border border-grappler-700 text-sm text-grappler-100 placeholder-grappler-500 focus-visible:outline-none focus-visible:border-primary-500"
-                  autoFocus
-                />
-              </div>
-
-              {/* Muscle filter chips */}
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                {['all', 'chest', 'back', 'shoulders', 'quadriceps', 'hamstrings', 'glutes', 'biceps', 'triceps', 'core'].map(muscle => (
-                  <button
-                    key={muscle}
-                    onClick={() => setAddExerciseFilter(muscle)}
-                    className={cn(
-                      'text-xs px-2.5 py-1 rounded-full transition-colors capitalize',
-                      addExerciseFilter === muscle
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-grappler-700 text-grappler-400 hover:bg-grappler-600'
-                    )}
-                  >
-                    {muscle === 'all' ? 'All' : muscle}
-                  </button>
-                ))}
-              </div>
-
-              {/* Exercise list */}
-              <div className="overflow-y-auto flex-1 space-y-1.5 min-h-0">
-                {addExerciseList.length > 0 ? addExerciseList.slice(0, 30).map((ex) => (
-                  <button
-                    key={ex.id}
-                    onClick={() => {
-                      addBonusExercise(ex, 3, 10);
-                      setShowAddExerciseModal(false);
-                      // Navigate to the newly added exercise
-                      setTimeout(() => {
-                        setCurrentExerciseIndex(activeWorkout.session.exercises.length);
-                        setCurrentSetIndex(0);
-                      }, 50);
-                    }}
-                    className="w-full p-3 rounded-xl border border-grappler-700 hover:border-primary-500 text-left transition-all group"
-                  >
-                    <p className="font-semibold text-sm text-grappler-100 group-hover:text-primary-300 transition-colors">
-                      {ex.name}
-                    </p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/80 text-grappler-400 capitalize">
-                        {ex.category}
-                      </span>
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-grappler-700/80 text-grappler-400 capitalize">
-                        {ex.movementPattern}
-                      </span>
-                    </div>
-                    <p className="text-xs text-grappler-400 mt-1 capitalize">
-                      {ex.primaryMuscles.join(', ')}
-                    </p>
-                  </button>
-                )) : (
-                  <p className="text-sm text-grappler-400 text-center py-6">
-                    No exercises found
-                  </p>
-                )}
-              </div>
-
-              <button
-                onClick={() => setShowAddExerciseModal(false)}
-                className="btn btn-secondary btn-md w-full mt-4"
-              >
-                Cancel
-              </button>
-            </motion.div>
-          </motion.div>
+          <AddExerciseModal
+            addExerciseSearch={addExerciseSearch}
+            setAddExerciseSearch={setAddExerciseSearch}
+            setAddExerciseFilter={setAddExerciseFilter}
+            addExerciseFilter={addExerciseFilter}
+            addExerciseList={addExerciseList}
+            addBonusExercise={addBonusExercise}
+            setShowAddExerciseModal={setShowAddExerciseModal}
+            setCurrentExerciseIndex={setCurrentExerciseIndex}
+            activeWorkout={activeWorkout}
+            setCurrentSetIndex={setCurrentSetIndex}
+          />
         )}
       </AnimatePresence>
 
       {/* Enhanced Exercise History Modal */}
       <AnimatePresence>
-        {showHistoryModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/70 flex items-end justify-center"
-            role="dialog"
-            aria-modal="true"
-            onClick={() => setShowHistoryModal(false)}
-          >
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-grappler-900 rounded-t-3xl w-full max-w-lg max-h-[85vh] overflow-hidden"
-            >
-              {/* Handle bar */}
-              <div className="flex justify-center py-3">
-                <div className="w-12 h-1.5 bg-grappler-700 rounded-full" />
-              </div>
-
-              <div className="px-5 pb-8 overflow-y-auto max-h-[calc(85vh-3rem)]">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-lg font-bold text-grappler-50">{currentExercise.exercise.name}</h2>
-                    <p className="text-xs text-grappler-400">Exercise History</p>
-                  </div>
-                  <button
-                    onClick={() => setShowHistoryModal(false)}
-                    className="p-2 text-grappler-400 hover:text-grappler-200"
-                    aria-label="Close exercise history"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* All-Time Best Card */}
-                {extendedHistory.allTimeBest && (
-                  <div className="bg-gradient-to-r from-yellow-500/20 to-blue-500/10 border border-yellow-500/30 rounded-xl p-4 mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-yellow-500/30 rounded-xl flex items-center justify-center">
-                        <Trophy className="w-6 h-6 text-yellow-400" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-yellow-400/80 uppercase tracking-wide">All-Time Best</p>
-                        <p className="text-xl font-bold text-yellow-300">
-                          {extendedHistory.allTimeBest.weight} {weightUnit} x {extendedHistory.allTimeBest.reps}
-                        </p>
-                        <p className="text-xs text-grappler-400">
-                          Est. 1RM: {Math.round(extendedHistory.allTimeBest.estimated1RM)} {weightUnit} •{' '}
-                          {extendedHistory.allTimeBest.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Progress Chart */}
-                {extendedHistory.sessions.length >= 2 && (
-                  <div className="bg-grappler-800/50 rounded-xl p-4 mb-4">
-                    <p className="text-xs text-grappler-400 uppercase tracking-wide mb-3">Estimated 1RM Progression</p>
-                    <div className="h-32 flex items-end gap-1">
-                      {(() => {
-                        const reversed = [...extendedHistory.sessions].reverse();
-                        const maxE1RM = Math.max(...reversed.map(s => s.estimated1RM));
-                        const minE1RM = Math.min(...reversed.map(s => s.estimated1RM));
-                        const range = maxE1RM - minE1RM || 1;
-
-                        return reversed.map((session, i) => {
-                          const heightPct = ((session.estimated1RM - minE1RM) / range) * 70 + 30; // 30-100% height
-                          const isLatest = i === reversed.length - 1;
-                          const isPeak = session.estimated1RM === maxE1RM;
-
-                          return (
-                            <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                              <div
-                                className={cn(
-                                  'w-full rounded-t-md transition-all',
-                                  isPeak ? 'bg-yellow-500' : isLatest ? 'bg-primary-500' : 'bg-grappler-600'
-                                )}
-                                style={{ height: `${heightPct}%` }}
-                              />
-                              <p className="text-xs text-grappler-400 truncate w-full text-center">
-                                {session.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                              </p>
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-                    <div className="flex justify-between mt-2 text-xs text-grappler-400">
-                      <span>Oldest</span>
-                      <span>Most Recent</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Session List */}
-                <div className="space-y-2">
-                  <p className="text-xs text-grappler-400 uppercase tracking-wide mb-2">
-                    Recent Sessions ({extendedHistory.sessions.length})
-                  </p>
-                  {extendedHistory.sessions.map((session, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        'flex items-center justify-between p-3 rounded-lg',
-                        i === 0 ? 'bg-primary-500/10 border border-primary-500/30' : 'bg-grappler-800/50'
-                      )}
-                    >
-                      <div>
-                        <p className={cn(
-                          'text-sm font-medium',
-                          i === 0 ? 'text-primary-300' : 'text-grappler-200'
-                        )}>
-                          {session.weight} {weightUnit} x {session.reps}
-                        </p>
-                        <p className="text-xs text-grappler-400">
-                          {session.sets} sets @ RPE {session.rpe}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-grappler-400">
-                          {session.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                        </p>
-                        <p className="text-xs text-grappler-400">
-                          e1RM: {Math.round(session.estimated1RM)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {extendedHistory.sessions.length === 0 && (
-                    <p className="text-sm text-grappler-500 text-center py-6">
-                      No history yet for this exercise
-                    </p>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
+        {showHistoryModal && <WorkoutHistoryModal setShowHistoryModal={setShowHistoryModal} currentExercise={currentExercise} extendedHistory={extendedHistory} weightUnit={weightUnit} />}
       </AnimatePresence>
 
       {/* Header */}
@@ -2916,166 +1722,23 @@ export default function ActiveWorkout() {
 
             <AnimatePresence>
               {showRestTips && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden w-full max-w-sm mt-3 space-y-3"
-                >
-                  {/* Weight bump suggestion */}
-                  {weightSuggestion && (
-                    <div className="bg-primary-500/15 border border-primary-500/30 rounded-xl p-3 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <TrendingUp className="w-4 h-4 text-primary-400 flex-shrink-0" />
-                        <p className="text-sm text-primary-300">{weightSuggestion.message}</p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => {
-                            setExactValue('weight', weightSuggestion.suggestedWeight);
-                            setWeightSuggestion(null);
-                          }}
-                          className="px-3 py-1.5 rounded-lg text-sm font-medium bg-primary-500 text-white"
-                        >
-                          {weightSuggestion.suggestedWeight} {weightUnit}
-                        </button>
-                        <button
-                          onClick={() => setWeightSuggestion(null)}
-                          className="text-grappler-500 hover:text-grappler-300"
-                          aria-label="Dismiss weight suggestion"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* RPE Auto-Regulator */}
-                  {rpeRegulation && (
-                    <div className={cn(
-                      'rounded-xl p-3 flex items-center justify-between gap-3 border',
-                      rpeRegulation.type === 'drop'
-                        ? 'bg-orange-500/15 border-orange-500/30'
-                        : 'bg-emerald-500/15 border-emerald-500/30'
-                    )}>
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        {rpeRegulation.type === 'drop'
-                          ? <ArrowDown className="w-4 h-4 text-orange-400 flex-shrink-0" />
-                          : <ArrowUp className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
-                        <div className="min-w-0">
-                          <p className={cn('text-sm font-medium', rpeRegulation.type === 'drop' ? 'text-orange-300' : 'text-emerald-300')}>
-                            {rpeRegulation.message}
-                          </p>
-                          <p className="text-sm text-grappler-400 mt-0.5">{rpeRegulation.reason}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => {
-                            setExactValue('weight', rpeRegulation.suggestedWeight);
-                            setRpeRegulation(null);
-                          }}
-                          className={cn(
-                            'px-3 py-1.5 rounded-lg text-sm font-medium text-white',
-                            rpeRegulation.type === 'drop' ? 'bg-orange-500' : 'bg-emerald-500'
-                          )}
-                        >
-                          {rpeRegulation.suggestedWeight} {weightUnit}
-                        </button>
-                        <button
-                          onClick={() => setRpeRegulation(null)}
-                          className="text-grappler-500 hover:text-grappler-300"
-                          aria-label="Dismiss RPE adjustment"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Form Video + Swap for next exercise */}
-                  {lastCompletedExerciseIndex !== null && !allExercisesDone && (
-                    <div className="flex items-center justify-center gap-2">
-                      {activeWorkout.session.exercises[currentExerciseIndex]?.exercise.videoUrl && (
-                        <a
-                          href={activeWorkout.session.exercises[currentExerciseIndex].exercise.videoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 hover:border-red-500/50 transition-all text-red-400 hover:text-red-300"
-                        >
-                          <Video className="w-3.5 h-3.5" />
-                          <span className="text-sm font-medium">Form Video</span>
-                        </a>
-                      )}
-                      <button
-                        onClick={() => setShowSwapModal(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-grappler-800 hover:bg-grappler-700 border border-grappler-700 hover:border-primary-500/50 transition-all text-grappler-400 hover:text-primary-400"
-                      >
-                        <Shuffle className="w-3.5 h-3.5" />
-                        <span className="text-sm font-medium">Swap Exercise</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Coach Messages */}
-                  {coachMessages.length > 0 && (
-                    <div className="space-y-2">
-                      {coachMessages.map((msg) => (
-                        <div
-                          key={msg.id}
-                          className={cn(
-                            'rounded-xl p-3 border flex items-start gap-3',
-                            msg.tone === 'hype' ? 'bg-emerald-500/15 border-emerald-500/30' :
-                            msg.tone === 'warning' ? 'bg-red-500/15 border-red-500/30' :
-                            msg.tone === 'celebrate' ? 'bg-yellow-500/15 border-yellow-500/30' :
-                            msg.tone === 'tactical' ? 'bg-blue-500/15 border-blue-500/30' :
-                            'bg-grappler-800/80 border-grappler-700/50'
-                          )}
-                        >
-                          <div className={cn(
-                            'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0',
-                            msg.tone === 'hype' ? 'bg-emerald-500/20' :
-                            msg.tone === 'warning' ? 'bg-red-500/20' :
-                            msg.tone === 'celebrate' ? 'bg-yellow-500/20' :
-                            msg.tone === 'tactical' ? 'bg-blue-500/20' :
-                            'bg-grappler-700/50'
-                          )}>
-                            {msg.tone === 'celebrate' ? <Trophy className="w-3.5 h-3.5 text-yellow-400" /> :
-                             msg.tone === 'warning' ? <AlertTriangle className="w-3.5 h-3.5 text-red-400" /> :
-                             msg.tone === 'hype' ? <Zap className="w-3.5 h-3.5 text-emerald-400" /> :
-                             msg.tone === 'tactical' ? <Brain className="w-3.5 h-3.5 text-blue-400" /> :
-                             <Lightbulb className="w-3.5 h-3.5 text-grappler-400" />}
-                          </div>
-                          <p className={cn(
-                            'text-sm flex-1',
-                            msg.tone === 'hype' ? 'text-emerald-300' :
-                            msg.tone === 'warning' ? 'text-red-300' :
-                            msg.tone === 'celebrate' ? 'text-yellow-300' :
-                            msg.tone === 'tactical' ? 'text-blue-300' :
-                            'text-grappler-300'
-                          )}>{msg.text}</p>
-                          <button
-                            onClick={() => setCoachMessages(prev => prev.filter(m => m.id !== msg.id))}
-                            className="text-grappler-600 hover:text-grappler-400 flex-shrink-0"
-                            aria-label="Dismiss coach message"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Tip */}
-                  {showTip && coachMessages.length === 0 && (
-                    <div className="card p-3">
-                      <div className="flex items-start gap-3">
-                        <Lightbulb className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-grappler-300">{tip.content}</p>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
+                <RestTipsPanel
+                  weightSuggestion={weightSuggestion}
+                  setExactValue={setExactValue}
+                  setWeightSuggestion={setWeightSuggestion}
+                  weightUnit={weightUnit}
+                  rpeRegulation={rpeRegulation}
+                  setRpeRegulation={setRpeRegulation}
+                  lastCompletedExerciseIndex={lastCompletedExerciseIndex}
+                  allExercisesDone={allExercisesDone}
+                  activeWorkout={activeWorkout}
+                  currentExerciseIndex={currentExerciseIndex}
+                  setShowSwapModal={setShowSwapModal}
+                  coachMessages={coachMessages}
+                  setCoachMessages={setCoachMessages}
+                  showTip={showTip}
+                  tip={tip}
+                />
               )}
             </AnimatePresence>
           </motion.div>
@@ -4274,541 +2937,48 @@ export default function ActiveWorkout() {
       {/* Volume Gap Fill Prompt */}
       <AnimatePresence>
         {showVolumeGapPrompt && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-          >
-            <motion.div
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              className="card p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <Dumbbell className="w-5 h-5 text-amber-400" />
-                <h2 className="text-lg font-bold text-grappler-50">Add a finisher</h2>
-              </div>
-              <p className="text-sm text-grappler-400 mb-4">
-                {postWorkoutVolumeGaps.length} muscle group{postWorkoutVolumeGaps.length !== 1 ? 's' : ''} still below minimum effective volume this week.
-              </p>
-
-              <div className="space-y-2 mb-5">
-                {postWorkoutVolumeGaps.slice(0, 5).map((gap) => {
-                  const exercise = gap.recommendedExercise
-                    ? exerciseLibrary.find(e => e.name === gap.recommendedExercise)
-                    : null;
-                  const setsNeeded = Math.min(gap.deficit, 3);
-                  const checked = selectedVolumeGaps.has(gap.muscle);
-                  const selectable = !!exercise;
-                  return (
-                    <button
-                      type="button"
-                      key={gap.muscle}
-                      disabled={!selectable}
-                      onClick={() => {
-                        if (!selectable) return;
-                        setSelectedVolumeGaps(prev => {
-                          const next = new Set(prev);
-                          if (next.has(gap.muscle)) next.delete(gap.muscle);
-                          else next.add(gap.muscle);
-                          return next;
-                        });
-                      }}
-                      className={cn(
-                        'w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all',
-                        checked
-                          ? 'border-primary-500 bg-primary-500/10'
-                          : 'border-grappler-700 bg-grappler-800/50 hover:border-grappler-600',
-                        !selectable && 'opacity-50 cursor-not-allowed',
-                      )}
-                    >
-                      <div className={cn(
-                        'w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors',
-                        checked
-                          ? 'bg-primary-500 border-primary-500'
-                          : 'border-grappler-600',
-                      )}>
-                        {checked && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-grappler-100 capitalize">
-                          {gap.muscle}
-                          <span className="ml-2 text-xs font-normal text-amber-400">
-                            {gap.currentSets}/{gap.mev} sets
-                          </span>
-                        </p>
-                        {gap.recommendedExercise && (
-                          <p className="text-xs text-grappler-400 truncate mt-0.5">
-                            {gap.recommendedExercise} · {setsNeeded} sets × 10-12 reps
-                          </p>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {postWorkoutVolumeGaps.length > 5 && (
-                <p className="text-xs text-grappler-500 mb-4 text-center">
-                  +{postWorkoutVolumeGaps.length - 5} more below MEV
-                </p>
-              )}
-
-              {/* Quick select-all / clear */}
-              {(() => {
-                const selectableGaps = postWorkoutVolumeGaps.slice(0, 5).filter(g => g.recommendedExercise);
-                const allSelected = selectableGaps.length > 0 && selectableGaps.every(g => selectedVolumeGaps.has(g.muscle));
-                return selectableGaps.length > 1 ? (
-                  <button
-                    onClick={() => {
-                      if (allSelected) {
-                        setSelectedVolumeGaps(new Set());
-                      } else {
-                        setSelectedVolumeGaps(new Set(selectableGaps.map(g => g.muscle)));
-                      }
-                    }}
-                    className="text-xs text-primary-400 hover:text-primary-300 underline mb-3"
-                  >
-                    {allSelected ? 'Clear all' : `Select all (${selectableGaps.length})`}
-                  </button>
-                ) : null;
-              })()}
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowVolumeGapPrompt(false);
-                    setVolumeGapDismissed(true);
-                    setSelectedVolumeGaps(new Set());
-                    setShowFinishModal(true);
-                  }}
-                  className="btn btn-secondary btn-md flex-1"
-                >
-                  Not today
-                </button>
-                <button
-                  disabled={selectedVolumeGaps.size === 0}
-                  onClick={() => {
-                    // Add only the checked gaps
-                    const added: string[] = [];
-                    for (const gap of postWorkoutVolumeGaps.slice(0, 5)) {
-                      if (!selectedVolumeGaps.has(gap.muscle)) continue;
-                      const exercise = gap.recommendedExercise
-                        ? exerciseLibrary.find(e => e.name === gap.recommendedExercise)
-                        : null;
-                      if (exercise) {
-                        const setsNeeded = Math.min(gap.deficit, 3);
-                        addBonusExercise(exercise, setsNeeded, 10);
-                        added.push(exercise.name);
-                      }
-                    }
-                    if (added.length > 0 && activeWorkout) {
-                      setTimeout(() => {
-                        setCurrentExerciseIndex(activeWorkout.session.exercises.length);
-                        setCurrentSetIndex(0);
-                      }, 50);
-                    }
-                    setShowVolumeGapPrompt(false);
-                    setVolumeGapDismissed(true);
-                    setSelectedVolumeGaps(new Set());
-                  }}
-                  className={cn(
-                    'btn btn-primary btn-md flex-1',
-                    selectedVolumeGaps.size === 0 && 'opacity-50 cursor-not-allowed',
-                  )}
-                >
-                  {selectedVolumeGaps.size === 0
-                    ? 'Add Selected'
-                    : `Add ${selectedVolumeGaps.size}`}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+          <VolumeGapPrompt
+            postWorkoutVolumeGaps={postWorkoutVolumeGaps}
+            selectedVolumeGaps={selectedVolumeGaps}
+            setSelectedVolumeGaps={setSelectedVolumeGaps}
+            setShowVolumeGapPrompt={setShowVolumeGapPrompt}
+            setVolumeGapDismissed={setVolumeGapDismissed}
+            setShowFinishModal={setShowFinishModal}
+            addBonusExercise={addBonusExercise}
+            activeWorkout={activeWorkout}
+            setCurrentExerciseIndex={setCurrentExerciseIndex}
+            setCurrentSetIndex={setCurrentSetIndex}
+          />
         )}
       </AnimatePresence>
 
       {/* Finish Workout Modal */}
       <AnimatePresence>
         {showFinishModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-          >
-            <motion.div
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              className="card p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
-            >
-              <h2 className="text-xl font-bold text-grappler-50 mb-4">Finish Workout</h2>
-
-              {/* Workout Summary */}
-              {(() => {
-                const elapsedMs = Date.now() - new Date(activeWorkout!.startTime).getTime();
-                const durationMin = durationOverride ?? Math.round(elapsedMs / 1000 / 60);
-                const exercisesCompleted = activeWorkout!.exerciseLogs.filter(
-                  log => log.sets.some(s => s.completed)
-                ).length;
-                const prCount = activeWorkout!.exerciseLogs.filter(log => log.personalRecord).length;
-                return (
-                  <div className="grid grid-cols-2 gap-3 mb-6">
-                    <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
-                      <div className="text-2xl font-bold text-white">{durationMin}</div>
-                      <div className="text-xs text-grappler-400">Minutes</div>
-                    </div>
-                    <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
-                      <div className="text-2xl font-bold text-white">{totalVolumeCompleted.toLocaleString()}</div>
-                      <div className="text-xs text-grappler-400">{weightUnit} Volume</div>
-                    </div>
-                    <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
-                      <div className="text-2xl font-bold text-white">{completedSets}/{totalSets}</div>
-                      <div className="text-xs text-grappler-400">Sets</div>
-                    </div>
-                    <div className="bg-grappler-800/50 rounded-xl p-3 text-center">
-                      <div className="text-2xl font-bold text-white">{exercisesCompleted}</div>
-                      <div className="text-xs text-grappler-400">Exercises</div>
-                    </div>
-                    {prCount > 0 && (
-                      <div className="col-span-2 bg-primary-500/10 border border-primary-500/30 rounded-xl p-3 text-center">
-                        <div className="text-2xl font-bold text-primary-400">{prCount}</div>
-                        <div className="text-xs text-primary-400">PR{prCount > 1 ? 's' : ''} Hit</div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* Per-lift: today's top set vs last time */}
-              {(() => {
-                const deltas = sessionDeltas(activeWorkout!.exerciseLogs, useAppStore.getState().workoutLogs, weightUnit)
-                  .filter(d => d.today);
-                if (deltas.length === 0) return null;
-                return (
-                  <div className="mb-5" data-testid="finish-deltas">
-                    <p className="text-xs uppercase tracking-wide text-grappler-500 mb-2">vs last time</p>
-                    <ul className="space-y-1.5">
-                      {deltas.map(d => (
-                        <li key={d.exerciseId} className="flex items-center justify-between gap-2 text-sm">
-                          <span className="text-grappler-200 truncate flex items-center gap-1">
-                            {d.pr && <Trophy className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />}
-                            {d.name}
-                          </span>
-                          <span className="flex-shrink-0 text-xs text-grappler-400">
-                            {d.today!.weight}×{d.today!.reps}
-                            {d.change === null ? (
-                              <span className="ml-2 text-grappler-500">first time</span>
-                            ) : (
-                              <span className={cn('ml-2 font-semibold',
-                                d.change > 0 ? 'text-green-400' : d.change < 0 ? 'text-red-400' : 'text-grappler-400')}>
-                                {d.change > 0 ? '+' : ''}{d.change} {weightUnit} e1RM
-                              </span>
-                            )}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                );
-              })()}
-
-              {/* Conditioning finisher — picked for today's readiness and leg load */}
-              {(() => {
-                if (finisherLogged) {
-                  return (
-                    <p className="mb-5 text-xs text-green-400 flex items-center gap-1.5">
-                      <Check className="w-3.5 h-3.5" /> Conditioning finisher logged
-                    </p>
-                  );
-                }
-                const heavyLowerSets = activeWorkout!.session.exercises.reduce((n, ex, i) => {
-                  const lower = ex.exercise.movementPattern === 'squat' || ex.exercise.movementPattern === 'hinge';
-                  const done = activeWorkout!.exerciseLogs[i]?.sets.filter(st => st.completed).length ?? 0;
-                  return n + (lower && ex.exercise.category === 'compound' ? done : 0);
-                }, 0);
-                const score = latestWhoopData?.recoveryScore ?? readiness?.score;
-                // Offer a finisher only once the lifting is mostly done.
-                if (totalSets === 0 || completedSets / totalSets < 0.6) return null;
-                const pick = recommendFinisher({ readiness: typeof score === 'number' ? score : undefined, heavyLowerSets, ...finisherMatContext() });
-                if (!pick) return null;
-                return (
-                  <button
-                    onClick={() => { setShowFinishModal(false); setShowFinisher(true); }}
-                    className="w-full mb-5 flex items-center justify-between gap-2 rounded-xl border border-grappler-700 bg-grappler-800/50 px-3 py-2.5 text-left"
-                    aria-label="Add conditioning finisher"
-                  >
-                    <span className="min-w-0">
-                      <span className="block text-xs font-semibold text-grappler-100">
-                        <Zap className="w-3.5 h-3.5 inline text-amber-400 mr-1" />
-                        Finisher: {pick.protocol.name} · ~{Math.round(sprintTotalSeconds(pick.protocol) / 60)} min
-                      </span>
-                      <span className="block text-[11px] text-grappler-400 mt-0.5">{pick.reason}</span>
-                    </span>
-                    <span className="text-xs font-semibold text-primary-400 flex-shrink-0">Start</span>
-                  </button>
-                );
-              })()}
-
-              {/* Weekly volume gaps — one line, opt-in (was a blocking "Got extra time?" sheet) */}
-              {postWorkoutVolumeGaps.length > 0 && !volumeGapDismissed && (
-                <button
-                  onClick={() => { setShowFinishModal(false); setShowVolumeGapPrompt(true); }}
-                  className="w-full mb-5 flex items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-left"
-                >
-                  <span className="text-xs text-amber-300">
-                    {postWorkoutVolumeGaps.slice(0, 3).map(g => g.muscle).join(', ')}
-                    {postWorkoutVolumeGaps.length > 3 ? ` +${postWorkoutVolumeGaps.length - 3}` : ''} below weekly minimum
-                  </span>
-                  <span className="text-xs font-semibold text-amber-400 flex-shrink-0">Add a finisher</span>
-                </button>
-              )}
-
-              <div className="space-y-4">
-                {/* Overall RPE */}
-                <div>
-                  <label className="text-sm text-grappler-400 mb-2 block">
-                    Session RPE
-                  </label>
-                  <div className="flex gap-2">
-                    {[5, 6, 7, 8, 9, 10].map((rpe) => (
-                      <button
-                        key={rpe}
-                        onClick={() => { sessionRpeTouched.current = true; setFeedback({ ...feedback, overallRPE: rpe }); }}
-                        className={cn(
-                          'flex-1 py-2 rounded-lg font-medium text-sm',
-                          feedback.overallRPE === rpe
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-grappler-700 text-grappler-400'
-                        )}
-                      >
-                        {rpe}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* More details toggle */}
-                <button
-                  onClick={() => setShowMoreFeedback(!showMoreFeedback)}
-                  className="flex items-center gap-2 text-sm text-grappler-400 hover:text-grappler-300 transition-colors"
-                >
-                  <ChevronDown className={cn('w-4 h-4 transition-transform', showMoreFeedback && 'rotate-180')} />
-                  {showMoreFeedback ? 'Less details' : 'More details'}
-                </button>
-
-                {showMoreFeedback && (
-                <>
-                {/* Performance vs Expectations */}
-                <div>
-                  <label className="text-sm text-grappler-400 mb-2 block">
-                    How was performance vs expectations?
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {([
-                      { value: 'worse_than_expected', label: 'Worse' },
-                      { value: 'as_expected', label: 'As Expected' },
-                      { value: 'better_than_expected', label: 'Better' }
-                    ] as const).map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => setFeedback({ ...feedback, overallPerformance: opt.value })}
-                        className={cn(
-                          'py-2 px-2 rounded-lg text-xs font-medium',
-                          feedback.overallPerformance === opt.value
-                            ? opt.value === 'worse_than_expected' ? 'bg-red-500 text-white' :
-                              opt.value === 'better_than_expected' ? 'bg-green-500 text-white' :
-                              'bg-primary-600 text-white'
-                            : 'bg-grappler-700 text-grappler-400'
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Soreness */}
-                <div>
-                  <label className="text-sm text-grappler-400 mb-2 block">
-                    Soreness (1-10)
-                  </label>
-                  <input
-                    type="range"
-                    min={1}
-                    max={10}
-                    value={feedback.soreness}
-                    onChange={(e) => setFeedback({ ...feedback, soreness: parseInt(e.target.value) })}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-grappler-400">
-                    <span>Fresh</span>
-                    <span>{feedback.soreness}</span>
-                    <span>Very Sore</span>
-                  </div>
-                </div>
-
-                {/* Energy */}
-                <div>
-                  <label className="text-sm text-grappler-400 mb-2 block">
-                    Energy (1-10)
-                  </label>
-                  <input
-                    type="range"
-                    min={1}
-                    max={10}
-                    value={feedback.energy}
-                    onChange={(e) => setFeedback({ ...feedback, energy: parseInt(e.target.value) })}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-grappler-400">
-                    <span>Exhausted</span>
-                    <span>{feedback.energy}</span>
-                    <span>Energized</span>
-                  </div>
-                </div>
-
-                {/* Mood */}
-                <div>
-                  <label className="text-sm text-grappler-400 mb-2 block">Mood</label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setFeedback({ ...feedback, mood: v })}
-                        className={cn(
-                          'flex-1 py-2 rounded-lg text-sm font-medium',
-                          feedback.mood === v
-                            ? 'bg-primary-600 text-white'
-                            : 'bg-grappler-700 text-grappler-400'
-                        )}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-xs text-grappler-400 mt-1">
-                    <span>Bad</span>
-                    <span>Great</span>
-                  </div>
-                </div>
-
-                {/* Would Repeat */}
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-grappler-300">Enjoyed this session?</label>
-                  <button
-                    onClick={() => setFeedback({ ...feedback, wouldRepeat: !feedback.wouldRepeat })}
-                    className={cn(
-                      'px-4 py-1.5 rounded-lg text-sm font-medium',
-                      feedback.wouldRepeat
-                        ? 'bg-green-500 text-white'
-                        : 'bg-grappler-700 text-grappler-400'
-                    )}
-                  >
-                    {feedback.wouldRepeat ? 'Yes' : 'No'}
-                  </button>
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <label className="text-sm text-grappler-400 mb-2 block">
-                    Notes (optional)
-                  </label>
-                  <textarea
-                    value={feedback.notes}
-                    onChange={(e) => setFeedback({ ...feedback, notes: e.target.value })}
-                    placeholder="How did it go? Any PRs? Issues?"
-                    className="input min-h-[80px] resize-none"
-                  />
-                </div>
-                </>
-                )}
-
-                {/* Duration override — show when elapsed time is unrealistically short */}
-                {(() => {
-                  const elapsedMs = Date.now() - new Date(activeWorkout!.startTime).getTime();
-                  const elapsedMin = Math.round(elapsedMs / 1000 / 60);
-                  const totalSets = activeWorkout!.exerciseLogs.reduce(
-                    (s, ex) => s + ex.sets.filter(set => set.completed).length, 0
-                  );
-                  const exerciseCount = activeWorkout!.exerciseLogs.length;
-                  // Detect retroactive logging: < 15 min with 3+ exercises or 6+ completed sets
-                  const isFastLog = elapsedMin < 15 && (exerciseCount >= 3 || totalSets >= 6);
-                  if (!isFastLog && durationOverride === null) return null;
-                  // Estimate: ~2.5 min per set (includes rest)
-                  const estimated = Math.max(20, Math.round(totalSets * 2.5));
-                  const currentVal = durationOverride ?? estimated;
-                  // Auto-set on first render
-                  if (durationOverride === null) {
-                    setTimeout(() => setDurationOverride(estimated), 0);
-                  }
-                  return (
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
-                      <label className="text-sm text-yellow-300 mb-1 block font-medium">
-                        Actual workout duration
-                      </label>
-                      <p className="text-xs text-grappler-400 mb-2">
-                        Looks like you logged this after the session. How long did it actually take?
-                      </p>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number" inputMode="decimal" enterKeyHint="done"
-                          min={5}
-                          max={300}
-                          value={currentVal}
-                          onChange={(e) => setDurationOverride(Math.max(5, parseInt(e.target.value) || 5))}
-                          className="input w-24 text-center text-lg font-bold"
-                        />
-                        <span className="text-sm text-grappler-400">minutes</span>
-                        <button
-                          onClick={() => setDurationOverride(null)}
-                          className="ml-auto text-xs text-grappler-400 underline"
-                        >
-                          Use actual time ({elapsedMin}m)
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowFinishModal(false)}
-                  className="btn btn-secondary btn-md flex-1"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => completeWorkout({
-                    overallRPE: feedback.overallRPE,
-                    soreness: feedback.soreness,
-                    energy: feedback.energy,
-                    notes: feedback.notes,
-                    postFeedback: {
-                      overallRPE: feedback.overallRPE,
-                      overallPerformance: feedback.overallPerformance,
-                      soreness: feedback.soreness,
-                      energy: feedback.energy,
-                      mood: feedback.mood,
-                      wouldRepeat: feedback.wouldRepeat,
-                      notes: feedback.notes
-                    },
-                    ...(durationOverride !== null ? { durationOverride } : {})
-                  })}
-                  className="btn btn-primary btn-md flex-1"
-                >
-                  Save Workout
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+          <FinishWorkoutModal
+            activeWorkout={activeWorkout}
+            durationOverride={durationOverride}
+            totalVolumeCompleted={totalVolumeCompleted}
+            weightUnit={weightUnit}
+            completedSets={completedSets}
+            totalSets={totalSets}
+            finisherLogged={finisherLogged}
+            latestWhoopData={latestWhoopData}
+            readiness={readiness}
+            finisherMatContext={finisherMatContext}
+            setShowFinishModal={setShowFinishModal}
+            setShowFinisher={setShowFinisher}
+            postWorkoutVolumeGaps={postWorkoutVolumeGaps}
+            volumeGapDismissed={volumeGapDismissed}
+            setShowVolumeGapPrompt={setShowVolumeGapPrompt}
+            sessionRpeTouched={sessionRpeTouched}
+            setFeedback={setFeedback}
+            feedback={feedback}
+            setShowMoreFeedback={setShowMoreFeedback}
+            showMoreFeedback={showMoreFeedback}
+            setDurationOverride={setDurationOverride}
+            completeWorkout={completeWorkout}
+          />
         )}
       </AnimatePresence>
     </div>

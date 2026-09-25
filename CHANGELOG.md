@@ -3,6 +3,27 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.21.0] - 2026-09-25
+
+**Plan your week like a week: sessions on real days, mats alongside, move anything, edit the rest of the block in one go — and a generator that stops starting you at RPE 9.5.**
+
+### Added
+- **Week view on the Train tab** — Mon→Sun with each lift session on its day, your mat sessions (light / moderate / hard) and rest days; today highlighted; ‹ › to plan other weeks. Heavy-leg sessions next to hard mats are flagged.
+- **Move a session** — ⋯ → pick a day (swaps if taken), for just this week or every week from here. Undoable.
+- **Your week** — set lift days and mat days with intensity in one sheet (Train tab "Edit days" or Settings → Lift & mat days). The block moves onto them without being rebuilt. Undoable.
+- **Mat-aware training** — the schedule now shapes the session you start: next to hard sparring the lighter-legs session moves up and legs & grip are eased (−1 set, RPE −0.5); fight week (≤ 7 days) gets a taper (volume ~half, intensity kept). One tap "Train as planned" undoes it.
+- **Add exercises to a session** — search the whole library, add to this week or the rest of the block (deload gets a lighter version).
+- **Organise blocks** — rename the current block; queued blocks can be renamed, lengthened/shortened and reordered, and keep their name when they start.
+
+### Changed
+- **Swaps and edits say how far they reach** — "This week" or "Rest of block". Swaps default to the rest of the block; sets/reps/RPE changes default to this week, and rest-of-block changes apply as a step (+1 set) so later weeks keep their progression; deloads are left alone.
+- **Switching blocks asks first** — "Start now" on a queued block confirms before stopping the current one.
+- Block length −/+ sits in the schedule header; sessions show their weekday; the Today card shows the day; past blocks show done/total sessions; cleaner exercise cards (⋯ for form video, move up/down, remove).
+
+### Fixed
+- **Programme intensity** — RPE and rest were drawn at random every week: week 1 at RPE 9–9.5, RPE 10 by week 4, rest jumping around for the same lift, and grip/isolation work prescribed like a max-effort lift (2×3 @ 10, 5 min rest). Now week 1 starts at RPE 7–7.5 (beginners 1 lower) and climbs 1.5 over the block, capped by experience (8.5 / 9 / 9.5); accessories get 8–15 reps with 60–90 s rest; explosive lifts stay 2–3 reps at RPE ≤ 8. New blocks only — your current block is unchanged.
+- **Queue order** — reordering could move the wrong block after a sync; edits to queued blocks could be undone by the next sync.
+
 ## [2.20.0] - 2026-09-25
 
 **~770 exercises to swap to and search, a swap that knows what the movement trains, and sync that can't lose a workout to a race.**

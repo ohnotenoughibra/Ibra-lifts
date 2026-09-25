@@ -53,6 +53,11 @@ const WORKOUT_PRESCRIPTIONS: Record<WorkoutType, {
   rpe: [number, number];
   percentageOf1RM: [number, number];
   restSeconds: [number, number];
+  /**
+   * Only set when a tempo is a deliberate part of the prescription. No default:
+   * within normal speeds (≈0.5–8 s per rep) tempo barely changes hypertrophy
+   * (Schoenfeld et al. 2015), and a "2-1-X-0" on every lift was UI noise.
+   */
   tempo?: string;
 }> = {
   strength: {
@@ -60,32 +65,28 @@ const WORKOUT_PRESCRIPTIONS: Record<WorkoutType, {
     reps: [3, 5],
     rpe: [8, 9.5],
     percentageOf1RM: [85, 95],
-    restSeconds: [180, 300],
-    tempo: '2-1-X-0' // Controlled eccentric, pause, explosive concentric
+    restSeconds: [180, 300]
   },
   hypertrophy: {
     sets: [3, 5],
     reps: [6, 12],
     rpe: [7, 9],
     percentageOf1RM: [65, 85],
-    restSeconds: [90, 150],
-    tempo: '3-1-2-0' // Slow eccentric for max hypertrophy (2025 research)
+    restSeconds: [90, 150]
   },
   power: {
     sets: [3, 5],
     reps: [2, 5],
     rpe: [6, 8],
     percentageOf1RM: [60, 80],
-    restSeconds: [120, 180],
-    tempo: '1-0-X-0' // Fast eccentric, explosive concentric
+    restSeconds: [120, 180]
   },
   strength_endurance: {
     sets: [3, 4],
     reps: [12, 20],
     rpe: [6, 8],
     percentageOf1RM: [40, 65],
-    restSeconds: [45, 75],
-    tempo: '2-0-2-0' // Controlled tempo, sustained output
+    restSeconds: [45, 75]
   }
 };
 

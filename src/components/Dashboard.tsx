@@ -114,7 +114,6 @@ const MovementLibrary = dynamic(() => import('./MovementLibrary'), { loading: ()
 const ConditioningSession = dynamic(() => import('./ConditioningSession'), { loading: () => <OverlaySkeleton /> });
 const TrainingJournal = dynamic(() => import('./TrainingJournal'), { loading: () => <OverlaySkeleton /> });
 const KnowledgeHub = dynamic(() => import('./KnowledgeHub'), { loading: () => <OverlaySkeleton /> });
-const ReadyForThis = dynamic(() => import('./ReadyForThis'), { loading: () => <OverlaySkeleton /> });
 
 
 function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: () => void }) {
@@ -267,8 +266,6 @@ export default function Dashboard({
     overlayDepthRef.current = newDepth;
     skipHistoryPushRef.current = false;
   }, [overlayView, overlayHistory.length]);
-  const [showReadyScreen, setShowReadyScreen] = useState(false);
-  const readyScreenSkipped = useRef(false);
 
   // ── Morning Ritual — once-per-day readiness reveal ──
   const [showMorningRitual, setShowMorningRitual] = useState(false);
@@ -488,17 +485,6 @@ export default function Dashboard({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [overlayView, levelUpDisplay, reportMesocycleId]);
 
-  // Show Ready for This when workout starts
-  const prevActiveWorkoutRef = useRef(activeWorkout);
-  useEffect(() => {
-    if (activeWorkout && !prevActiveWorkoutRef.current) {
-      setShowReadyScreen(true);
-    }
-    if (!activeWorkout) {
-      readyScreenSkipped.current = false; // Reset for next workout
-    }
-    prevActiveWorkoutRef.current = activeWorkout;
-  }, [activeWorkout]);
 
   // Streak at-risk detection
   const streakAtRisk = computed.currentStreak > 0 && (() => {
@@ -522,7 +508,7 @@ export default function Dashboard({
   }
 
   if (activeWorkout && !workoutMinimized) {
-    // Both interstitials below are lazy-loaded (dynamic import) and do heavy
+    // ActiveWorkout is lazy-loaded (dynamic import) and does heavy
     // work on mount (readiness summary, store derivations, autoregulation).
     // A throw or chunk-load failure used to leave the user on a frozen black
     // screen with no escape — the error boundary surfaces the actual error
@@ -531,22 +517,9 @@ export default function Dashboard({
       label: 'Cancel workout',
       onClick: () => {
         cancelWorkout();
-        setShowReadyScreen(false);
-        readyScreenSkipped.current = false;
       },
     };
 
-    // Show "Ready for This" interstitial on workout start (unless skipped)
-    if (showReadyScreen && !readyScreenSkipped.current && !activeWorkout.preCheckIn) {
-      return (
-        <CardErrorBoundary fallbackLabel="Workout intro" fullScreen secondaryAction={cancelEscape}>
-          <ReadyForThis
-            onProceed={() => setShowReadyScreen(false)}
-            onSkip={() => { readyScreenSkipped.current = true; setShowReadyScreen(false); }}
-          />
-        </CardErrorBoundary>
-      );
-    }
     return (
       <CardErrorBoundary fallbackLabel="Active workout" fullScreen secondaryAction={cancelEscape}>
         <ToastProvider>

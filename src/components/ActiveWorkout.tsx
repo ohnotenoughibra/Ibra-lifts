@@ -7,6 +7,8 @@ import { useAppStore, type ActiveWorkoutThrottle } from '@/lib/store';
 import { useToast } from './Toast';
 import ExerciseSwapSheet from './ExerciseSwapSheet';
 import { suggestNextLoad, getLoadProfile, formatLoad, nextLoadStep, roundForImplement } from '@/lib/next-load';
+import { useWakeLock } from '@/lib/use-wake-lock';
+import { quickAdjustOptions, stepWeight, personalBest, repsToBeat, lastTimeSets, warmupRamp, sessionEta, sessionDeltas } from '@/lib/live-session';
 import { useShallow } from 'zustand/react/shallow';
 import { useSwipe } from '@/lib/use-swipe';
 import { useRestTimer } from '@/hooks/useRestTimer';
@@ -46,7 +48,7 @@ import {
   ArrowLeftRight,
 } from 'lucide-react';
 import { cn, formatTime } from '@/lib/utils';
-import { resolveWeightUnit, convertWeight, weightIncrement as getWeightIncrement, barWeight as getBarWeight } from '@/lib/units';
+import { resolveWeightUnit, convertWeight, barWeight as getBarWeight } from '@/lib/units';
 import { carryOverLoad, prescribedPercentOf1RM } from '@/lib/load-model';
 import { BufferedNumberInput } from './BufferedNumberInput';
 import { calculate1RM, getVolumeGaps } from '@/lib/workout-generator';
@@ -64,8 +66,7 @@ import { generateSmartWarmUp, type WarmUpProtocol, type WarmUpStep } from '@/lib
 import { detectSupersetCandidates } from '@/lib/superset-engine';
 import { parseTempo, initTempoState, tickTempo, stopTempo, formatTUT, PHASE_LABELS, PHASE_COLORS, PHASE_BG_COLORS, type TempoState, type TempoPrescription } from '@/lib/tempo-engine';
 import { getActiveInjuryAdaptations } from '@/lib/injury-science';
-import { Building2, Home, Backpack, Search } from 'lucide-react';
-import Confetti from 'react-confetti';
+import { Building2, Home, Backpack, Search, StickyNote, Trash2 } from 'lucide-react';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
 import { getSessionAdjustments } from '@/lib/concurrent-training';
 
@@ -164,7 +165,7 @@ export default function ActiveWorkout() {
     setPreCheckIn, updateExerciseFeedback, swapExercise, addBonusExercise, adaptWorkoutToProfile,
     applyReadinessThrottle, setWorkoutPosition, markWorkoutOverviewDone, undoSwap, addPowerPrimer,
     activeEquipmentProfile, latestWhoopData, wearableHistory, applyWhoopAdjustment,
-    baselineLifts
+    baselineLifts, exerciseNotes, setExerciseNote,
   } = useAppStore(
     useShallow(s => ({
       activeWorkout: s.activeWorkout, user: s.user, updateExerciseLog: s.updateExerciseLog,
@@ -176,6 +177,7 @@ export default function ActiveWorkout() {
       activeEquipmentProfile: s.activeEquipmentProfile, latestWhoopData: s.latestWhoopData,
       wearableHistory: s.wearableHistory, applyWhoopAdjustment: s.applyWhoopAdjustment,
       baselineLifts: s.baselineLifts,
+      exerciseNotes: s.exerciseNotes, setExerciseNote: s.setExerciseNote,
     }))
   );
 
@@ -224,7 +226,15 @@ export default function ActiveWorkout() {
   const [showRestTips, setShowRestTips] = useState(false);
   const [showTip, setShowTip] = useState(false);
   const [tip, setTip] = useState(getRandomTip());
-  const [showPRCelebration, setShowPRCelebration] = useState(false);
+  // Small non-blocking PR banner (was a full-screen confetti takeover).
+  // Warm-up ramp chip: expanded? + which rungs were ticked (per exercise).
+  const [warmupOpen, setWarmupOpen] = useState(false);
+  const [noteDraft, setNoteDraft] = useState<string | null>(null); // non-null = editing
+  const [etaNow, setEtaNow] = useState(() => Date.now());
+  useWakeLock(true); // screen stays on for the whole session
+  useEffect(() => { const t = setInterval(() => setEtaNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
+  const [warmupDone, setWarmupDone] = useState<Record<string, number[]>>({});
+  const [prBanner, setPrBanner] = useState<{ name: string; from: number; to: number; unit: string } | null>(null);
   // ── Consolidated modal state — prevents impossible states (two modals open) ──
   type ModalView = 'finish' | 'swap' | 'add_exercise' | 'cancel' | 'history' | 'rpe_info' | 'draft_recovery' | 'location_confirm' | null;
   const [activeModal, setActiveModal] = useState<ModalView>(null);
@@ -312,7 +322,6 @@ export default function ActiveWorkout() {
   const [confirmZeroReps, setConfirmZeroReps] = useState(false);
 
   const weightUnit: WeightUnit = resolveWeightUnit(user?.weightUnit);
-  const weightIncrement = getWeightIncrement(weightUnit);
 
   // Move to an exercise and land on its first set that isn't done yet
   // (last set if all are done) — never blindly on set 1, which made you
@@ -468,61 +477,23 @@ export default function ActiveWorkout() {
   // Distance work (bear crawl, sled, band walks) stores METRES in the reps field.
   const isDistance = currentExercise.exercise.measurementType === 'distance';
 
-  // Real-time PR detection - check if current input would beat historical best
+  // Real-time PR detection — same rule as logging: needs history, must beat
+  // both the all-time best and this session's own best, unit-aware.
+  const personalBestForLift = useMemo(
+    () => personalBest(currentLog?.exerciseId ?? '', useAppStore.getState().workoutLogs, weightUnit, isTimeBased ? 'duration' : 'e1rm'),
+    [currentLog?.exerciseId, weightUnit, isTimeBased], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   const prDetection = useMemo(() => {
-    if (!currentLog) {
-      return { isPotentialPR: false, currentE1RM: 0, bestE1RM: 0 };
-    }
-
-    const workoutLogs = useAppStore.getState().workoutLogs;
-
-    // Time-based exercises: PR = longest hold
-    if (isTimeBased) {
-      const currentDuration = currentSet.duration || 0;
-      if (currentDuration <= 0) {
-        return { isPotentialPR: false, currentE1RM: 0, bestE1RM: 0 };
-      }
-      let bestDuration = 0;
-      let hasHistory = false;
-      for (const log of workoutLogs) {
-        for (const ex of log.exercises) {
-          if (ex.exerciseId === currentLog.exerciseId) {
-            for (const s of ex.sets) {
-              if ((s.duration || 0) > 0) {
-                hasHistory = true;
-                bestDuration = Math.max(bestDuration, s.duration || 0);
-              }
-            }
-          }
-        }
-      }
-      const isPotentialPR = !hasHistory || currentDuration > bestDuration;
-      return { isPotentialPR, currentE1RM: currentDuration, bestE1RM: bestDuration, isFirstTime: !hasHistory };
-    }
-
-    if (currentSet.weight <= 0 || currentSet.reps <= 0) {
-      return { isPotentialPR: false, currentE1RM: 0, bestE1RM: 0 };
-    }
-
-    const currentE1RM = calculate1RM(currentSet.weight, currentSet.reps);
-
-    let bestE1RM = 0;
-    let hasHistory = false;
-
-    for (const log of workoutLogs) {
-      for (const ex of log.exercises) {
-        if (ex.exerciseId === currentLog.exerciseId && ex.estimated1RM) {
-          hasHistory = true;
-          bestE1RM = Math.max(bestE1RM, ex.estimated1RM);
-        }
-      }
-    }
-
-    // It's a potential PR if: first time doing this exercise OR beating historical best
-    const isPotentialPR = !hasHistory || currentE1RM > bestE1RM;
-
-    return { isPotentialPR, currentE1RM, bestE1RM, isFirstTime: !hasHistory };
-  }, [currentLog, currentSet.weight, currentSet.reps, currentSet.duration, isTimeBased]);
+    const none = { isPotentialPR: false, currentE1RM: 0, bestE1RM: personalBestForLift.best, hasHistory: personalBestForLift.hasHistory };
+    if (!currentLog || !personalBestForLift.hasHistory || isDistance) return none;
+    const bar = isTimeBased
+      ? Math.max(personalBestForLift.best, currentLog.bestDuration || 0)
+      : Math.max(personalBestForLift.best, currentLog.estimated1RM || 0);
+    const current = isTimeBased
+      ? (currentSet.duration || 0)
+      : (currentSet.weight > 0 && currentSet.reps > 0 ? calculate1RM(currentSet.weight, currentSet.reps) : 0);
+    return { ...none, isPotentialPR: current > 0 && current > bar, currentE1RM: current, bestE1RM: bar };
+  }, [currentLog, currentSet.weight, currentSet.reps, currentSet.duration, isTimeBased, isDistance, personalBestForLift]);
 
   const updateSetValue = (field: 'weight' | 'reps' | 'rpe' | 'duration', delta: number) => {
     const newSets = [...currentLog.sets];
@@ -551,6 +522,12 @@ export default function ActiveWorkout() {
       : liveLog.estimated1RM;
     updateExerciseLog(currentExerciseIndex, { ...liveLog, sets: newSets, estimated1RM: e1 });
   };
+
+  useEffect(() => {
+    if (!prBanner) return;
+    const t = setTimeout(() => setPrBanner(null), 4000);
+    return () => clearTimeout(t);
+  }, [prBanner]);
 
   // ── Tempo metronome controls ──
   const startTempo = () => {
@@ -740,8 +717,10 @@ export default function ActiveWorkout() {
     });
 
     if (isPR) {
-      setShowPRCelebration(true);
-      setTimeout(() => setShowPRCelebration(false), 3000);
+      setPrBanner(isTimeBased
+        ? { name: currentExercise.exercise.name, from: Math.max(prDetection.bestE1RM, 0), to: currentSet.duration || 0, unit: 's' }
+        : { name: currentExercise.exercise.name, from: prDetection.bestE1RM, to: estimated1RM, unit: weightUnit });
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([40, 60, 40]);
     }
 
     // Start rest timer via hook
@@ -834,9 +813,6 @@ export default function ActiveWorkout() {
           targetRPE: currentExercise.prescription.rpe,
           unit: weightUnit,
         });
-        const inc = getWeightIncrement(weightUnit);
-
-        void inc;
         // Implement-aware steps: a dumbbell's next step isn't a 2.5 kg plate pair.
         const up = nextLoadStep(currentWeight, loadProfile, weightUnit, 1);
         const down = nextLoadStep(currentWeight, loadProfile, weightUnit, -1);
@@ -1061,6 +1037,26 @@ export default function ActiveWorkout() {
     setLastCompletedExerciseIndex(null);
   };
 
+  // Delete the current set (wrong entry, or you won't do it). Renumbers, keeps
+  // the session e1RM / PR flag honest, and never removes the last set.
+  const removeCurrentSet = () => {
+    const liveLog = useAppStore.getState().activeWorkout?.exerciseLogs[currentExerciseIndex] ?? currentLog;
+    if (liveLog.sets.length <= 1) return;
+    const sets = liveLog.sets.filter((_, i) => i !== currentSetIndex).map((st, i) => ({ ...st, setNumber: i + 1 }));
+    const done = sets.filter(st => st.completed && st.weight > 0 && st.reps > 0);
+    const e1 = !isTimeBased && !isDistance && done.length ? Math.max(...done.map(st => calculate1RM(st.weight, st.reps))) : 0;
+    const bestHold = isTimeBased ? Math.max(0, ...sets.filter(st => st.completed).map(st => st.duration || 0)) : 0;
+    const pr = personalBestForLift.hasHistory && (isTimeBased ? bestHold > personalBestForLift.best : e1 > personalBestForLift.best);
+    updateExerciseLog(currentExerciseIndex, {
+      ...liveLog,
+      sets,
+      estimated1RM: isTimeBased ? liveLog.estimated1RM : e1 || undefined,
+      ...(isTimeBased ? { bestDuration: bestHold } : {}),
+      personalRecord: pr,
+    });
+    setCurrentSetIndex(Math.min(currentSetIndex, sets.length - 1));
+  };
+
   const formatRestTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -1068,6 +1064,18 @@ export default function ActiveWorkout() {
   };
 
   const totalSets = activeWorkout.exerciseLogs.reduce((sum, log) => sum + log.sets.length, 0);
+  // Header ETA — recomputed on every render plus a 30 s tick.
+  const eta = sessionEta(
+    activeWorkout.session.exercises.map((ex, i) => ({
+      sets: activeWorkout.exerciseLogs[i]?.sets.length ?? ex.sets,
+      restSeconds: ex.prescription.restSeconds,
+      workSeconds: ex.exercise.measurementType === 'time' ? Math.max(10, ex.prescription.targetReps) : undefined,
+    })),
+    activeWorkout.exerciseLogs,
+    activeWorkout.startTime,
+    activeWorkout.session.estimatedDuration,
+    new Date(etaNow),
+  );
   // "Resolved" = performed or deliberately skipped; both count toward progress.
   const completedSets = activeWorkout.exerciseLogs.reduce(
     (sum, log) => sum + log.sets.filter(s => s.completed || s.skipped).length,
@@ -1152,6 +1160,16 @@ export default function ActiveWorkout() {
       energy: 0,
       completed: true,
     };
+    // Mid-week the planned sessions will cover the gap — "below weekly
+    // minimum" after day 1 is noise. Only flag it on the week's last session
+    // (or for an ad-hoc session outside the programme).
+    const meso = useAppStore.getState().currentMesocycle;
+    const week = meso?.weeks.find(w => w.sessions.some(se => se.id === activeWorkout.session.id));
+    if (week) {
+      const stillPlanned = week.sessions.filter(se =>
+        se.id !== activeWorkout.session.id && !storeWorkoutLogs.some(l => l.sessionId === se.id));
+      if (stillPlanned.length > 0) return [];
+    }
     return getVolumeGaps(
       [...storeWorkoutLogs, syntheticLog],
       user.equipment,
@@ -1200,17 +1218,12 @@ export default function ActiveWorkout() {
   const previousPerformance = getExerciseHistory(currentExercise.exerciseId);
 
   // Per-set history from last session for inline display
-  const previousSetHistory = useMemo(() => {
-    const allLogs: WorkoutLog[] = useAppStore.getState().workoutLogs;
-    const sorted = [...allLogs].reverse();
-    for (const log of sorted) {
-      const ex = log.exercises.find(e => e.exerciseId === currentLog.exerciseId);
-      if (ex && ex.sets.length > 0) {
-        return ex.sets.filter(s => s.completed).map(s => ({ weight: s.weight, reps: s.reps }));
-      }
-    }
-    return null;
-  }, [currentLog.exerciseId]);
+  // Most recent session's real sets (newest by date, unit-converted, skipped
+  // sets excluded) — was "last array entry", raw units, empty on skipped logs.
+  const previousSetHistory = useMemo(
+    () => lastTimeSets(currentLog.exerciseId, useAppStore.getState().workoutLogs, weightUnit),
+    [currentLog.exerciseId, weightUnit],
+  );
 
   // Get full history for an exercise (last 5 sessions)
   const getExerciseFullHistory = (exerciseId: string) => {
@@ -1338,29 +1351,32 @@ export default function ActiveWorkout() {
 
   return (
     <div className="min-h-screen bg-grappler-900 bg-mesh pb-24 safe-area-top">
-      {/* PR Celebration */}
-      {showPRCelebration && (
-        <>
-          <Confetti
-            width={typeof window !== 'undefined' ? window.innerWidth : 400}
-            height={typeof window !== 'undefined' ? window.innerHeight : 800}
-            recycle={false}
-            numberOfPieces={200}
-          />
+      {/* PR banner — informative, never blocks the next set */}
+      <AnimatePresence>
+        {prBanner && (
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+            key="pr-banner"
+            initial={{ y: -40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -40, opacity: 0 }}
+            className="fixed top-2 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md pointer-events-auto"
+            role="status"
           >
-            <div className="bg-gradient-to-br from-sky-400 to-blue-500 rounded-lg p-8 text-center">
-              <Trophy className="w-16 h-16 text-white mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-white mb-2">NEW PR!</h2>
-              <p className="text-white/80">You&apos;re getting stronger!</p>
-            </div>
+            <button
+              onClick={() => setPrBanner(null)}
+              className="w-full flex items-center gap-3 rounded-xl border border-yellow-500/50 bg-grappler-900/95 backdrop-blur px-3 py-2 text-left shadow-lg"
+            >
+              <Trophy className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-yellow-300">New PR · {prBanner.name}</span>
+                <span className="block text-xs text-yellow-400/80">
+                  {prBanner.unit === 's' ? 'Longest hold' : 'Est. 1RM'} {Math.round(prBanner.from)} → {Math.round(prBanner.to)} {prBanner.unit}
+                </span>
+              </span>
+            </button>
           </motion.div>
-        </>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Critical Readiness Interstitial */}
       <AnimatePresence>
@@ -2671,13 +2687,7 @@ export default function ActiveWorkout() {
             </p>
           </div>
           <button
-            onClick={() => {
-              if (postWorkoutVolumeGaps.length > 0 && !volumeGapDismissed) {
-                setShowVolumeGapPrompt(true);
-              } else {
-                setShowFinishModal(true);
-              }
-            }}
+            onClick={() => setShowFinishModal(true)}
             className="btn btn-primary btn-sm"
             aria-label="Finish workout"
           >
@@ -2692,8 +2702,13 @@ export default function ActiveWorkout() {
             style={{ width: `${progress}%` }}
           />
         </div>
-        <p className="text-xs text-grappler-400 mt-1 text-center">
-          {completedSets}/{totalSets} sets completed
+        <p className="text-xs text-grappler-400 mt-1 text-center" data-testid="session-eta">
+          {completedSets}/{totalSets} sets
+          {eta.minutesLeft > 0 && (
+            <span className={cn(eta.overBudget && 'text-amber-400')}>
+              {' '}· ~{eta.minutesLeft} min left · done ~{eta.finishAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
         </p>
       </header>
 
@@ -3351,6 +3366,36 @@ export default function ActiveWorkout() {
               {Math.floor(currentExercise.prescription.restSeconds / 60)}:{(currentExercise.prescription.restSeconds % 60).toString().padStart(2, '0')} rest
             </p>
 
+            {/* Sticky setup note (seat 4, neutral grip, belt) — follows the exercise */}
+            {noteDraft !== null ? (
+              <form
+                className="mt-1.5 flex items-center gap-2"
+                onSubmit={e => { e.preventDefault(); setExerciseNote(currentExercise.exerciseId, noteDraft); setNoteDraft(null); }}
+              >
+                <input
+                  autoFocus
+                  value={noteDraft}
+                  onChange={e => setNoteDraft(e.target.value)}
+                  onBlur={() => { setExerciseNote(currentExercise.exerciseId, noteDraft); setNoteDraft(null); }}
+                  maxLength={200}
+                  placeholder="Seat 4 · neutral grip · belt on last set"
+                  aria-label="Exercise setup note"
+                  className="input flex-1 text-xs py-1.5"
+                />
+              </form>
+            ) : (
+              <button
+                onClick={() => setNoteDraft(exerciseNotes?.notes?.[currentExercise.exerciseId] ?? '')}
+                className="mt-1 flex items-center gap-1 text-xs text-left min-h-[32px]"
+                aria-label={exerciseNotes?.notes?.[currentExercise.exerciseId] ? 'Edit setup note' : 'Add setup note'}
+              >
+                <StickyNote className="w-3 h-3 flex-shrink-0 text-amber-400/80" />
+                {exerciseNotes?.notes?.[currentExercise.exerciseId]
+                  ? <span className="text-amber-200/90">{exerciseNotes.notes[currentExercise.exerciseId]}</span>
+                  : <span className="text-grappler-500">Add setup note</span>}
+              </button>
+            )}
+
             {/* Compact weight suggestion + last session (merged into one row) */}
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               {nextLoad && nextLoad.weight > 0 && (
@@ -3486,6 +3531,54 @@ export default function ActiveWorkout() {
             )}
           </div>
 
+          {/* Warm-up ramp — first set of a compound lift, before anything is logged.
+              Warm-ups are not logged as sets (they don't count as training volume). */}
+          {currentSetIndex === 0 && !currentLog.sets.some(st => st.completed) && currentExercise.exercise.category === 'compound' && !isTimeBased && !isDistance && (() => {
+            const working = currentSet.weight || nextLoad?.weight || 0;
+            const ramp = warmupRamp(working, currentExercise.prescription.targetReps, loadProfile, weightUnit);
+            if (ramp.length === 0) return null;
+            const ticked = warmupDone[currentLog.exerciseId] ?? [];
+            return (
+              <div className="mb-3 rounded-xl border border-grappler-700 bg-grappler-800/40">
+                <button
+                  onClick={() => setWarmupOpen(o => !o)}
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs"
+                  aria-expanded={warmupOpen}
+                >
+                  <span className="text-grappler-300 font-medium">
+                    Warm-up ramp to {formatLoad(working, loadProfile, weightUnit)}
+                    <span className="text-grappler-500 font-normal"> · {ramp.length} sets{ticked.length ? `, ${ticked.length} done` : ''}</span>
+                  </span>
+                  <ChevronDown className={cn('w-3.5 h-3.5 text-grappler-400 transition-transform', warmupOpen && 'rotate-180')} />
+                </button>
+                {warmupOpen && (
+                  <div className="flex flex-wrap gap-2 px-3 pb-3">
+                    {ramp.map((st, i) => {
+                      const on = ticked.includes(i);
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setWarmupDone(prev => ({
+                            ...prev,
+                            [currentLog.exerciseId]: on ? ticked.filter(x => x !== i) : [...ticked, i],
+                          }))}
+                          aria-pressed={on}
+                          className={cn(
+                            'min-h-[44px] px-3 rounded-lg text-xs font-semibold border transition-colors',
+                            on ? 'bg-green-500/15 border-green-500/40 text-green-400' : 'bg-grappler-800 border-grappler-700 text-grappler-300',
+                          )}
+                        >
+                          {on && <Check className="w-3 h-3 inline mr-1" />}
+                          {formatLoad(st.weight, loadProfile, weightUnit)} × {st.reps}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Set Indicator */}
           <div className="flex justify-center gap-2.5 mb-2">
             {currentLog.sets.map((set, i) => (
@@ -3507,40 +3600,77 @@ export default function ActiveWorkout() {
               </button>
             ))}
           </div>
-          {/* Per-set history from last session */}
-          {previousSetHistory && previousSetHistory.length > 0 ? (
-            <p className="text-center text-xs text-grappler-400 mb-6">
-              Last: {previousSetHistory.slice(0, currentLog.sets.length).map((s, i) => (
-                <span key={i} className={cn(i === currentSetIndex && 'text-grappler-300 font-medium')}>
-                  {i > 0 && ' · '}{s.weight}×{s.reps}
-                </span>
-              ))}
-            </p>
-          ) : <div className="mb-4" />}
-
-          {/* PR Detection Banner */}
-          <AnimatePresence>
-            {prDetection.isPotentialPR && currentSet.weight > 0 && currentSet.reps > 0 && !currentSet.completed && (
-              <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                className="mb-4 bg-gradient-to-r from-yellow-500/20 to-blue-500/20 border border-yellow-500/50 rounded-xl p-3 flex items-center gap-3"
+          {/* Set count edits — add one more / remove this one */}
+          <div className="flex justify-center gap-4 mb-1 -mt-1">
+            <button
+              onClick={() => addExtraSet(currentExerciseIndex)}
+              className="min-h-[36px] px-2 text-xs text-grappler-400 hover:text-grappler-200 flex items-center gap-1"
+            >
+              <Plus className="w-3 h-3" /> Add set
+            </button>
+            {currentLog.sets.length > 1 && (
+              <button
+                onClick={removeCurrentSet}
+                className="min-h-[36px] px-2 text-xs text-grappler-500 hover:text-red-400 flex items-center gap-1"
+                aria-label={`Remove set ${currentSetIndex + 1}`}
               >
-                <div className="w-10 h-10 bg-yellow-500/30 rounded-lg flex items-center justify-center">
-                  <Trophy className="w-5 h-5 text-yellow-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-yellow-300">PR Territory!</p>
-                  <p className="text-xs text-yellow-400/80">
-                    {prDetection.isFirstTime
-                      ? 'First time doing this exercise — set a benchmark!'
-                      : `Est. 1RM: ${Math.round(prDetection.currentE1RM)} ${weightUnit} (prev best: ${Math.round(prDetection.bestE1RM)})`}
+                <Trash2 className="w-3 h-3" /> Remove set {currentSetIndex + 1}
+              </button>
+            )}
+          </div>
+
+          {/* This set: last time vs today's target */}
+          {(() => {
+            const last = previousSetHistory[currentSetIndex] ?? previousSetHistory[previousSetHistory.length - 1];
+            const fmtLast = last
+              ? isTimeBased ? `${last.duration ?? 0}s` : `${formatLoad(last.weight, loadProfile, weightUnit)} × ${last.reps}${isDistance ? ' m' : ''}${last.rpe ? ` @${last.rpe}` : ''}`
+              : null;
+            // Today's load: the engine's suggestion, else what you just did this session.
+            const prevDone = [...currentLog.sets.slice(0, currentSetIndex)].reverse().find(st => st.completed && st.weight > 0);
+            const targetW = !isTimeBased && !isDistance ? (nextLoad?.weight || prevDone?.weight || 0) : 0;
+            const unitSfx = isTimeBased ? 's' : isDistance ? ' m' : '';
+            const fmtToday = targetW > 0
+              ? `${formatLoad(targetW, loadProfile, weightUnit)} × ${currentExercise.prescription.targetReps}`
+              : `${currentExercise.prescription.targetReps}${unitSfx}`;
+            return (
+              <div className="mb-5 flex items-center justify-center gap-3 text-xs" data-testid="set-compare">
+                <span className="text-grappler-400">
+                  Last: <span className="text-grappler-200 font-medium">{fmtLast ?? '—'}</span>
+                </span>
+                <span className="text-grappler-600">→</span>
+                <span className="text-grappler-400">
+                  Today: <span className="text-primary-300 font-medium">{fmtToday}</span>
+                  {!isTimeBased && !isDistance && <span className="text-grappler-500"> @{currentExercise.prescription.rpe}</span>}
+                </span>
+              </div>
+            );
+          })()}
+
+          {/* PR hint — "PR territory" when the entered set beats the best, else what would */}
+          {!currentSet.completed && prDetection.hasHistory && !isDistance && (() => {
+            if (prDetection.isPotentialPR) {
+              return (
+                <div className="mb-4 flex items-center gap-2 rounded-xl border border-yellow-500/50 bg-yellow-500/10 px-3 py-2">
+                  <Trophy className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                  <p className="text-xs text-yellow-300">
+                    <span className="font-bold">PR territory</span> — {isTimeBased
+                      ? `${prDetection.currentE1RM}s beats your ${prDetection.bestE1RM}s`
+                      : `est. 1RM ${Math.round(prDetection.currentE1RM)} vs best ${Math.round(prDetection.bestE1RM)} ${weightUnit}`}
                   </p>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              );
+            }
+            const w = currentSet.weight || nextLoad?.weight || 0;
+            const r = !isTimeBased ? repsToBeat(w, prDetection.bestE1RM) : null;
+            const hint = isTimeBased
+              ? `Hold ${prDetection.bestE1RM + 1}s+ for a PR`
+              : r ? `${formatLoad(w, loadProfile, weightUnit)} × ${r} would be a PR` : null;
+            return hint ? (
+              <p className="mb-3 text-center text-xs text-grappler-400 flex items-center justify-center gap-1">
+                <Trophy className="w-3 h-3 text-yellow-500/70" /> {hint}
+              </p>
+            ) : null;
+          })()}
 
           {/* Quick Complete — one-tap when values are pre-populated */}
           {!currentSet.completed && currentSet.weight > 0 && currentSet.reps > 0 && (
@@ -3598,7 +3728,7 @@ export default function ActiveWorkout() {
               </div>
               <div className="flex items-center justify-between mt-2">
                 <button
-                  onClick={() => updateSetValue('weight', -weightIncrement)}
+                  onClick={() => setExactValue('weight', stepWeight(currentSet.weight, loadProfile, weightUnit, -1))}
                   className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
                   aria-label="Decrease weight"
                 >
@@ -3619,25 +3749,37 @@ export default function ActiveWorkout() {
                   )}
                 />
                 <button
-                  onClick={() => updateSetValue('weight', weightIncrement)}
+                  onClick={() => setExactValue('weight', stepWeight(currentSet.weight, loadProfile, weightUnit, 1))}
                   className="w-14 h-14 rounded-xl bg-grappler-700 flex items-center justify-center active:scale-95 transition-transform"
                   aria-label="Increase weight"
                 >
                   <Plus className="w-6 h-6 text-grappler-300" />
                 </button>
               </div>
-              {/* Quick-adjust weight pills */}
-              <div className="flex items-center justify-center gap-2 mt-2">
-                {[2.5, 5, 10, 25].map((inc) => (
-                  <button
-                    key={inc}
-                    onClick={() => updateSetValue('weight', inc)}
-                    className="px-3.5 py-2.5 rounded-lg bg-grappler-700/60 text-xs font-semibold text-grappler-300 active:scale-95 transition-transform"
-                  >
-                    +{inc}
-                  </button>
-                ))}
-              </div>
+              {/* Quick-adjust — real steps for this implement (plate pairs, next
+                  dumbbell / bell size), not a generic +2.5/+25 */}
+              {(() => {
+                const opts = quickAdjustOptions(currentSet.weight, loadProfile, weightUnit);
+                if (opts.length === 0) return null;
+                const sized = loadProfile.implement === 'dumbbell' || loadProfile.implement === 'kettlebell' || loadProfile.implement === 'plate';
+                return (
+                  <div className="flex items-center justify-center gap-2 mt-2">
+                    {opts.map(o => (
+                      <button
+                        key={o.label}
+                        onClick={() => setExactValue('weight', o.value)}
+                        aria-label={`Set weight to ${o.value} ${weightUnit}`}
+                        className={cn(
+                          'min-w-[44px] px-3 py-2.5 rounded-lg text-xs font-semibold active:scale-95 transition-transform',
+                          sized || o.label.startsWith('+') ? 'bg-grappler-700/60 text-grappler-300' : 'bg-grappler-800 text-grappler-400',
+                        )}
+                      >
+                        {sized ? `${o.value}` : o.label}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
               {/* Plate breakdown — only shown for barbell exercises.
                   Landmine variations load one end only (single-sided). */}
               {currentSet.weight > 0 && !isTimeBased && currentExercise.exercise.equipmentTypes?.includes('barbell') && (
@@ -3892,20 +4034,7 @@ export default function ActiveWorkout() {
                     </div>
                   </div>
                 </motion.div>
-              ) : (
-                <motion.button
-                  key="tempo-start"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={startTempo}
-                  className="w-full rounded-xl border border-grappler-700 bg-grappler-800/50 p-3 flex items-center justify-center gap-2 hover:bg-grappler-700/50 transition-colors active:scale-[0.98]"
-                >
-                  <Timer className="w-4 h-4 text-primary-400" />
-                  <span className="text-sm font-medium text-grappler-300">Start Tempo Guide</span>
-                  <span className="text-xs text-grappler-400 ml-1">{currentExercise.prescription.tempo}</span>
-                </motion.button>
-              )}
+              ) : null}
             </AnimatePresence>
           )}
 
@@ -4093,7 +4222,7 @@ export default function ActiveWorkout() {
             >
               <div className="flex items-center gap-2 mb-1">
                 <Dumbbell className="w-5 h-5 text-amber-400" />
-                <h2 className="text-lg font-bold text-grappler-50">Got extra time?</h2>
+                <h2 className="text-lg font-bold text-grappler-50">Add a finisher</h2>
               </div>
               <p className="text-sm text-grappler-400 mb-4">
                 {postWorkoutVolumeGaps.length} muscle group{postWorkoutVolumeGaps.length !== 1 ? 's' : ''} still below minimum effective volume this week.
@@ -4191,7 +4320,7 @@ export default function ActiveWorkout() {
                   }}
                   className="btn btn-secondary btn-md flex-1"
                 >
-                  Skip & Finish
+                  Not today
                 </button>
                 <button
                   disabled={selectedVolumeGaps.size === 0}
@@ -4288,6 +4417,53 @@ export default function ActiveWorkout() {
                   </div>
                 );
               })()}
+
+              {/* Per-lift: today's top set vs last time */}
+              {(() => {
+                const deltas = sessionDeltas(activeWorkout!.exerciseLogs, useAppStore.getState().workoutLogs, weightUnit)
+                  .filter(d => d.today);
+                if (deltas.length === 0) return null;
+                return (
+                  <div className="mb-5" data-testid="finish-deltas">
+                    <p className="text-xs uppercase tracking-wide text-grappler-500 mb-2">vs last time</p>
+                    <ul className="space-y-1.5">
+                      {deltas.map(d => (
+                        <li key={d.exerciseId} className="flex items-center justify-between gap-2 text-sm">
+                          <span className="text-grappler-200 truncate flex items-center gap-1">
+                            {d.pr && <Trophy className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />}
+                            {d.name}
+                          </span>
+                          <span className="flex-shrink-0 text-xs text-grappler-400">
+                            {d.today!.weight}×{d.today!.reps}
+                            {d.change === null ? (
+                              <span className="ml-2 text-grappler-500">first time</span>
+                            ) : (
+                              <span className={cn('ml-2 font-semibold',
+                                d.change > 0 ? 'text-green-400' : d.change < 0 ? 'text-red-400' : 'text-grappler-400')}>
+                                {d.change > 0 ? '+' : ''}{d.change} {weightUnit} e1RM
+                              </span>
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
+
+              {/* Weekly volume gaps — one line, opt-in (was a blocking "Got extra time?" sheet) */}
+              {postWorkoutVolumeGaps.length > 0 && !volumeGapDismissed && (
+                <button
+                  onClick={() => { setShowFinishModal(false); setShowVolumeGapPrompt(true); }}
+                  className="w-full mb-5 flex items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-left"
+                >
+                  <span className="text-xs text-amber-300">
+                    {postWorkoutVolumeGaps.slice(0, 3).map(g => g.muscle).join(', ')}
+                    {postWorkoutVolumeGaps.length > 3 ? ` +${postWorkoutVolumeGaps.length - 3}` : ''} below weekly minimum
+                  </span>
+                  <span className="text-xs font-semibold text-amber-400 flex-shrink-0">Add a finisher</span>
+                </button>
+              )}
 
               <div className="space-y-4">
                 {/* Overall RPE */}

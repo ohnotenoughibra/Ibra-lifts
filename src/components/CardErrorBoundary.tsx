@@ -15,7 +15,7 @@ interface Props {
   /**
    * If provided, the error fallback fills the screen instead of rendering as
    * an inline card. Use for full-screen views where an inline card would
-   * stay covered by whatever is underneath (e.g. ActiveWorkout, ReadyForThis).
+   * stay covered by whatever is underneath (e.g. ActiveWorkout).
    */
   fullScreen?: boolean;
   /**

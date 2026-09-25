@@ -13,9 +13,8 @@ const pills = (page: Page) => page.getByRole('button', { name: /\d+\/\d+$/ });
 async function startLiveWorkout(page: Page) {
   await page.getByRole('tab', { name: 'Train' }).click();
   await page.getByRole('button', { name: 'Start Workout' }).first().click();
-  // First-run intro sheet (skippable) precedes the overview
-  const intro = page.getByRole('button', { name: "Let's Go" });
-  if (await intro.isVisible({ timeout: 3_000 }).catch(() => false)) await intro.click();
+  // Two-tap start: straight to the overview (no "Ready for this?" intro)
+  await expect(page.getByRole('button', { name: 'Skip next time' })).toHaveCount(0);
   // Overview + check-in
   await page.getByRole('button', { name: 'Good', exact: true }).click();
   await page.getByRole('button', { name: 'Start Workout' }).click();
@@ -84,9 +83,9 @@ test.describe('Live workout', () => {
   test('finishing saves the workout and returns to the app', async ({ page }) => {
     await logSet(page, '60', '5');
     await page.getByRole('button', { name: 'Finish workout' }).click();
-    // Optional "Got extra time?" volume-gap interstitial
-    const skip = page.getByRole('button', { name: 'Skip & Finish' });
-    if (await skip.isVisible({ timeout: 3_000 }).catch(() => false)) await skip.click();
+    // Straight to the finish sheet — no "Got extra time?" interstitial
+    await expect(page.getByRole('heading', { name: 'Add a finisher' })).toHaveCount(0);
+    await expect(page.getByTestId('finish-deltas')).toContainText('first time');
     await page.getByRole('button', { name: 'Save Workout' }).click();
     await expect(page.getByRole('button', { name: 'Complete Set' })).not.toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('tab', { name: 'Today' })).toBeVisible({ timeout: 10_000 });
@@ -114,7 +113,7 @@ test.describe('Live workout', () => {
     await page.getByRole('spinbutton', { name: 'Reps' }).fill('5');
     await page.getByRole('button', { name: 'Complete Set' }).click();
     await expect(page.getByRole('button', { name: 'Skip Rest' })).toBeVisible();
-    await expect(page.getByText('NEW PR!')).not.toBeVisible();
+    await expect(page.getByText(/New PR ·/)).not.toBeVisible();
   });
 
   test('swapping mid-exercise keeps the logged set, and undo restores the plan', async ({ page }) => {
@@ -194,5 +193,26 @@ test.describe('Live workout', () => {
     await expect(page.getByRole('spinbutton', { name: 'Weight' })).not.toHaveValue('70');
     await page.getByRole('button', { name: /^Set 1 \(done/ }).click();
     await expect(page.getByRole('spinbutton', { name: 'Weight' })).toHaveValue('70');
+  });
+
+  test('header shows time left; quick-adjust uses real steps; a set can be removed', async ({ page }) => {
+    await expect(page.getByTestId('session-eta')).toContainText(/min left/);
+    await expect(page.getByTestId('set-compare')).toContainText('Today:');
+    await expect(page.getByRole('button', { name: '+25' })).toHaveCount(0);
+    const before = await pills(page).first().getAttribute('aria-label') ?? (await pills(page).first().innerText());
+    const total = Number((before.trim().match(/\/(\d+)$/) ?? [])[1]);
+    await page.getByRole('button', { name: /^Remove set 1$/ }).click();
+    await expect(pills(page).first()).toHaveAccessibleName(new RegExp(`0/${total - 1}$`));
+    await page.getByRole('button', { name: 'Add set', exact: true }).click();
+    await expect(pills(page).first()).toHaveAccessibleName(new RegExp(`0/${total}$`));
+  });
+
+  test('a setup note sticks to the exercise across reloads', async ({ page }) => {
+    await page.getByRole('button', { name: 'Add setup note' }).click();
+    await page.getByRole('textbox', { name: 'Exercise setup note' }).fill('Seat 4, neutral grip');
+    await page.getByRole('textbox', { name: 'Exercise setup note' }).press('Enter');
+    await expect(page.getByRole('button', { name: 'Edit setup note' })).toContainText('Seat 4, neutral grip');
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Edit setup note' })).toContainText('Seat 4, neutral grip', { timeout: 20_000 });
   });
 });

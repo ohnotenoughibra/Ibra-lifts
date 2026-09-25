@@ -80,6 +80,7 @@ import type { CycleLog } from './female-athlete';
 import type { SyncConflict } from '@/components/SyncConflictResolver';
 import { resolveConflicts } from './db-sync';
 import { generateMesocycle, autoregulateSession } from './workout-generator';
+import { stripLegacyDefaultTempos, stripLegacyDefaultTemposFromSession } from './live-session';
 import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generateWeeklyChallenge, isCurrentWeek, detectComeback, shouldRefillShield, pointRewards, calculateStreak, defaultWellnessStats, calculateWellnessMultiplier, updateWellnessStreaks, calculateWellnessXP, checkWellnessBadges } from './gamification';
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
 import { isBodyweightLoadedExercise, backfillBodyweightInLogs, estimate1RM, estimateFirstTimeWeight } from './weight-estimator';
@@ -353,6 +354,8 @@ interface AppState {
   muscleEmphasis: MuscleGroupConfig | null;
   // Athlete's "don't recommend" list — never generated or suggested, still searchable.
   hiddenExercises: { ids: string[]; updatedAt: string };
+  // Sticky per-exercise setup note (seat height, grip, belt) — shown every time.
+  exerciseNotes: { notes: Record<string, string>; updatedAt: string };
 
   // Active equipment profile for quick-switching gym/home/travel
   activeEquipmentProfile: EquipmentProfileName;
@@ -451,6 +454,7 @@ interface AppState {
   setMuscleEmphasis: (config: MuscleGroupConfig) => void;
   hideExercise: (exerciseId: string) => void;
   unhideExercise: (exerciseId: string) => void;
+  setExerciseNote: (exerciseId: string, note: string) => void;
 
   // Mesocycle actions
   generateNewMesocycle: (weeks?: number, sessionDurationMinutes?: number, periodizationStyle?: 'linear' | 'undulating' | 'block' | 'conjugate', overrides?: BlockOverrides) => void;
@@ -912,6 +916,7 @@ export const useAppStore = create<AppState>()(
       bodyComposition: [],
       muscleEmphasis: null,
       hiddenExercises: { ids: [], updatedAt: new Date(0).toISOString() },
+      exerciseNotes: { notes: {}, updatedAt: new Date(0).toISOString() },
       activeEquipmentProfile: 'gym' as EquipmentProfileName,
       homeGymEquipment: DEFAULT_EQUIPMENT_PROFILES.find(p => p.name === 'home')?.equipment || ['barbell', 'dumbbell', 'bench', 'pull_up_bar', 'kettlebell', 'resistance_band', 'ab_wheel'] as EquipmentType[],
       competitions: [],
@@ -1106,6 +1111,13 @@ export const useAppStore = create<AppState>()(
         const cur = get().hiddenExercises?.ids ?? [];
         if (!cur.includes(id)) return;
         set({ hiddenExercises: { ids: cur.filter(x => x !== id), updatedAt: new Date().toISOString() }, _syncUrgent: true });
+      },
+      setExerciseNote: (id, note) => {
+        const notes = { ...(get().exerciseNotes?.notes ?? {}) };
+        const text = note.trim().slice(0, 200);
+        if ((notes[id] ?? '') === text) return;
+        if (text) notes[id] = text; else delete notes[id];
+        set({ exerciseNotes: { notes, updatedAt: new Date().toISOString() } });
       },
 
       // Equipment profile actions
@@ -4725,7 +4737,7 @@ export const useAppStore = create<AppState>()(
           'bodyWeightLog', 'injuryLog', 'rehabStates', 'benchmarkResults', 'activePlyoBlock', 'rsiHistory', 'techniqueLog', 'sparringRounds', 'customExercises', 'sessionTemplates',
           'hrSessions', 'trainingSessions', 'themeMode', 'colorTheme', 'meals', 'macroTargets',
           'waterLog', 'activeDietPhase', 'dietPhaseHistory', 'weeklyCheckIns', 'bodyComposition',
-          'muscleEmphasis', 'competitions', 'quickLogs', 'hiddenExercises',
+          'muscleEmphasis', 'competitions', 'quickLogs', 'hiddenExercises', 'exerciseNotes',
           'gripTests', 'gripExerciseLogs', 'activeEquipmentProfile',
           'notificationPreferences', 'workoutSkips', 'illnessLogs', 'cycleLogs',
           'mealReminders', 'dailyLoginBonus', 'lastSyncAt',
@@ -4943,6 +4955,7 @@ export const useAppStore = create<AppState>()(
           bodyComposition: [],
           muscleEmphasis: null,
           hiddenExercises: { ids: [], updatedAt: new Date(0).toISOString() },
+          exerciseNotes: { notes: {}, updatedAt: new Date(0).toISOString() },
           competitions: [],
           weightCutPlans: [],
           combatNutritionProfile: null,
@@ -5162,7 +5175,7 @@ export const useAppStore = create<AppState>()(
       },
       // ── Schema version: bump this when you add/rename/remove persisted fields.
       // Zustand calls `migrate` BEFORE hydrating the store, so the data is safe.
-      version: 5,
+      version: 6,
       migrate: (persisted: unknown, fromVersion: number) => {
         const state = (persisted ?? {}) as Record<string, unknown>;
 
@@ -5268,7 +5281,18 @@ export const useAppStore = create<AppState>()(
           }
         }
 
-        // Future: if (fromVersion < 6) { ... }
+        if (fromVersion < 6) {
+          // v5 → v6: drop the tempo the generator used to stamp on every lift
+          // (2-1-X-0 etc.). Tempo now shows only when deliberately prescribed.
+          try {
+            stripLegacyDefaultTempos(state.currentMesocycle as never);
+            for (const m of (state.mesocycleQueue || []) as never[]) stripLegacyDefaultTempos(m);
+            const aw = state.activeWorkout as { session?: never } | null | undefined;
+            if (aw?.session) stripLegacyDefaultTemposFromSession(aw.session);
+          } catch { /* cosmetic — never block hydration */ }
+        }
+
+        // Future: if (fromVersion < 7) { ... }
 
         return state;
       },
@@ -5332,6 +5356,7 @@ export const useAppStore = create<AppState>()(
         dailyLoginBonus: state.dailyLoginBonus,
         muscleEmphasis: state.muscleEmphasis,
         hiddenExercises: state.hiddenExercises,
+        exerciseNotes: state.exerciseNotes,
         combatNutritionProfile: state.combatNutritionProfile,
         nutritionPeriodPlan: state.nutritionPeriodPlan,
         mealReminders: state.mealReminders,

@@ -21,7 +21,7 @@ import {
   DietGoal,
   WorkoutLog
 } from './types';
-import { exercises, getExercisesByEquipment, getExerciseById } from './exercises';
+import { exercises, getExercisesByEquipment, getExerciseById, getAllExercises } from './exercises';
 import { v4 as uuidv4 } from 'uuid';
 import { estimate1RM } from './weight-estimator';
 import { prescribedPercentOf1RM } from './load-model';
@@ -490,6 +490,8 @@ interface GeneratorOptions {
   includeDeload?: boolean;  // Default true. Set false when fatigue is low (autoregulated deload)
   splitType?: SplitType;    // Template override (e.g. PPL at 3 days); default derives from days/identity
   excludeExerciseIds?: string[]; // Athlete's "never recommend" list — never selected
+  /** Exercises from the previous block: accessories rotate out, main lifts are only nudged. */
+  previousExerciseIds?: string[];
   aestheticAccessories?: boolean; // "Athletic + Aesthetic": accessory work for delts/arms/chest/lats on every goal
 }
 
@@ -698,6 +700,7 @@ function selectExercisesForType(
   splitOverride?: SplitType,
   exclude?: Set<string>,
   aesthetic = false,
+  previous?: Set<string>,
 ): Exercise[] {
   // Use granular equipment filtering when available, fallback to tier-only
   const allAvailable = getExercisesByGranularEquipment(equipment, availableEquipment)
@@ -768,6 +771,17 @@ function selectExercisesForType(
     if (usedExerciseIds.has(ex.id)) {
       score -= 5;
     }
+    // Small kits: a lift that uses the gear you own can be loaded and
+    // progressed; a pure bodyweight variant soon can't (progressive overload).
+    if (equipment !== 'full_gym' && (ex.equipmentTypes ?? []).some(t => t !== 'bodyweight' && availableEquipment?.includes(t))) {
+      score += 2;
+    }
+    // Rotation between blocks: last block's accessories step aside for fresh
+    // ones (new stimulus, less staleness); main lifts only get a nudge so the
+    // lifts you're building strength on can carry over.
+    if (previous?.has(ex.id)) {
+      score -= ex.category === 'compound' ? 1.5 : 4;
+    }
 
     // Prefer exercises that hit MORE muscles (bang-for-buck for busy people)
     const totalMuscles = ex.primaryMuscles.length + ex.secondaryMuscles.length * 0.5;
@@ -796,6 +810,28 @@ function selectExercisesForType(
     availableExercises.filter(e => e.category === 'compound'),
     scoreExercise
   );
+
+  // Equipment gaps: when no curated compound fits a slot's movement (e.g. a
+  // minimal kit with no hinge), borrow one from the open library that fits the
+  // athlete's gear. Curated lifts always win when they exist.
+  // "Thin" = fewer than 2 unused options, so a small kit doesn't repeat the same lift every session.
+  // A full gym is covered by the tuned curated set; only a true gap borrows there.
+  const minOptions = equipment === 'full_gym' ? 1 : 2;
+  // Any non-isolation option counts: explosive slots are filled by power lifts,
+  // carries by grip work (farmer's walk) — those aren't gaps.
+  const missing = targetPatterns.filter(p => availableExercises.filter(e =>
+    e.movementPattern === p && e.category !== 'isolation' && !usedExerciseIds.has(e.id)).length < minOptions);
+  if (missing.length > 0) {
+    const allowed = new Set(availableExercises.map(e => e.id));
+    const tierOk = new Set(getExercisesByGranularEquipment(equipment, availableEquipment).map(e => e.id));
+    const lib = getAllExercises().filter(e =>
+      e.id.startsWith('lib-') && !allowed.has(e.id) && !tierOk.has(e.id) && !exclude?.has(e.id) &&
+      e.category === 'compound' && missing.includes(e.movementPattern) &&
+      e.equipmentRequired.includes(equipment) &&
+      (!availableEquipment?.length || (e.equipmentTypes ?? []).every(t => t === 'bodyweight' || availableEquipment.includes(t))) &&
+      (splitDayRole === 'full_body' || e.primaryMuscles.some(m => allowedMuscles.has(m))));
+    compoundPool.push(...weightedShuffle(lib, scoreExercise));
+  }
 
   const usedPatterns = new Set<string>();
   const trackMuscles = (ex: Exercise) => {
@@ -902,12 +938,13 @@ function generateWorkoutSession(
   locked?: LockedPick[],
   exclude?: Set<string>,
   aesthetic = false,
+  previous?: Set<string>,
 ): WorkoutSession {
   // Locked picks (weeks 2..N of a block) keep week 1's exercises AND base set
   // counts, so week-over-week progression compares like with like.
   const selectedExercises = locked
     ? locked.map(l => l.exercise)
-    : selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport, sessionsPerWeek, splitDayRole, splitOverride, exclude, aesthetic);
+    : selectExercisesForType(type, equipment, goalFocus, usedExerciseIds, muscleEmphasis, availableEquipment, trainingIdentity, combatSport, sessionsPerWeek, splitDayRole, splitOverride, exclude, aesthetic, previous);
   const config = getSexAdjustedPrescription(type, sex);
   const expMod = EXPERIENCE_MODIFIERS[experienceLevel || 'intermediate'];
   const sexMod = SEX_MODIFIERS[sex || 'male'];
@@ -1157,6 +1194,7 @@ function generateMesocycleWeek(
   capture?: LockedPick[][],
   exclude?: Set<string>,
   aesthetic = false,
+  previous?: Set<string>,
 ): MesocycleWeek {
   // Determine workout types based on periodization strategy
   let workoutTypes: WorkoutType[];
@@ -1273,6 +1311,7 @@ function generateMesocycleWeek(
       locked?.[index],
       exclude,
       aesthetic,
+      previous,
     );
     if (capture) {
       capture[index] = session.exercises.map(e => ({ exercise: e.exercise, sets: e.sets }));
@@ -1370,6 +1409,8 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
   // week-over-week overload impossible to track. Variety rotates between blocks.
   const picks: LockedPick[][] = [];
   const exclude = new Set(options.excludeExerciseIds ?? []);
+  // Last block's lifts — accessories rotate, main lifts may stay (specificity)
+  const previous = new Set(options.previousExerciseIds ?? []);
   for (let i = 1; i <= weeks; i++) {
     const isDeload = includeDeload && i === weeks;
     const weekIndex = i - 1;
@@ -1384,6 +1425,7 @@ export function generateMesocycle(options: GeneratorOptions): Mesocycle {
         i === 1 ? picks : undefined,
         exclude,
         !!options.aestheticAccessories,
+        previous,
       )
     );
   }

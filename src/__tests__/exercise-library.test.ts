@@ -50,7 +50,7 @@ describe('imported library', () => {
     const target = libraryExercises.find(e => /guillotine/i.test(e.name))!;
     expect(searchExercises('guillotine').map(e => e.id)).toContain(target.id);
   });
-  it('the programme generator never picks imported exercises', () => {
+  it('a full-gym programme never picks imported exercises (small kits may, to fill gaps)', () => {
     for (const goalFocus of ['strength', 'hypertrophy'] as const) {
       const m = generateMesocycle({ userId: 'u', goalFocus, equipment: 'full_gym', sessionsPerWeek: 4, weeks: 4, experienceLevel: 'intermediate' } as any);
       const ids = m.weeks.flatMap(w => w.sessions.flatMap(s => s.exercises.map(e => e.exerciseId)));

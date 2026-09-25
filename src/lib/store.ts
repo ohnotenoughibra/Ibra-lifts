@@ -1592,6 +1592,13 @@ export const useAppStore = create<AppState>()(
           baselineLifts: baselineLifts || undefined,
           muscleEmphasis: overrides?.muscleEmphasis ?? (muscleEmphasis || undefined),
           excludeExerciseIds: get().hiddenExercises?.ids,
+          previousExerciseIds: (() => {
+            const prev = get().currentMesocycle
+              ?? [...get().mesocycleHistory.filter(m => !m._deleted)]
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+            const week = prev?.weeks.find(w => !w.isDeload) ?? prev?.weeks[0];
+            return week ? Array.from(new Set(week.sessions.flatMap(ss => ss.exercises.map(e => e.exerciseId)))) : undefined;
+          })(),
           aestheticAccessories: !!user.aestheticEmphasis,
           sessionDurationMinutes: duration,
           trainingIdentity: user.trainingIdentity,

@@ -51,6 +51,11 @@ export default function ExerciseSwapSheet({
     unhideExercise: s.unhideExercise,
   })));
   const hidden = useMemo(() => new Set(hiddenIds), [hiddenIds]);
+  // Exercises you've logged before rank a little higher — your numbers carry over.
+  const workoutLogs = useAppStore(s => s.workoutLogs);
+  const familiarIds = useMemo(() => new Set(
+    workoutLogs.filter(l => !l._deleted).flatMap(l => l.exercises.filter(e => e.sets.some(st => st.completed)).map(e => e.exerciseId)),
+  ), [workoutLogs]);
   const inSession = useMemo(() => new Set(sessionExerciseIds), [sessionExerciseIds]);
 
   useEffect(() => {
@@ -65,9 +70,9 @@ export default function ExerciseSwapSheet({
   };
 
   const recommendations = useMemo<ExerciseRecommendation[]>(() =>
-    getRecommendedAlternatives(currentExercise.id, equipment, 200, availableEquipment)
+    getRecommendedAlternatives(currentExercise.id, equipment, 200, availableEquipment, { familiarIds })
       .filter(r => !hidden.has(r.exercise.id) && !inSession.has(r.exercise.id)),
-  [currentExercise.id, equipment, availableEquipment, hidden, inSession]);
+  [currentExercise.id, equipment, availableEquipment, hidden, inSession, familiarIds]);
 
   const results = useMemo(() =>
     query.trim() ? searchExercises(query).filter(e => e.id !== currentExercise.id) : [],

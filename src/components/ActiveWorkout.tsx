@@ -56,7 +56,7 @@ import { carryOverLoad, prescribedPercentOf1RM } from '@/lib/load-model';
 import { BufferedNumberInput } from './BufferedNumberInput';
 import { calculate1RM, getVolumeGaps } from '@/lib/workout-generator';
 import { getRandomTip } from '@/lib/knowledge';
-import { exercises as exerciseLibrary, getAlternativesForExercise, getRecommendedAlternatives, getExerciseById, ExerciseRecommendation } from '@/lib/exercises';
+import { exercises as exerciseLibrary, getAlternativesForExercise, getRecommendedAlternatives, getExerciseById, searchExercises, ExerciseRecommendation } from '@/lib/exercises';
 import { calculateReadiness, whoopRecoveryToReadiness, calculatePersonalBaseline } from '@/lib/auto-adjust';
 import { ExerciseLog, SetLog, PreWorkoutCheckIn, ExerciseFeedback, PostWorkoutFeedback, WeightUnit, WorkoutLog, EquipmentProfileName, DEFAULT_EQUIPMENT_PROFILES } from '@/lib/types';
 import { getSuggestedWeight } from '@/lib/auto-adjust';
@@ -1142,7 +1142,10 @@ export default function ActiveWorkout() {
     if (!activeWorkout) return [];
     const usedIds = new Set(activeWorkout.session.exercises.map(e => e.exerciseId));
     const userEquipment = user?.equipment;
-    return exerciseLibrary.filter(ex => {
+    // Typing searches the whole library (curated + imported + custom), ranked;
+    // browsing without a query stays on the curated list.
+    const base = addExerciseSearch.trim() ? searchExercises(addExerciseSearch, 200) : exerciseLibrary;
+    return base.filter(ex => {
       if (usedIds.has(ex.id)) return false;
       if (userEquipment && !ex.equipmentRequired.includes(userEquipment)) return false;
       // Granular equipment check from active profile
@@ -1153,10 +1156,6 @@ export default function ActiveWorkout() {
         }
       }
       if (addExerciseFilter !== 'all' && !ex.primaryMuscles.includes(addExerciseFilter as any)) return false;
-      if (addExerciseSearch) {
-        const q = addExerciseSearch.toLowerCase();
-        return ex.name.toLowerCase().includes(q) || ex.primaryMuscles.some(m => m.includes(q));
-      }
       return true;
     });
   }, [activeWorkout, user, addExerciseSearch, addExerciseFilter, profileEquipment]);

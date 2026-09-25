@@ -215,4 +215,10 @@ test.describe('Live workout', () => {
     await page.reload();
     await expect(page.getByRole('button', { name: 'Edit setup note' })).toContainText('Seat 4, neutral grip', { timeout: 20_000 });
   });
+
+  test('swap search reaches the imported library (~770 exercises)', async ({ page }) => {
+    await page.getByRole('button', { name: 'Swap exercise' }).last().click();
+    await page.getByRole('searchbox', { name: 'Search exercises' }).fill('guillotine');
+    await expect(page.getByRole('button', { name: /^Swap to Barbell Guillotine Bench Press/ })).toBeVisible({ timeout: 10_000 });
+  });
 });

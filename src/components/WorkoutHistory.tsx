@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { cn, formatDate, formatNumber, formatTime } from '@/lib/utils';
 import { SetLog, ExerciseLog, MuscleGroup, Mesocycle } from '@/lib/types';
-import { exercises as exerciseLibrary, getExerciseById } from '@/lib/exercises';
+import { exercises as exerciseLibrary, getExerciseById, searchExercises } from '@/lib/exercises';
 import { exportWorkoutHistoryPdf } from '@/lib/pdf-export';
 import TrainingCalendar from './TrainingCalendar';
 import { useShallow } from 'zustand/react/shallow';
@@ -226,10 +226,7 @@ export default function WorkoutHistory() {
 
   const filteredPickerExercises = useMemo(() => {
     if (!exercisePickerSearch) return exerciseLibrary.slice(0, 20);
-    const q = exercisePickerSearch.toLowerCase();
-    return exerciseLibrary.filter(ex =>
-      ex.name.toLowerCase().includes(q) || ex.primaryMuscles.some(m => m.includes(q))
-    ).slice(0, 20);
+    return searchExercises(exercisePickerSearch, 20);
   }, [exercisePickerSearch]);
 
   const saveEdits = (logId: string) => {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { loadExerciseLibrary } from '@/lib/exercises';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
@@ -226,6 +227,9 @@ export default function Dashboard({
     overlayDepthRef.current = newDepth;
     skipHistoryPushRef.current = false;
   }, [overlayView, overlayHistory.length]);
+
+  // Imported exercise library (search/swap) loads after first paint.
+  useEffect(() => { void loadExerciseLibrary(); }, []);
 
   // ── Morning Ritual — once-per-day readiness reveal ──
   const [showMorningRitual, setShowMorningRitual] = useState(false);

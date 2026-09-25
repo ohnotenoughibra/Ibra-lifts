@@ -1,4 +1,31 @@
 import { Exercise, CustomExercise, Equipment, EquipmentType, ExerciseCategory, MuscleGroup, MovementPattern } from './types';
+import type { Exercise as ExerciseT } from './types';
+
+// ── Imported library (free-exercise-db) — loaded lazily ──
+// ~570 entries / ~60 kB gzipped: kept out of the first-load bundle and
+// registered after start-up (loadExerciseLibrary, called by the Dashboard).
+// Until then search/swap simply see the curated list.
+let libraryExercises: ExerciseT[] = [];
+let LIBRARY_IDS = new Set<string>();
+let libraryPromise: Promise<ExerciseT[]> | null = null;
+
+export function loadExerciseLibrary(): Promise<ExerciseT[]> {
+  if (!libraryPromise) {
+    libraryPromise = import('./exercise-library.generated').then(m => {
+      libraryExercises = m.libraryExercises;
+      LIBRARY_IDS = new Set(libraryExercises.map(e => e.id));
+      return libraryExercises;
+    });
+  }
+  return libraryPromise;
+}
+export function getLibraryExercises(): ExerciseT[] {
+  return libraryExercises;
+}
+/** True for the imported free-exercise-db entries (not hand-curated). */
+export function isLibraryExercise(id: string): boolean {
+  return id.startsWith('lib-') || LIBRARY_IDS.has(id);
+}
 
 // --- Custom Exercise Registry ---
 // Mutable registry that gets hydrated from store on app load.
@@ -11,9 +38,13 @@ export function registerCustomExercises(customs: CustomExercise[]): void {
   _customExercises = customs;
 }
 
-/** Get all exercises: built-in + custom. */
+/**
+ * Everything the athlete can search, swap to and log: curated + imported
+ * library + custom. The programme generator uses the curated `exercises`
+ * list only (hand-tuned values), so imported entries never appear unasked.
+ */
 export function getAllExercises(): Exercise[] {
-  return [...exercises, ..._customExercises];
+  return [...exercises, ...libraryExercises, ..._customExercises];
 }
 
 /**
@@ -4541,7 +4572,9 @@ export function getGrapplerExercises(): Exercise[] {
 }
 
 export function getExerciseById(id: string): Exercise | undefined {
-  return exercises.find(e => e.id === id) ?? _customExercises.find(e => e.id === id);
+  return exercises.find(e => e.id === id)
+    ?? _customExercises.find(e => e.id === id)
+    ?? (LIBRARY_IDS.has(id) ? libraryExercises.find(e => e.id === id) : undefined);
 }
 
 // Get exercises sorted by aesthetic or strength value
@@ -4615,43 +4648,83 @@ export interface ExerciseRecommendation {
   tags: string[]; // e.g., "Same movement", "Grappler friendly", "Higher aesthetic"
 }
 
+/**
+ * Finer movement slot than MovementPattern — what the exercise actually
+ * trains, so a swap for bench press offers other horizontal presses before
+ * overhead work, and a leg curl is not "the same hinge" as a deadlift.
+ */
+export function subPattern(e: Exercise): string {
+  const n = e.name.toLowerCase();
+  const p = e.movementPattern;
+  if (e.category === 'grip') return 'grip';
+  if (p === 'push') {
+    if (/triceps?|tricep|skull|pushdown|kickback|extension/.test(n) && e.category === 'isolation') return 'elbow_extension';
+    if (/fly|flye|crossover|pec deck/.test(n)) return 'chest_fly';
+    if (/lateral raise|front raise|side raise|y-raise|upright row/.test(n)) return 'shoulder_raise';
+    if (/overhead|military|shoulder press|arnold|handstand|pike|push press|jerk|landmine press/.test(n)) return 'vertical_push';
+    if (/\bdips?\b/.test(n)) return 'dip';
+    return 'horizontal_push';
+  }
+  if (p === 'pull') {
+    if (/curl/.test(n) && !/leg curl|hamstring curl|nordic/.test(n)) return 'elbow_flexion';
+    if (/leg curl|hamstring curl|nordic|glute-ham/.test(n)) return 'knee_flexion';
+    if (/shrug/.test(n)) return 'shrug';
+    if (/pull-?up|chin|pulldown|pull-down|lat pull|muscle up|rope climb|pullover/.test(n)) return 'vertical_pull';
+    if (/face pull|reverse fly|rear delt|reverse flye/.test(n)) return 'rear_delt';
+    if (/crunch|sit-?up|leg raise|knee raise|ab roll|rollout|v-up|toes to bar/.test(n)) return 'trunk_flexion';
+    return 'horizontal_pull';
+  }
+  if (p === 'squat') {
+    if (/leg extension/.test(n)) return 'knee_extension';
+    if (/calf|calves/.test(n) || e.primaryMuscles[0] === 'calves') return 'calf_raise';
+    if (/lunge|split|step-?up|pistol|single|one[- ]leg|bulgarian|skater|cossack/.test(n)) return 'single_leg';
+    return 'bilateral_squat';
+  }
+  if (p === 'hinge') {
+    if (/thrust|bridge/.test(n)) return 'hip_thrust';
+    if (/leg curl|hamstring curl|nordic|glute-ham/.test(n)) return 'knee_flexion';
+    if (/back extension|hyperextension|reverse hyper/.test(n)) return 'back_extension';
+    if (/single|one[- ]leg/.test(n)) return 'single_leg_hinge';
+    return 'hip_hinge';
+  }
+  if (e.primaryMuscles[0] === 'calves') return 'calf_raise';
+  return p; // carry, rotation, explosive
+}
+
 export function getRecommendedAlternatives(
   exerciseId: string,
   equipment: Equipment,
   limit: number = 12,
-  availableEquipment?: EquipmentType[]
+  availableEquipment?: EquipmentType[],
+  opts: { familiarIds?: Set<string> } = {},
 ): ExerciseRecommendation[] {
-  // Built-in + custom: custom exercises can be swapped in AND out.
+  // One engine for every swap: curated + imported library + custom.
   const pool = getAllExercises();
   const exercise = pool.find(e => e.id === exerciseId);
   if (!exercise) return [];
 
   const allMuscles = [...exercise.primaryMuscles, ...exercise.secondaryMuscles];
   const relatedPatterns = RELATED_PATTERNS[exercise.movementPattern] || [];
+  const slot = subPattern(exercise);
+  const gear = new Set(exercise.equipmentTypes ?? []);
 
-  return pool
+  const scored = pool
     .filter(e => {
       if (e.id === exerciseId) return false;
       if (!e.equipmentRequired.includes(equipment)) return false;
-      // Granular equipment check: if availableEquipment is provided, exercise must
-      // only need equipment the user actually has (bodyweight always passes)
+      // Granular equipment check: exercise must only need gear the athlete has
       if (availableEquipment && availableEquipment.length > 0) {
         const eqTypes = e.equipmentTypes || [];
         if (eqTypes.length > 0 && !(eqTypes.length === 1 && eqTypes[0] === 'bodyweight')) {
           if (!eqTypes.every(et => et === 'bodyweight' || availableEquipment.includes(et))) return false;
         }
       }
-
-      // Primary-to-primary overlap (strongest match)
+      if (subPattern(e) === slot) return true;
       if (e.primaryMuscles.some(m => exercise.primaryMuscles.includes(m))) return true;
-      // Primary-to-secondary overlap (e.g., BSS primary quads when current exercise has quads as secondary)
       if (e.primaryMuscles.some(m => exercise.secondaryMuscles.includes(m))) return true;
-      // Secondary-to-primary overlap (e.g., lunges that have quads as primary)
       if (e.secondaryMuscles.some(m => exercise.primaryMuscles.includes(m))) return true;
-      // Same or related movement pattern with any muscle overlap
       if ((e.movementPattern === exercise.movementPattern || relatedPatterns.includes(e.movementPattern)) &&
           [...e.primaryMuscles, ...e.secondaryMuscles].some(m => allMuscles.includes(m))) return true;
-
       return false;
     })
     .map(alt => {
@@ -4659,83 +4732,66 @@ export function getRecommendedAlternatives(
       const reasons: string[] = [];
       const tags: string[] = [];
 
-      // Primary muscle overlap (up to 40 points)
+      // Same job (slot) matters most: a swap should train what the plan asked for.
+      const altSlot = subPattern(alt);
+      if (altSlot === slot) {
+        score += 30;
+        reasons.push(`Same movement: ${slot.replace(/_/g, ' ')}`);
+        tags.push('Same movement');
+      } else if (alt.movementPattern === exercise.movementPattern) {
+        score += 10;
+        tags.push('Related movement');
+      } else if (relatedPatterns.includes(alt.movementPattern)) {
+        score += 4;
+      }
+
+      // Primary muscle overlap (up to 35)
       const primaryOverlap = alt.primaryMuscles.filter(m => exercise.primaryMuscles.includes(m)).length;
-      const primaryScore = (primaryOverlap / Math.max(exercise.primaryMuscles.length, 1)) * 40;
-      score += primaryScore;
+      score += (primaryOverlap / Math.max(exercise.primaryMuscles.length, 1)) * 35;
       if (primaryOverlap === exercise.primaryMuscles.length) {
-        reasons.push('Targets all the same primary muscles');
+        if (altSlot !== slot) reasons.push('Targets all the same primary muscles');
         tags.push('Full match');
-      } else if (primaryOverlap > 0) {
+      } else if (primaryOverlap > 0 && altSlot !== slot) {
         reasons.push(`Targets ${alt.primaryMuscles.filter(m => exercise.primaryMuscles.includes(m)).join(', ')}`);
       }
+      // Secondary overlap (up to 10)
+      const secondaryOverlap = alt.secondaryMuscles.filter(m => allMuscles.includes(m)).length;
+      score += Math.min(10, secondaryOverlap * 4);
 
-      // Cross-muscle overlap: alt's primary hits current's secondary (up to 10 points)
-      const crossOverlap = alt.primaryMuscles.filter(m => exercise.secondaryMuscles.includes(m) && !exercise.primaryMuscles.includes(m)).length;
-      if (crossOverlap > 0) {
-        score += Math.min(10, crossOverlap * 5);
-        if (primaryOverlap === 0) {
-          reasons.push(`Focuses on ${alt.primaryMuscles.filter(m => exercise.secondaryMuscles.includes(m)).join(', ')}`);
-          tags.push('Synergist focus');
-        }
-      }
-
-      // Secondary muscle overlap (up to 15 points)
-      const secondaryOverlap = alt.secondaryMuscles.filter(m =>
-        exercise.secondaryMuscles.includes(m) || exercise.primaryMuscles.includes(m)
-      ).length;
-      score += Math.min(15, secondaryOverlap * 5);
-
-      // Same movement pattern (20 points)
-      if (alt.movementPattern === exercise.movementPattern) {
-        score += 20;
-        reasons.push(`Same ${exercise.movementPattern} pattern`);
-        tags.push('Same movement');
-      } else if (relatedPatterns.includes(alt.movementPattern)) {
-        // Related movement pattern (8 points)
-        score += 8;
-        tags.push('Related movement');
-      }
-
-      // Same category bonus (10 points)
+      // Same category (compound for compound) — keeps the session's intent
       if (alt.category === exercise.category) {
-        score += 10;
+        score += 8;
         tags.push(alt.category === 'compound' ? 'Compound' : alt.category === 'isolation' ? 'Isolation' : alt.category);
       }
+      // Same implement: load history and progression carry over
+      if ((alt.equipmentTypes ?? []).some(t => gear.has(t))) score += 5;
 
-      // Grappler-friendly bonus (10 points)
-      if (alt.grapplerFriendly) {
-        score += 10;
-        tags.push('Grappler friendly');
-      }
+      // Curated exercises carry tuned values/cues; library entries are fine
+      // but should win only on a better fit.
+      if (!isLibraryExercise(alt.id)) score += 6;
+      // Something you've trained before: your numbers are already there.
+      if (opts.familiarIds?.has(alt.id)) { score += 6; tags.push('Done before'); }
 
-      // Unilateral bonus (if current exercise is bilateral)
-      const unilateralKeywords = ['single', 'split', 'bulgarian', 'lunge', 'one-arm', 'one-leg', 'pistol'];
-      const isAltUnilateral = unilateralKeywords.some(kw => alt.name.toLowerCase().includes(kw));
-      const isCurrentBilateral = !unilateralKeywords.some(kw => exercise.name.toLowerCase().includes(kw));
-      if (isAltUnilateral && isCurrentBilateral) {
-        score += 3;
-        tags.push('Unilateral');
-      }
+      // Comparable strength/aesthetic value (up to 4)
+      if (Math.abs(alt.strengthValue - exercise.strengthValue) <= 1) score += 2;
+      if (Math.abs(alt.aestheticValue - exercise.aestheticValue) <= 1) score += 2;
 
-      // Comparable strength/aesthetic value (up to 5 points)
-      const strengthDiff = Math.abs(alt.strengthValue - exercise.strengthValue);
-      const aestheticDiff = Math.abs(alt.aestheticValue - exercise.aestheticValue);
-      if (strengthDiff <= 1) score += 2.5;
-      if (aestheticDiff <= 1) score += 2.5;
-
-      // If higher aesthetic or strength value, note it
-      if (alt.aestheticValue > exercise.aestheticValue + 1) {
-        tags.push('More aesthetic');
-      }
-      if (alt.strengthValue > exercise.strengthValue + 1) {
-        tags.push('More strength');
-      }
-
-      score = Math.min(100, Math.round(score));
-
-      return { exercise: alt, matchScore: score, reasons, tags };
+      if (alt.isUnilateral && !exercise.isUnilateral) tags.push('Unilateral');
+      return { exercise: alt, matchScore: Math.min(100, Math.round(score)), reasons, tags };
     })
-    .sort((a, b) => b.matchScore - a.matchScore)
-    .slice(0, limit);
+    .sort((a, b) => b.matchScore - a.matchScore || a.exercise.name.localeCompare(b.exercise.name));
+
+  // Variety: don't fill the list with near-identical library variants
+  // ("Bench Press – Medium Grip", "… with Bands", "… with Chains").
+  const out: ExerciseRecommendation[] = [];
+  const seenKeys = new Map<string, number>();
+  for (const r of scored) {
+    const key = `${subPattern(r.exercise)}|${(r.exercise.equipmentTypes ?? []).join('+')}`;
+    const n = seenKeys.get(key) ?? 0;
+    if (n >= 3) continue;
+    seenKeys.set(key, n + 1);
+    out.push(r);
+    if (out.length >= limit) break;
+  }
+  return out;
 }

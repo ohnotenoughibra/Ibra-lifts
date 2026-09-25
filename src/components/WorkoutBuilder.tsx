@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore, type BlockOverrides } from '@/lib/store';
 import { usePersistentState } from '@/lib/use-persistent-state';
-import { exercises as allExercises, getExercisesByEquipment, getExerciseById } from '@/lib/exercises';
+import { exercises as allExercises, getExercisesByEquipment, getExerciseById, searchExercises } from '@/lib/exercises';
 import { generateQuickWorkout } from '@/lib/workout-generator';
 import {
   Search,
@@ -608,13 +608,11 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
     let result = [...getExercisesByEquipment(equipment), ...customs];
 
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(e =>
-        e.name.toLowerCase().includes(q) ||
-        e.primaryMuscles.some(m => m.toLowerCase().includes(q)) ||
-        e.category.toLowerCase().includes(q) ||
-        e.movementPattern.toLowerCase().includes(q)
-      );
+      // Search the whole library (curated + ~570 imported + custom), ranked.
+      const customIds = new Set(customs.map(c => c.id));
+      result = searchExercises(searchQuery, 200)
+        .filter(e => customIds.has(e.id) || e.equipmentRequired.includes(equipment))
+        .map(e => customs.find(c => c.id === e.id) ?? e);
     }
 
     if (selectedMuscle !== 'all') {

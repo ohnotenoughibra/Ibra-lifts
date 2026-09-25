@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAppUrl, WHOOP_TOKEN_URL, safeInlineJSON, LS_KEYS } from '@/lib/whoop';
+import { verifyWhoopState } from '@/lib/whoop-state';
 
 /**
  * GET /api/whoop/callback
  *
  * Whoop redirects here after the user authorizes (or denies) access.
  * We exchange the authorization code for tokens, then return an HTML page that:
- *   1. Validates the state parameter against what we stored in localStorage
+ *   1. Verifies the server-signed state (and, outside the PWA flow, the copy in localStorage)
  *   2. Stores the tokens in localStorage
  *   3. Redirects to the app with a success indicator
  *
@@ -30,6 +31,12 @@ export async function GET(request: NextRequest) {
   // --- Missing authorization code ---
   if (!code) {
     return redirectWithError(appUrl, 'No authorization code received from Whoop.');
+  }
+
+  // --- State must be ours, untampered and fresh — checked BEFORE the code is used ---
+  const verified = verifyWhoopState(returnedState);
+  if (!verified) {
+    return redirectWithError(appUrl, 'Security check failed or the link expired. Please connect Whoop again.');
   }
 
   // --- Missing server credentials ---
@@ -105,29 +112,26 @@ export async function GET(request: NextRequest) {
   // The connect button in the PWA detects standalone mode (100% reliable there)
   // and threads a 'pwa:' prefix into the OAuth state parameter. We use that to
   // decide whether to redirect (browser) or show a return-to-app page (PWA).
-  var fromPwa = returnedState && returnedState.indexOf('pwa:') === 0;
+  var fromPwa = ${verified.p ? 'true' : 'false'}; // from the signed state, not a guessable prefix
 
-  // --- Validate CSRF state ---
-  // Strip the 'pwa:' prefix before comparing with localStorage.
-  // Note: PWA and the iOS in-app browser have separate localStorage, so
-  // savedState will be null when coming from a PWA — we allow that.
-  var stateForValidation = fromPwa ? returnedState.substring(4) : returnedState;
-  try {
-    var savedState = localStorage.getItem(${safeInlineJSON(LS_KEYS.oauthState)});
-    if (savedState && stateForValidation && savedState !== stateForValidation) {
+  // --- Same-browser check (browser flow) ---
+  // The PWA and the iOS in-app browser have separate storage, so the PWA flow
+  // relies on the signed state + account binding (see /api/whoop/tokens).
+  // Outside it, the copy saved by /api/whoop/auth must be here and match.
+  if (!fromPwa) {
+    var savedState = null;
+    try { savedState = localStorage.getItem(${safeInlineJSON(LS_KEYS.oauthState)}); } catch(e) {}
+    if (savedState !== returnedState) {
       document.getElementById('msg').className = 'error';
       document.getElementById('msg').textContent =
-        'Security check failed: OAuth state mismatch. Please try connecting again.';
-      localStorage.removeItem(${safeInlineJSON(LS_KEYS.oauthState)});
+        'Security check failed: this Whoop link was not started from this browser. Please connect again.';
       setTimeout(function() {
         window.location.replace(appUrl + '?whoop_error=' + encodeURIComponent('state_mismatch'));
       }, 2500);
       return;
     }
-    localStorage.removeItem(${safeInlineJSON(LS_KEYS.oauthState)});
-  } catch(e) {
-    // localStorage unavailable — skip validation
   }
+  try { localStorage.removeItem(${safeInlineJSON(LS_KEYS.oauthState)}); } catch(e) {}
 
   // --- Store tokens in localStorage ---
   var stored = false;
@@ -149,7 +153,8 @@ export async function GET(request: NextRequest) {
       body: JSON.stringify({
         access_token: accessToken,
         refresh_token: refreshToken,
-        expires_at: expiresAt
+        expires_at: expiresAt,
+        state: returnedState
       })
     });
   } catch(e) { /* best effort */ }

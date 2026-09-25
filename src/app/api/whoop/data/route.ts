@@ -14,7 +14,24 @@ import { rateLimit, getClientIP } from '@/lib/rate-limit';
  *   - We return the data AND the new tokens in a single response
  *   - This avoids the previous double-round-trip pattern
  */
+/** Only our own pages may use this proxy (it spends our Whoop client credentials on refresh). */
+function crossSite(request: NextRequest): boolean {
+  const site = request.headers.get('sec-fetch-site');
+  if (site && site !== 'same-origin' && site !== 'none') return true;
+  const origin = request.headers.get('origin');
+  if (origin) {
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    try { if (new URL(origin).host !== host) return true; } catch { return true; }
+  }
+  return false;
+}
+
+const NO_STORE = { 'Cache-Control': 'no-store' };
+
 export async function POST(request: NextRequest) {
+  if (crossSite(request)) {
+    return NextResponse.json({ connected: false, error: 'Cross-site request refused.' }, { status: 403, headers: NO_STORE });
+  }
   // Rate limit: 10 requests per 60 seconds per IP
   const ip = getClientIP(request);
   const { limited } = rateLimit(`whoop-data:${ip}`, 10, 60 * 1000);
@@ -39,6 +56,10 @@ export async function POST(request: NextRequest) {
   let accessToken: string = body.access_token || '';
   let refreshToken: string = body.refresh_token || '';
   let newTokens: { access_token: string; refresh_token: string; expires_in: number } | null = null;
+
+  const tokenLike = (t: string) => typeof t === 'string' && t.length <= 4096 && /^[\w\-.~+/=]+$/.test(t);
+  if (accessToken && !tokenLike(accessToken)) accessToken = '';
+  if (refreshToken && !tokenLike(refreshToken)) refreshToken = '';
 
   if (!accessToken) {
     return NextResponse.json(
@@ -115,7 +136,7 @@ export async function POST(request: NextRequest) {
         }
       : {}),
     ...(warnings.length > 0 ? { warnings } : {}),
-  });
+  }, { headers: NO_STORE });
 }
 
 /**

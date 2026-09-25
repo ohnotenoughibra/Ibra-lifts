@@ -519,7 +519,7 @@ function LearningPathView({
     <div className="min-h-screen bg-grappler-900 px-4 pt-6 pb-24 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={onBack} aria-label="Go back" className="p-2 -ml-2 text-grappler-400 hover:text-grappler-200">
+        <button onClick={onBack} aria-label="Go back" className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">

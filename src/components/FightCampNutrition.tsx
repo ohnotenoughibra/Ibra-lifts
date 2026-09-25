@@ -124,7 +124,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
       >
         <div className="min-h-screen px-4 pt-6 pb-24 max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
-            <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm">
+            <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
               <ChevronLeft className="w-5 h-5" />
             </button>
             <h1 className="text-xl font-bold text-grappler-50">Fight Camp Nutrition</h1>
@@ -154,7 +154,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm">
+            <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
               <ChevronLeft className="w-5 h-5" />
             </button>
             <div>

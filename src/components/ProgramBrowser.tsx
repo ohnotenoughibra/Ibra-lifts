@@ -265,8 +265,8 @@ export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserPr
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center gap-3">
-          <button aria-label="Go back" onClick={onClose} className="btn btn-ghost btn-sm p-1">
-            <ChevronLeft className="w-5 h-5 text-grappler-200" />
+          <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
+            <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">

@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWeightUnit } from '@/hooks/useWeightUnit';
 import {
-  ArrowLeft,
   Camera,
   Plus,
   Trash2,
@@ -255,9 +254,9 @@ export default function PhotoProgress({ onClose }: { onClose: () => void }) {
           <button
             onClick={onClose}
             aria-label="Go back"
-            className="p-2 -ml-2 hover:bg-grappler-800 rounded-lg transition-colors"
+            className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0"
           >
-            <ArrowLeft className="w-5 h-5 text-grappler-300" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-grappler-100 flex items-center gap-2">

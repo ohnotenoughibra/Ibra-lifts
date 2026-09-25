@@ -750,9 +750,9 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
         <div className="flex items-center gap-3 p-4">
           <button aria-label="Go back"
             onClick={onClose}
-            className="w-10 h-10 rounded-xl bg-grappler-800 flex items-center justify-center hover:bg-grappler-700 transition-colors"
+            className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0"
           >
-            <ChevronLeft className="w-5 h-5 text-grappler-300" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
             <h1 className="text-xl font-bold text-grappler-50">Templates & Programs</h1>

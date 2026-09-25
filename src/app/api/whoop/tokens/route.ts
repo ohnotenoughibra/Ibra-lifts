@@ -1,5 +1,6 @@
 import { sql } from '@vercel/postgres';
 import { NextResponse } from 'next/server';
+import { verifyWhoopState } from '@/lib/whoop-state';
 import { auth } from '@/lib/auth';
 import { encrypt, decrypt } from '@/lib/crypto';
 
@@ -56,7 +57,17 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { access_token, refresh_token, expires_at } = body;
+    const { access_token, refresh_token, expires_at, state } = body;
+
+    // Saves from the OAuth callback carry the signed state: it must have been
+    // started by THIS signed-in user (blocks saving someone else's Whoop
+    // tokens into your account via a crafted link). Refresh saves have no state.
+    if (state !== undefined) {
+      const v = verifyWhoopState(state, Date.now(), 15 * 60 * 1000);
+      if (!v || v.u !== session.user.id) {
+        return NextResponse.json({ error: 'Whoop connect was not started from this account' }, { status: 403 });
+      }
+    }
 
     if (!access_token) {
       return NextResponse.json({ error: 'access_token required' }, { status: 400 });

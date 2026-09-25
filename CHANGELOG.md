@@ -3,6 +3,19 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [2.23.0] - 2026-09-25
+
+**Progress you can trust: no more crashes on old data, no false alarms, and an app that heals itself after an update.**
+
+### Fixed
+- **Progress tab** — survives any history (malformed old logs, unknown session types, any date format); each card fails on its own instead of taking the tab down. Deleted workouts no longer count in PRs, volume, load, heatmap, trends or exports.
+- **Honest signals** — Load shows "Building" until you have 3 weeks of history (your first workout read "Spike 4.00x"), and counts mat sessions on both sides; no "Behind" on day 1 of a block; block progress can't exceed the plan; volume never shows NaN; body-recomp weights are converted to your unit; the heatmap is blank before your first log instead of "rest".
+- **"Something went wrong" after an update** — when a new version deploys while the app is open, it now reloads itself once; any other error shows its message with a Copy details button.
+- **Whoop connect security** — the OAuth state is signed by the server and tied to your account, so a crafted link can't attach someone else's Whoop to your profile; the data proxy only answers the app itself.
+
+### Changed
+- Back buttons look and sit the same across all 23 full-screen tools.
+
 ## [2.22.0] - 2026-09-25
 
 **Reminders that arrive while the app is closed, fresher blocks, and a round of fixes to the numbers behind readiness, streaks and weight trend.**

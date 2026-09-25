@@ -5425,6 +5425,15 @@ export const useAppStore = create<AppState>()(
         }
         // Ensure arrays are always arrays (protect against corrupted persisted data)
         if (!Array.isArray(merged.workoutLogs)) merged.workoutLogs = [];
+        // One malformed log (exercises/sets not an array, from an old version or a
+        // half-written sync) used to crash the whole app on load — repair in place.
+        if (merged.workoutLogs.some(l => !l || !Array.isArray(l.exercises) || l.exercises.some(e => !e || !Array.isArray(e.sets)))) {
+          merged.workoutLogs = merged.workoutLogs
+            .filter(l => l && typeof l === 'object')
+            .map(l => (Array.isArray(l.exercises) && l.exercises.every(e => e && Array.isArray(e.sets)))
+              ? l
+              : { ...l, exercises: (Array.isArray(l.exercises) ? l.exercises : []).filter(Boolean).map(e => (Array.isArray(e.sets) ? e : { ...e, sets: [] })) });
+        }
         if (!Array.isArray(merged.trainingSessions)) merged.trainingSessions = [];
         if (!Array.isArray(merged.bodyWeightLog)) merged.bodyWeightLog = [];
         if (!Array.isArray(merged._resolvedIllnessIds)) merged._resolvedIllnessIds = [];

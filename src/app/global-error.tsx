@@ -11,6 +11,18 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
+    // New version deployed while open → its code files are gone: reload once
+    const m = `${error?.name ?? ''} ${error?.message ?? ''}`;
+    if (/ChunkLoadError|Loading chunk [\w-]+ failed|Loading CSS chunk|Failed to fetch dynamically imported module|Importing a module script failed/i.test(m)) {
+      try {
+        const last = Number(sessionStorage.getItem('reloaded-for-new-version') || 0);
+        if (Date.now() - last > 60_000) {
+          sessionStorage.setItem('reloaded-for-new-version', String(Date.now()));
+          window.location.reload();
+          return;
+        }
+      } catch { /* fall through */ }
+    }
     Sentry.captureException(error);
   }, [error]);
 
@@ -22,6 +34,9 @@ export default function GlobalError({
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Something went wrong</h2>
             <p style={{ fontSize: '0.875rem', color: '#94a3b8', marginBottom: '1.5rem' }}>
               An unexpected error occurred. Your workout data is safe in local storage.
+            </p>
+            <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '1.5rem', wordBreak: 'break-word' }}>
+              {`${error?.name ?? 'Error'}: ${error?.message ?? ''}`}
             </p>
             <button
               onClick={reset}

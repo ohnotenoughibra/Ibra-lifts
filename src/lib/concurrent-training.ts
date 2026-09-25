@@ -282,16 +282,21 @@ function getTimeSeparationFactor(
  * // score.score ≈ 61, fatigueType 'both', peakMuscleGroups ['grip', 'posterior_chain', 'core']
  * ```
  */
+/** Old or partial sessions can carry a category/intensity this version doesn't know — treat as 'other'/moderate instead of crashing. */
+const catOf = (s: TrainingSession): ActivityCategory => (s.category && s.category in PEAK_MUSCLE_GROUPS ? s.category : 'other');
+
 export function calculateSportLoadScore(session: TrainingSession): SportLoadScore {
   const intensity = getEffectiveIntensity(session);
-  const intensityMult = INTENSITY_MULTIPLIERS[intensity];
-  const categoryMult = CATEGORY_MULTIPLIERS[session.category];
+  const intensityMult = INTENSITY_MULTIPLIERS[intensity] ?? 1;
+  const category = catOf(session);
+  const categoryMult = CATEGORY_MULTIPLIERS[category] ?? 1;
 
   // Base load: duration scaled by intensity and category
-  const rawLoad = session.duration * intensityMult * categoryMult;
+  const rawLoad = (Number(session.duration) || 0) * intensityMult * categoryMult;
 
   // RPE modifier: RPE 5 is neutral (1.0×), RPE 10 is +20%, RPE 1 is -20%
-  const rpeMod = 1 + (session.perceivedExertion - 5) * 0.04;
+  const rpe = Number(session.perceivedExertion);
+  const rpeMod = 1 + ((Number.isFinite(rpe) && rpe > 0 ? rpe : 5) - 5) * 0.04;
 
   // Normalize to 0-100 with RPE adjustment
   const normalizedScore = (rawLoad / SCORE_NORMALIZATION_CEILING) * 100 * rpeMod;
@@ -299,8 +304,8 @@ export function calculateSportLoadScore(session: TrainingSession): SportLoadScor
 
   return {
     score,
-    fatigueType: FATIGUE_TYPE_MAP[session.category],
-    peakMuscleGroups: [...PEAK_MUSCLE_GROUPS[session.category]],
+    fatigueType: FATIGUE_TYPE_MAP[category],
+    peakMuscleGroups: [...PEAK_MUSCLE_GROUPS[category]],
   };
 }
 
@@ -572,7 +577,7 @@ export function getSessionAdjustments(
     }
 
     // Determine which muscle groups this session hit
-    const sessionPeakGroups = PEAK_MUSCLE_GROUPS[session.category];
+    const sessionPeakGroups = PEAK_MUSCLE_GROUPS[catOf(session)];
 
     // Apply adjustments to each target muscle group
     for (const mg of Array.from(targetMuscleGroups)) {
@@ -671,7 +676,7 @@ export function getSessionAdjustments(
   const hasCentralFatigue = recentSessions.some((s) => {
     const intensity = getEffectiveIntensity(s);
     return (
-      FATIGUE_TYPE_MAP[s.category] === 'both' &&
+      FATIGUE_TYPE_MAP[catOf(s)] === 'both' &&
       (intensity === 'hard_sparring' || intensity === 'competition_prep') &&
       daysBetween(new Date(s.date), now) <= 1
     );

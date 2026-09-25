@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, Component, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
@@ -37,6 +37,7 @@ import { cn, formatNumber, localDayKey } from '@/lib/utils';
 import { useComputedGamification } from '@/lib/computed-gamification';
 import type { WorkoutLog, GamificationStats, TrainingSession } from '@/lib/types';
 import { getExerciseById } from '@/lib/exercises';
+import { getCompletedSessionIds } from '@/lib/session-matching';
 import { isCurrentWeek, computeChallengeProgress, badges as allBadges } from '@/lib/gamification';
 import { calculate1RM, VOLUME_LANDMARKS } from '@/lib/workout-generator';
 import { generateWorkoutShareCard } from '@/lib/share-card';
@@ -79,6 +80,37 @@ const BodyWeightTracker = dynamic(() => import('./BodyWeightTracker'), {
  * Per audit: "a fighter who taps Stats out of habit gets immediate signal,
  * not a wall of charts."
  */
+/**
+ * One card failing (odd old data, a lookup that returns nothing) must not take
+ * the whole Progress tab down — it shows a small notice and the rest renders.
+ */
+class CardBoundary extends Component<{ name: string; children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error) { console.error(`[progress] ${this.props.name} failed:`, error); }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="rounded-lg border border-grappler-800 bg-grappler-900/40 p-3 text-xs text-grappler-400" role="status" data-testid="card-error">
+        <span className="font-semibold text-grappler-300">{this.props.name}</span> couldn&apos;t load: {this.state.error.message}
+      </div>
+    );
+  }
+}
+
+/** Session volume: stored total when valid, else recomputed from completed sets (old logs lack it; numbers may be strings). */
+function logVolume(l: WorkoutLog): number {
+  const t = Number(l.totalVolume);
+  if (Number.isFinite(t) && t > 0) return t;
+  let v = 0;
+  for (const e of l.exercises ?? []) for (const st of e.sets ?? []) {
+    if (st.completed === false) continue;
+    const w = Number(st.weight); const r = Number(st.reps);
+    if (Number.isFinite(w) && Number.isFinite(r) && w > 0 && r > 0) v += w * r;
+  }
+  return v;
+}
+
 function TodaySnapshot({
   workoutLogs,
   trainingSessions,
@@ -99,8 +131,8 @@ function TodaySnapshot({
   });
   const last7Sessions = trainingSessions.filter(s => new Date(s.date).getTime() >= now - oneWeek);
 
-  const last7Volume = last7.reduce((s, l) => s + (l.totalVolume ?? 0), 0);
-  const prev7Volume = prev7.reduce((s, l) => s + (l.totalVolume ?? 0), 0);
+  const last7Volume = last7.reduce((s, l) => s + logVolume(l), 0);
+  const prev7Volume = prev7.reduce((s, l) => s + logVolume(l), 0);
   const volumeDelta = prev7Volume > 0 ? Math.round(((last7Volume - prev7Volume) / prev7Volume) * 100) : 0;
   const volumeDirection = volumeDelta > 5 ? 'up' : volumeDelta < -5 ? 'down' : 'flat';
 
@@ -125,13 +157,20 @@ function TodaySnapshot({
   }
 
   // ACWR rough zone — uses last 7d total session count vs avg of prior 4 weeks
-  const fourWeekTotal = workoutLogs.filter(l => new Date(l.date).getTime() >= now - 4 * oneWeek).length;
+  // Acute and chronic both count lifts AND mat/other sessions (chronic used to
+  // count lifts only, inflating the ratio for anyone who trains on the mats).
+  // Under 3 weeks of history there is no chronic baseline — the first workout
+  // used to read "Spike 4.00x".
+  const allTimes = [...workoutLogs.map(l => new Date(l.date).getTime()), ...trainingSessions.map(t => new Date(t.date).getTime())].filter(Number.isFinite);
+  const firstActivity = allTimes.length ? Math.min(...allTimes) : now;
+  const hasBaseline = now - firstActivity >= 3 * oneWeek;
+  const fourWeekTotal = allTimes.filter(t => t >= now - 4 * oneWeek).length;
   const chronic = fourWeekTotal / 4 || 1;
   const acwrRatio = (last7.length + last7Sessions.length) / chronic;
-  const acwrZone = acwrRatio < 0.8 ? 'Under' : acwrRatio > 1.5 ? 'Spike' : acwrRatio > 1.3 ? 'High' : 'Sweet';
+  const acwrZone = !hasBaseline ? 'Building' : acwrRatio < 0.8 ? 'Under' : acwrRatio > 1.5 ? 'Spike' : acwrRatio > 1.3 ? 'High' : 'Sweet';
   const acwrColor =
     acwrZone === 'Sweet' ? 'text-emerald-400' :
-    acwrZone === 'Under' ? 'text-grappler-400' :
+    acwrZone === 'Under' || acwrZone === 'Building' ? 'text-grappler-400' :
     acwrZone === 'High' ? 'text-amber-400' :
     'text-rose-400';
 
@@ -141,7 +180,7 @@ function TodaySnapshot({
         This Week
       </div>
       <div className="grid grid-cols-4 gap-3">
-        <SnapshotCell label="PRs" value={String(prsLast7)} subtext={prsLast7 === 0 ? '0 logged' : 'this wk'} accent="text-emerald-400" />
+        <SnapshotCell label="PRs" value={String(prsLast7)} subtext="this wk" accent="text-emerald-400" />
         <SnapshotCell
           label="Volume"
           value={volumeDirection === 'up' ? `+${volumeDelta}%` : volumeDirection === 'down' ? `${volumeDelta}%` : '—'}
@@ -149,7 +188,7 @@ function TodaySnapshot({
           accent={volumeDirection === 'up' ? 'text-emerald-400' : volumeDirection === 'down' ? 'text-rose-400' : 'text-grappler-400'}
         />
         <SnapshotCell label="Streak" value={String(gamificationStats?.currentStreak ?? 0)} subtext="days" accent="text-amber-400" />
-        <SnapshotCell label="Load" value={acwrZone} subtext={`${acwrRatio.toFixed(2)}x`} accent={acwrColor} />
+        <SnapshotCell label="Load" value={acwrZone} subtext={acwrZone === 'Building' ? 'needs 3 wks' : `${acwrRatio.toFixed(2)}x`} accent={acwrColor} />
       </div>
     </div>
   );
@@ -336,7 +375,7 @@ function E1rmTrendsCard({ workoutLogs, weightUnit }: { workoutLogs: WorkoutLog[]
   );
 }
 
-function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLogs: WorkoutLog[]; bodyWeightLog: { date: Date | string; weight: number }[]; weightUnit: string }) {
+function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLogs: WorkoutLog[]; bodyWeightLog: { date: Date | string; weight: number; unit?: string }[]; weightUnit: string }) {
   const activeDietPhase = useAppStore(s => s.activeDietPhase);
   const phase = activeDietPhase?.isActive ? activeDietPhase.goal : null; // 'cut' | 'maintain' | 'bulk' | null
 
@@ -345,9 +384,19 @@ function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLog
     const eightWeeksAgo = Date.now() - 56 * 24 * 60 * 60 * 1000;
     const fourWeeksAgo = Date.now() - 28 * 24 * 60 * 60 * 1000;
 
-    // Get all recent weights (8 weeks for extended trendline)
+    // Get all recent weights (8 weeks for extended trendline), in the display
+    // unit — entries keep the unit they were logged in (mixing kg and lbs
+    // used to produce nonsense deltas), and junk values are dropped
+    const toDisplay = (e: { weight: number; unit?: string }) => {
+      const w = Number(e.weight);
+      if (!Number.isFinite(w) || w <= 0) return NaN;
+      const from = e.unit === 'lbs' ? 'lbs' : e.unit === 'kg' ? 'kg' : weightUnit;
+      if (from === weightUnit) return w;
+      return from === 'lbs' ? w * 0.45359237 : w / 0.45359237;
+    };
     const allRecentWeights = bodyWeightLog
-      .filter(e => new Date(e.date).getTime() > eightWeeksAgo)
+      .map(e => ({ date: e.date, weight: toDisplay(e) }))
+      .filter(e => Number.isFinite(e.weight) && new Date(e.date).getTime() > eightWeeksAgo)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     // 4-week window weights for delta
@@ -356,6 +405,7 @@ function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLog
     if (recentWeights.length >= 2) {
       weightDelta = +(recentWeights[recentWeights.length - 1].weight - recentWeights[0].weight).toFixed(1);
     }
+    const lastW = recentWeights.length > 0 ? recentWeights[recentWeights.length - 1].weight : null;
 
     // Weight sparkline over 8 weeks
     const weightTrend = allRecentWeights.map(w => w.weight);
@@ -366,18 +416,18 @@ function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLog
     let volumeDelta: number | null = null;
     if (recentLogs.length >= 4) {
       const half = Math.floor(recentLogs.length / 2);
-      const firstHalfAvg = recentLogs.slice(0, half).reduce((s, l) => s + l.totalVolume, 0) / half;
-      const secondHalfAvg = recentLogs.slice(half).reduce((s, l) => s + l.totalVolume, 0) / (recentLogs.length - half);
+      const firstHalfAvg = recentLogs.slice(0, half).reduce((s, l) => s + logVolume(l), 0) / half;
+      const secondHalfAvg = recentLogs.slice(half).reduce((s, l) => s + logVolume(l), 0) / (recentLogs.length - half);
       volumeDelta = Math.round(secondHalfAvg - firstHalfAvg);
     }
     if (weightDelta === null && volumeDelta === null) return null;
     return {
       weightDelta,
       volumeDelta,
-      latestWeight: recentWeights.length > 0 ? recentWeights[recentWeights.length - 1].weight : null,
+      latestWeight: lastW !== null ? Math.round(lastW * 10) / 10 : null,
       weightTrend,
     };
-  }, [workoutLogs, bodyWeightLog]);
+  }, [workoutLogs, bodyWeightLog, weightUnit]);
 
   if (!data) return null;
 
@@ -487,16 +537,13 @@ function BodyRecompCard({ workoutLogs, bodyWeightLog, weightUnit }: { workoutLog
 }
 
 function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[]; onDayClick?: (date: Date) => void }) {
-  const trainingSessions = useAppStore(s => s.trainingSessions);
+  const rawSessions = useAppStore(s => s.trainingSessions);
+  const trainingSessions = useMemo(() => (rawSessions ?? []).filter(t => !t._deleted), [rawSessions]);
   const user = useAppStore(s => s.user);
   const weeks = 12;
 
-  const toDateKey = (d: Date | string): string => {
-    if (typeof d === 'string') {
-      return new Date(d).toDateString();
-    }
-    return d.toDateString();
-  };
+  // Dates arrive as Date, ISO string or (old/imported data) epoch ms
+  const toDateKey = (d: Date | string | number): string => new Date(d).toDateString();
 
   const today = useMemo(() => {
     const d = new Date();
@@ -558,7 +605,7 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
     if (!workoutLogs || workoutLogs.length === 0) return 0;
     return workoutLogs.filter(log => {
       if (!log.date) return false;
-      const d = typeof log.date === 'string' ? new Date(log.date) : log.date;
+      const d = new Date(log.date);
       return d >= weekAgo && d <= today;
     }).length;
   }, [workoutLogs, today]);
@@ -569,7 +616,7 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
     if (!includeOtherSessions || !trainingSessions) return 0;
     return trainingSessions.filter(s => {
       if (!s.date) return false;
-      const d = typeof s.date === 'string' ? new Date(s.date) : s.date;
+      const d = new Date(s.date);
       return d >= weekAgo && d <= today;
     }).length;
   }, [trainingSessions, includeOtherSessions, today]);
@@ -581,7 +628,16 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
     hasSession: boolean;
     isToday: boolean;
     isFuture: boolean;
+    beforeStart: boolean;
   };
+
+  // Days before your first logged activity aren't "rest" — you weren't using the app yet
+  const firstActivityT = useMemo(() => {
+    const ts = [...workoutLogs.map(l => new Date(l.date).getTime()), ...(includeOtherSessions ? trainingSessions.map(t => new Date(t.date).getTime()) : [])].filter(Number.isFinite);
+    if (!ts.length) return Infinity;
+    const d = new Date(Math.min(...ts)); d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }, [workoutLogs, trainingSessions, includeOtherSessions]);
 
   const grid = useMemo(() => {
     const result: DayData[][] = [];
@@ -603,15 +659,16 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
           hasSession: sessionDateKeys.has(dateKey),
           isToday: dateKey === todayKey,
           isFuture,
+          beforeStart: date.getTime() < firstActivityT,
         });
       }
       result.push(week);
     }
     return result;
-  }, [today, liftingDateKeys, sessionDateKeys, todayKey]);
+  }, [today, liftingDateKeys, sessionDateKeys, todayKey, firstActivityT]);
 
   const getDayColor = (day: DayData) => {
-    if (day.isFuture) return 'bg-grappler-800/30';
+    if (day.isFuture || day.beforeStart) return 'bg-grappler-800/30';
     if (day.hasLifting && day.hasSession) return 'bg-gradient-to-br from-green-500 to-blue-500';
     if (day.hasLifting) return 'bg-green-500';
     if (day.hasSession) return 'bg-blue-500';
@@ -624,7 +681,7 @@ function StreakHeatmap({ workoutLogs, onDayClick }: { workoutLogs: WorkoutLog[];
     if (day.hasLifting && day.hasSession) return `${dateStr} — lifting + training`;
     if (day.hasLifting) return `${dateStr} — lifting`;
     if (day.hasSession) return `${dateStr} — training`;
-    if (!day.isFuture) return `${dateStr} — rest day`;
+    if (!day.isFuture && !day.beforeStart) return `${dateStr} — rest day`;
     return dateStr;
   };
 
@@ -812,7 +869,7 @@ function SessionRecapCard() {
     try {
       const blob = await generateWorkoutShareCard({
         exercises: log.exercises.length,
-        volume: log.totalVolume,
+        volume: logVolume(log),
         duration: log.duration,
         prs: prCount,
         streak: newStreak,
@@ -873,7 +930,7 @@ function SessionRecapCard() {
             <p className="text-[11px] text-grappler-500">Exercises</p>
           </div>
           <div className="text-center bg-grappler-800/40 rounded-lg py-2 px-1">
-            <p className="text-sm font-bold text-grappler-100">{formatNumber(log.totalVolume)}</p>
+            <p className="text-sm font-bold text-grappler-100">{formatNumber(logVolume(log))}</p>
             <p className="text-[11px] text-grappler-500">Vol ({weightUnit})</p>
           </div>
           <div className="text-center bg-grappler-800/40 rounded-lg py-2 px-1">
@@ -916,9 +973,10 @@ function SessionRecapCard() {
 // ─── Block Performance Card ───
 
 function BlockPerformanceCard() {
-  const { currentMesocycle, workoutLogs, rawMesocycleHistory } = useAppStore(
-    useShallow(s => ({ currentMesocycle: s.currentMesocycle, workoutLogs: s.workoutLogs, rawMesocycleHistory: s.mesocycleHistory }))
+  const { currentMesocycle, rawWorkoutLogs, rawMesocycleHistory } = useAppStore(
+    useShallow(s => ({ currentMesocycle: s.currentMesocycle, rawWorkoutLogs: s.workoutLogs, rawMesocycleHistory: s.mesocycleHistory }))
   );
+  const workoutLogs = useMemo(() => rawWorkoutLogs.filter(l => !l._deleted), [rawWorkoutLogs]);
   const weightUnit = useAppStore((s) => resolveWeightUnit(s.user?.weightUnit));
   // Raw stable ref in the selector; derive the filtered view here (a .filter()
   // in the selector returns a fresh array and defeats useShallow).
@@ -933,30 +991,30 @@ function BlockPerformanceCard() {
 
     const currentLogs = workoutLogs.filter(l => l.mesocycleId === currentMesocycle.id);
     const totalSessions = currentMesocycle.weeks.reduce((s, w) => s + w.sessions.length, 0);
-    const completed = currentLogs.length;
+    // Same matching as the Train tab: duplicates / extra logs can't exceed the plan
+    const completed = Math.min(totalSessions, getCompletedSessionIds(currentMesocycle, workoutLogs).size);
     const percentage = totalSessions > 0 ? Math.round((completed / totalSessions) * 100) : 0;
 
-    const totalVolume = currentLogs.reduce((s, l) => s + (l.totalVolume || 0), 0);
+    const totalVolume = currentLogs.reduce((s, l) => s + logVolume(l), 0);
     const avgRPE = currentLogs.length > 0
       ? Math.round((currentLogs.reduce((s, l) => s + (l.overallRPE || 0), 0) / currentLogs.length) * 10) / 10
       : 0;
-    const prs = currentLogs.reduce((s, l) => s + l.exercises.filter(e => e.personalRecord).length, 0);
+    const prs = currentLogs.reduce((s, l) => s + (l.exercises ?? []).filter(e => e.personalRecord).length, 0);
 
     // Compare vs previous block
     const prevMeso = mesocycleHistory.length > 0 ? mesocycleHistory[mesocycleHistory.length - 1] : null;
     const prevLogs = prevMeso ? workoutLogs.filter(l => l.mesocycleId === prevMeso.id) : [];
-    const prevVolume = prevLogs.reduce((s, l) => s + (l.totalVolume || 0), 0);
+    const prevVolume = prevLogs.reduce((s, l) => s + logVolume(l), 0);
     const volumeDelta = prevVolume > 0 ? Math.round(((totalVolume - prevVolume) / prevVolume) * 100) : null;
 
     // Pace calculation
-    const startDate = currentLogs.length > 0
-      ? new Date(Math.min(...currentLogs.map(l => new Date(l.date).getTime())))
-      : null;
-    const weeksElapsed = startDate
-      ? Math.max(1, Math.round((Date.now() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)))
-      : 1;
-    const totalWeeks = currentMesocycle.weeks.length;
-    const expectedCompletion = Math.round((weeksElapsed / totalWeeks) * totalSessions);
+    // Pace from the block's start date, in fractional weeks: on day 1 you're
+    // not "Behind" (was: at least 1 whole week always expected).
+    const firstLogT = currentLogs.length > 0 ? Math.min(...currentLogs.map(l => new Date(l.date).getTime()).filter(Number.isFinite)) : NaN;
+    const startT = Number.isFinite(new Date(currentMesocycle.startDate).getTime()) ? new Date(currentMesocycle.startDate).getTime() : firstLogT;
+    const weeksElapsed = Number.isFinite(startT) ? Math.max(0, (Date.now() - startT) / (7 * 24 * 60 * 60 * 1000)) : 0;
+    const totalWeeks = Math.max(1, currentMesocycle.weeks.length);
+    const expectedCompletion = Math.floor(Math.min(1, weeksElapsed / totalWeeks) * totalSessions);
     const paceStatus = completed >= expectedCompletion ? (completed > expectedCompletion + 1 ? 'ahead' : 'on_track') : 'behind';
 
     return { totalSessions, completed, percentage, totalVolume, avgRPE, prs, volumeDelta, paceStatus };
@@ -1052,9 +1110,13 @@ function OverviewSkeleton() {
 }
 
 export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { onViewReport: (mesoId: string) => void; onNavigate?: (view: OverlayView, context?: string) => void }) {
-  const { workoutLogs, user, rawBodyWeightLog, gamificationStats, trainingSessions } = useAppStore(
-    useShallow(s => ({ workoutLogs: s.workoutLogs, user: s.user, rawBodyWeightLog: s.bodyWeightLog, gamificationStats: s.gamificationStats, trainingSessions: s.trainingSessions ?? EMPTY_ARR }))
+  const { rawWorkoutLogs, user, rawBodyWeightLog, gamificationStats, rawTrainingSessions } = useAppStore(
+    useShallow(s => ({ rawWorkoutLogs: s.workoutLogs, user: s.user, rawBodyWeightLog: s.bodyWeightLog, gamificationStats: s.gamificationStats, rawTrainingSessions: s.trainingSessions ?? EMPTY_ARR }))
   );
+  // Deleted workouts/sessions are sync tombstones — they must not count toward
+  // PRs, volume, load, streak heatmap, trends or exports.
+  const workoutLogs = useMemo(() => rawWorkoutLogs.filter(l => !l._deleted), [rawWorkoutLogs]);
+  const trainingSessions = useMemo(() => rawTrainingSessions.filter(t => !t._deleted), [rawTrainingSessions]);
   // Raw stable ref in the selector; derive the filtered view here (a .filter()
   // in the selector returns a fresh array and defeats useShallow).
   const bodyWeightLog = useMemo(
@@ -1168,11 +1230,11 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
           ) : (
             <>
               {/* ── TODAY SNAPSHOT — quick at-a-glance vitals before the deep-dive ── */}
-              <TodaySnapshot
+              <CardBoundary name="This week"><TodaySnapshot
                 workoutLogs={workoutLogs}
                 trainingSessions={trainingSessions}
                 gamificationStats={gamificationStats}
-              />
+              /></CardBoundary>
 
               {/* ── SECTION 1: STRENGTH ── */}
               <h2 className="text-xl font-bold text-grappler-100">Strength</h2>
@@ -1204,10 +1266,10 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
               )}
 
               {/* Post-workout session recap (visible for 2h after workout) */}
-              <SessionRecapCard />
+              <CardBoundary name="Last session"><SessionRecapCard /></CardBoundary>
 
               {/* E1RM Trends with goals */}
-              <E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} />
+              <CardBoundary name="Strength trends"><E1rmTrendsCard workoutLogs={workoutLogs} weightUnit={weightUnit} /></CardBoundary>
 
               {/* Deep-dive links */}
               {onNavigate && (
@@ -1236,13 +1298,13 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
               )}
 
               {/* Hard Metrics — Strength, Volume, Readiness */}
-              <HardMetricsCard workoutLogs={workoutLogs} />
+              <CardBoundary name="Metrics"><HardMetricsCard workoutLogs={workoutLogs} /></CardBoundary>
 
               {/* Current block performance */}
-              <BlockPerformanceCard />
+              <CardBoundary name="Current block"><BlockPerformanceCard /></CardBoundary>
 
               {/* Streak heatmap */}
-              <StreakHeatmap workoutLogs={workoutLogs} />
+              <CardBoundary name="Streaks"><StreakHeatmap workoutLogs={workoutLogs} /></CardBoundary>
 
               {/* ── Section divider ── */}
               <div className="h-px bg-grappler-700/40 my-6" />
@@ -1252,7 +1314,7 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
 
               {/* Compact body summary is always visible; the full weight tracker
                   is one tap away so it doesn't dominate the scroll. */}
-              <BodyRecompCard workoutLogs={workoutLogs} bodyWeightLog={bodyWeightLog} weightUnit={weightUnit} />
+              <CardBoundary name="Body recomposition"><BodyRecompCard workoutLogs={workoutLogs} bodyWeightLog={bodyWeightLog} weightUnit={weightUnit} /></CardBoundary>
               <button
                 onClick={() => setWeightOpen(o => !o)}
                 className="w-full flex items-center justify-between p-3 bg-grappler-800/60 border border-grappler-700/50 rounded-xl hover:bg-grappler-700/60 transition-colors"
@@ -1260,7 +1322,7 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
                 <span className="text-sm font-semibold text-grappler-200">Weight tracker</span>
                 <span className="text-xs text-grappler-500">{weightOpen ? 'Hide ▲' : 'Open ▼'}</span>
               </button>
-              {weightOpen && <BodyWeightTracker />}
+              <CardBoundary name="Weight tracker">{weightOpen && <BodyWeightTracker />}</CardBoundary>
 
               {/* ── Section divider ── */}
               <div className="h-px bg-grappler-700/40 my-6" />
@@ -1275,7 +1337,7 @@ export default function ProgressAndHistoryTab({ onViewReport, onNavigate }: { on
                 <span className="text-sm font-semibold text-grappler-200">Workout history</span>
                 <span className="text-xs text-grappler-500">{historyOpen ? 'Hide ▲' : 'View ▼'}</span>
               </button>
-              {historyOpen && <WorkoutHistory />}
+              <CardBoundary name="Workout history">{historyOpen && <WorkoutHistory />}</CardBoundary>
             </>
           )}
         </>

@@ -1161,7 +1161,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
 
   // Position-based next workout — survives UUID changes from regeneration/sync/migration
   const nextWorkoutInfo = useMemo(() => {
-    return getTodaysSession(currentMesocycle, workoutLogs, matContext({ user, trainingSessions, competitions }));
+    return getTodaysSession(currentMesocycle, workoutLogs, matContext({ user, trainingSessions, competitions }), { trainingDays: user?.trainingDays });
   }, [currentMesocycle, workoutLogs, user, trainingSessions, competitions]);
   const nextWorkout = nextWorkoutInfo?.session ?? null;
 

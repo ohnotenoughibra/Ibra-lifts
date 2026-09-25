@@ -12,6 +12,7 @@
 
 import type { Mesocycle, WorkoutLog, WorkoutSession } from './types';
 import { pickTodaysSession, type MatContext } from './mat-aware';
+import { plannedDays } from './plan-edit';
 
 export interface SessionEntry {
   session: WorkoutSession;
@@ -126,13 +127,29 @@ export function getTodaysSession(
   mesocycle: Mesocycle | null,
   workoutLogs: WorkoutLog[],
   ctx?: MatContext | null,
+  opts: { trainingDays?: number[]; now?: Date } = {},
 ): (SessionEntry & { reason: string | null }) | null {
   if (!mesocycle) return null;
   const completedIds = getCompletedSessionIds(mesocycle, workoutLogs);
   const remaining = flattenSessions(mesocycle).filter(e => !completedIds.has(e.session.id));
   if (remaining.length === 0) return null;
-  if (!ctx) return { ...remaining[0], reason: null };
-  const week = remaining.filter(e => e.weekNumber === remaining[0].weekNumber);
+  let week = remaining.filter(e => e.weekNumber === remaining[0].weekNumber);
+
+  // The session planned for TODAY's weekday goes first. A day the athlete
+  // pinned by hand is final (no mat reshuffle).
+  if (opts.trainingDays) {
+    const today = (opts.now ?? new Date()).getDay();
+    const w = mesocycle.weeks.find(x => x.weekNumber === remaining[0].weekNumber);
+    if (w) {
+      const days = plannedDays(w, opts.trainingDays);
+      const todays = week.find(e => days.get(e.session.id) === today);
+      if (todays) {
+        if (typeof todays.session.plannedDay === 'number') return { ...todays, reason: null };
+        week = [todays, ...week.filter(e => e !== todays)];
+      }
+    }
+  }
+  if (!ctx) return { ...week[0], reason: null };
   const pick = pickTodaysSession(week, ctx);
-  return pick ? { ...pick.entry, reason: pick.reason } : { ...remaining[0], reason: null };
+  return pick ? { ...pick.entry, reason: pick.reason } : { ...week[0], reason: null };
 }

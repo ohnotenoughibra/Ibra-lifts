@@ -182,7 +182,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   // ─── Next workout ───
   // Mat-aware: next to hard sparring, a lighter-legs session from this week moves up.
   const matCtx = matContext({ user, trainingSessions, competitions });
-  const nextWorkoutInfo = getNextWorkout(currentMesocycle, workoutLogs, matCtx);
+  const nextWorkoutInfo = getNextWorkout(currentMesocycle, workoutLogs, matCtx, user?.trainingDays);
   const nextSession = nextWorkoutInfo?.session ?? null;
   const isDeload = nextWorkoutInfo?.isDeload ?? false;
 
@@ -660,8 +660,9 @@ function getNextWorkout(
   mesocycle: Mesocycle | null,
   logs: WorkoutLog[],
   ctx: ReturnType<typeof matContext>,
+  trainingDays?: number[],
 ): { session: WorkoutSession; weekNumber: number; dayNumber: number; isDeload: boolean; reason: string | null } | null {
-  const result = getTodaysSession(mesocycle, logs, ctx);
+  const result = getTodaysSession(mesocycle, logs, ctx, { trainingDays });
   return result ? { session: result.session, weekNumber: result.weekNumber, dayNumber: result.dayNumber, isDeload: result.isDeload, reason: result.reason } : null;
 }
 

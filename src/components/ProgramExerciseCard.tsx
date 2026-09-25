@@ -11,13 +11,34 @@ import { getRecommendedAlternatives, ExerciseRecommendation } from '@/lib/exerci
 import YouTubeEmbed from '@/components/YouTubeEmbed';
 import { resolveWeightUnit } from '@/lib/units';
 import { prescribedPercentOf1RM } from '@/lib/load-model';
+import type { EditScope } from '@/lib/plan-edit';
+
+/** "This week / Rest of block" — every block edit says how far it reaches. */
+function ScopeToggle({ value, onChange, weeksLeft }: { value: EditScope; onChange: (s: EditScope) => void; weeksLeft: number }) {
+  if (weeksLeft <= 1) return null;
+  return (
+    <div className="flex rounded-md bg-grappler-800 p-0.5 text-[11px] mb-2" role="radiogroup" aria-label="Apply to" data-testid="scope-toggle">
+      {(['week', 'remaining'] as const).map(sc => (
+        <button
+          key={sc}
+          role="radio"
+          aria-checked={value === sc}
+          onClick={() => onChange(sc)}
+          className={cn('flex-1 rounded py-1.5 font-medium', value === sc ? 'bg-grappler-600 text-grappler-50' : 'text-grappler-400')}
+        >
+          {sc === 'week' ? 'This week' : `Rest of block (${weeksLeft} wks)`}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 interface ProgramExerciseCardProps {
   exercise: ExercisePrescription;
   index: number;
   weekIndex: number;
   sessionId: string;
-  onSwap: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
+  onSwap: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string, scope?: EditScope) => void;
   // When provided, removal goes through the parent (which owns the undo toast)
   onRemove?: (weekIndex: number, sessionId: string, exerciseIndex: number, exercise: ExercisePrescription) => void;
   userEquipment: Equipment;
@@ -30,8 +51,15 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
   const [showEditor, setShowEditor] = useState(false);
   const workoutLogs = useAppStore((s) => s.workoutLogs);
   const weightUnit = useAppStore((s) => resolveWeightUnit(s.user?.weightUnit));
-  const updatePrescription = useAppStore((s) => s.updateExercisePrescription);
+  const updatePrescriptionRaw = useAppStore((s) => s.updateExercisePrescription);
   const removeExercise = useAppStore((s) => s.removeExerciseFromSession);
+  const weeksLeft = useAppStore((s) => Math.max(0, (s.currentMesocycle?.weeks.length ?? 0) - weekIndex));
+  // Swaps default to the rest of the block (you want the new lift from now on);
+  // number tweaks default to this week (progression differs week to week).
+  const [swapScope, setSwapScope] = useState<EditScope>('remaining');
+  const [editScope, setEditScope] = useState<EditScope>('week');
+  const updatePrescription = (w: number, sId: string, i: number, u: Parameters<typeof updatePrescriptionRaw>[3]) =>
+    updatePrescriptionRaw(w, sId, i, u, editScope);
 
   // Scoring the ~250-exercise database is too heavy to redo on every render
   const hiddenIds = useAppStore((s) => s.hiddenExercises?.ids);
@@ -168,6 +196,10 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
             className="overflow-hidden"
           >
             <div className="border-t border-grappler-600/50 px-3 py-3 space-y-3">
+              <ScopeToggle value={editScope} onChange={setEditScope} weeksLeft={weeksLeft} />
+              {editScope === 'remaining' && (
+                <p className="text-[11px] text-grappler-400 -mt-1">Changes carry into later weeks as +/− steps, so their progression stays. Deload weeks keep theirs.</p>
+              )}
               <div className="grid grid-cols-3 gap-2">
                 {/* Sets */}
                 <div>
@@ -221,6 +253,7 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
             className="overflow-hidden"
           >
             <div className="border-t border-grappler-600/50 px-3 py-2">
+              <ScopeToggle value={swapScope} onChange={setSwapScope} weeksLeft={weeksLeft} />
               <p className="text-xs font-semibold text-grappler-400 uppercase tracking-wider mb-1">
                 Swap with
               </p>
@@ -237,7 +270,7 @@ export default function ProgramExerciseCard({ exercise: ex, index, weekIndex, se
                       <button
                         key={rec.exercise.id}
                         onClick={() => {
-                          onSwap(weekIndex, sessionId, index, rec.exercise.id);
+                          onSwap(weekIndex, sessionId, index, rec.exercise.id, swapScope);
                           setShowAlternatives(false);
                         }}
                         className="w-full text-left p-2.5 rounded-lg border border-grappler-700/50 hover:border-primary-500/50 bg-grappler-800/50 hover:bg-grappler-700/50 transition-all group"

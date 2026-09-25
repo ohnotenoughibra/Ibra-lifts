@@ -104,3 +104,48 @@ test.describe('Train tab', () => {
     await expect(manager.getByText('Completed', { exact: true })).not.toBeVisible();
   });
 });
+
+test.describe('Train tab — week planning', () => {
+  test.beforeEach(async ({ page }) => {
+    await onboard(page);
+    await openTrainTab(page);
+  });
+
+  test('agenda shows Mon→Sun and a session can be moved, then undone', async ({ page }) => {
+    const agenda = page.getByTestId('week-agenda');
+    await agenda.scrollIntoViewIfNeeded();
+    await expect(agenda.locator('[data-testid^="agenda-day-"]')).toHaveCount(7);
+    const moveBtn = agenda.locator('[data-testid^="agenda-move-"]').first();
+    const sid = (await moveBtn.getAttribute('data-testid'))!.replace('agenda-move-', '');
+    const before = await agenda.locator('[data-testid^="agenda-day-"]', { has: page.getByTestId(`agenda-session-${sid}`) }).getAttribute('data-testid');
+    await moveBtn.click();
+    await page.getByTestId('move-picker').getByTestId('move-to-0').click();
+    await expect(page.getByTestId('agenda-day-0').getByTestId(`agenda-session-${sid}`)).toBeVisible();
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    await expect(page.getByTestId(before!).getByTestId(`agenda-session-${sid}`)).toBeVisible();
+  });
+
+  test('week layout sheet sets mat days and moves lifting onto new days', async ({ page }) => {
+    await page.getByTestId('edit-layout').click();
+    const sheet = page.getByTestId('week-layout-sheet');
+    await expect(sheet).toBeVisible();
+    // Tap cycles none → light → moderate → hard (onboarding may already have set one)
+    const tue = sheet.getByTestId('mat-day-2');
+    for (let i = 0; i < 4 && !(await tue.getAttribute('aria-label'))!.endsWith('hard'); i++) await tue.click();
+    await expect(sheet.getByTestId('mat-day-2')).toContainText('hard');
+    await sheet.getByTestId('save-layout').click();
+    await expect(sheet).not.toBeVisible();
+    await expect(page.getByTestId('agenda-day-2')).toContainText('hard');
+  });
+
+  test('tapping an agenda session opens it in the schedule with scope choice on swap', async ({ page }) => {
+    const first = page.locator('[data-testid^="agenda-session-"]').first();
+    await first.click();
+    const sheet = page.getByRole('dialog', { name: 'Block schedule' });
+    await expect(sheet).toBeVisible();
+    await sheet.getByRole('button', { name: 'Swap exercise' }).first().click();
+    const toggle = sheet.getByTestId('scope-toggle').first();
+    await expect(toggle).toBeVisible();
+    await expect(toggle.getByRole('radio', { name: /Rest of block/ })).toHaveAttribute('aria-checked', 'true');
+  });
+});

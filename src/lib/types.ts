@@ -153,6 +153,9 @@ export interface WorkoutSession {
   estimatedDuration: number; // minutes
   warmUp: string[];
   coolDown: string[];
+  /** Weekday (0 = Sun … 6 = Sat) the athlete pinned this session to. Unset →
+   *  derived from their lift days in plan order (lib/plan-edit plannedDays). */
+  plannedDay?: number;
 }
 
 // Mesocycle Types

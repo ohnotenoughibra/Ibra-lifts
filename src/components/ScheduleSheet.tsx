@@ -14,17 +14,20 @@ import { VolumeWave } from './MesocycleTimeline';
 import ProgramExerciseCard from './ProgramExerciseCard';
 import { getWorkoutTypeUI } from './workout-type-ui';
 import { useToast } from './Toast';
+import { plannedDayOf, DAY_SHORT } from '@/lib/plan-edit';
 
 interface ScheduleSheetProps {
   mesocycle: Mesocycle;
   completedSessionIds: Set<string>;
   currentWeekIndex: number; // -1 if all done
   onClose: () => void;
-  onSwap: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string) => void;
+  onSwap: (weekIndex: number, sessionId: string, exerciseIndex: number, newExerciseId: string, scope?: import('@/lib/plan-edit').EditScope) => void;
+  /** Open straight to this week + session (tapped from the week agenda). */
+  focus?: { weekIndex: number; sessionId: string } | null;
   onBlockAction: (label: string) => void; // surfaces the parent's undo toast
 }
 
-export default function ScheduleSheet({ mesocycle, completedSessionIds, currentWeekIndex, onClose, onSwap, onBlockAction }: ScheduleSheetProps) {
+export default function ScheduleSheet({ mesocycle, completedSessionIds, currentWeekIndex, focus, onClose, onSwap, onBlockAction }: ScheduleSheetProps) {
   const { startWorkout, user, addWeekToMesocycle, removeWeekFromMesocycle, removeExerciseFromSession, insertExerciseIntoSession } = useAppStore(
     useShallow(s => ({
       startWorkout: s.startWorkout, user: s.user,
@@ -35,8 +38,13 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
   );
   const { showToast } = useToast();
 
-  const [openWeek, setOpenWeek] = useState<number>(currentWeekIndex >= 0 ? currentWeekIndex : 0);
-  const [openSession, setOpenSession] = useState<string | null>(null);
+  const [openWeek, setOpenWeek] = useState<number>(focus ? focus.weekIndex : currentWeekIndex >= 0 ? currentWeekIndex : 0);
+  const [openSession, setOpenSession] = useState<string | null>(focus?.sessionId ?? null);
+  useEffect(() => {
+    if (!focus) return;
+    const t = setTimeout(() => document.querySelector(`[data-session-id="${focus.sessionId}"]`)?.scrollIntoView({ block: 'center' }), 50);
+    return () => clearTimeout(t);
+  }, [focus]);
   // Removing an exercise is destructive — keep it undoable like every other edit
   const [removedExercise, setRemovedExercise] = useState<{ weekIndex: number; sessionId: string; index: number; exercise: ExercisePrescription } | null>(null);
 
@@ -69,6 +77,11 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
     () => [...mesocycle.weeks].sort((a, b) => a.weekNumber - b.weekNumber),
     [mesocycle.weeks]
   );
+
+  const dayLabel = (week: Mesocycle['weeks'][number], id: string) => {
+    const d = plannedDayOf(week, id, user?.trainingDays);
+    return d === null ? 'Flexible' : DAY_SHORT[d];
+  };
 
   const handleStart = (session: WorkoutSession) => {
     if (startWorkout(session) === false) {
@@ -202,7 +215,7 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
                         const isCompleted = completedSessionIds.has(session.id);
                         const isExpanded = openSession === session.id;
                         return (
-                          <div key={session.id} className={cn('rounded-xl bg-grappler-800/50 overflow-hidden', isCompleted && 'opacity-60')}>
+                          <div key={session.id} data-session-id={session.id} className={cn('rounded-xl bg-grappler-800/50 overflow-hidden', isCompleted && 'opacity-60')}>
                             <div className="p-3 flex items-center gap-3">
                               <button
                                 onClick={() => setOpenSession(isExpanded ? null : session.id)}
@@ -221,6 +234,7 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
                                 <div className="min-w-0">
                                   <p className="text-sm font-medium text-grappler-100 truncate">{session.name}</p>
                                   <p className="text-xs text-grappler-400 flex items-center gap-2">
+                                    <span className="font-semibold text-grappler-300">{dayLabel(week, session.id)}</span>
                                     <span className="flex items-center gap-1"><Dumbbell className="w-3 h-3" />{session.exercises.length}</span>
                                     <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{session.estimatedDuration}m</span>
                                   </p>

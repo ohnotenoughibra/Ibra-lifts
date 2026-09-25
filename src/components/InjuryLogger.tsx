@@ -310,7 +310,7 @@ export default function InjuryLogger({ onClose, onNavigate }: InjuryLoggerProps)
                 <Heart className="w-4 h-4 text-red-400" />
               </div>
               <div>
-                <h1 className="font-bold text-grappler-50 text-lg leading-tight">
+                <h1 className="text-lg font-bold text-grappler-50 leading-tight">
                   Injury &amp; Pain Log
                 </h1>
                 <p className="text-xs text-grappler-400">

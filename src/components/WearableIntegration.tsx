@@ -458,7 +458,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                 <Activity className="w-4 h-4 text-green-400" />
               </div>
               <div>
-                <h1 className="font-bold text-grappler-50 text-lg leading-tight">Whoop</h1>
+                <h1 className="text-lg font-bold text-grappler-50 leading-tight">Whoop</h1>
                 <p className="text-xs text-grappler-400">
                   {whoopProfile
                     ? `${whoopProfile.first_name || ''} ${whoopProfile.last_name || ''}`.trim() ||

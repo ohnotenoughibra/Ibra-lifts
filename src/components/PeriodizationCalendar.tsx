@@ -92,7 +92,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
           <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <h2 className="text-xl font-bold text-grappler-50">Periodization Calendar</h2>
+          <h2 className="text-lg font-bold text-grappler-50 leading-tight">Periodization Calendar</h2>
         </div>
         <motion.div
           initial={{ opacity: 0, y: 20 }}

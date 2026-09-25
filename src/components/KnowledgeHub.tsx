@@ -525,9 +525,9 @@ function LearningPathView({
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <span className="text-lg">{path.icon}</span>
-            <h2 className="text-lg font-bold text-grappler-50">{path.title}</h2>
+            <h2 className="text-lg font-bold text-grappler-50 leading-tight">{path.title}</h2>
           </div>
-          <p className="text-xs text-grappler-500 mt-0.5">{path.description}</p>
+          <p className="text-xs text-grappler-400">{path.description}</p>
         </div>
       </div>
 

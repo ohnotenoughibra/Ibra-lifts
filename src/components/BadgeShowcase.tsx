@@ -48,7 +48,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-grappler-100 flex items-center gap-2">
+            <h1 className="text-lg font-bold text-grappler-50 flex items-center gap-2 leading-tight">
               <Trophy className="w-5 h-5 text-yellow-400" />
               Badge Showcase
             </h1>

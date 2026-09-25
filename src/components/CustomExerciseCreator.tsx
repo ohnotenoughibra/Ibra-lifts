@@ -172,7 +172,7 @@ export default function CustomExerciseCreator({ onClose }: CustomExerciseCreator
               <ChevronLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-lg font-bold text-grappler-50">Custom Exercises</h1>
+              <h1 className="text-lg font-bold text-grappler-50 leading-tight">Custom Exercises</h1>
               <p className="text-xs text-grappler-400">
                 {customExercises.length} exercise{customExercises.length !== 1 ? 's' : ''} created
               </p>

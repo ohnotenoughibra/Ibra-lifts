@@ -47,7 +47,7 @@ export default function RecoveryHub({ onClose, initialTab = 'readiness' }: Recov
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="font-bold text-grappler-50 text-lg leading-tight">
+            <h1 className="text-lg font-bold text-grappler-50 leading-tight">
               Recovery Hub
             </h1>
             <p className="text-xs text-grappler-400">

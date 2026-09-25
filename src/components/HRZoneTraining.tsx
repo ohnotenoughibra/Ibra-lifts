@@ -466,7 +466,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
           </button>
           <div className="flex items-center gap-2">
             <Heart className="w-5 h-5 text-red-400" />
-            <h1 className="text-lg font-bold text-grappler-50">
+            <h1 className="text-lg font-bold text-grappler-50 leading-tight">
               HR Zone Training
             </h1>
           </div>

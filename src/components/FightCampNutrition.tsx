@@ -127,12 +127,12 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
             <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
               <ChevronLeft className="w-5 h-5" />
             </button>
-            <h1 className="text-xl font-bold text-grappler-50">Fight Camp Nutrition</h1>
+            <h1 className="text-lg font-bold text-grappler-50 leading-tight">Fight Camp Nutrition</h1>
           </div>
           <div className="text-center py-16">
             <Flame className="w-12 h-12 text-grappler-600 mx-auto mb-4" />
             <p className="text-grappler-400 mb-2">No upcoming competition</p>
-            <p className="text-sm text-grappler-500">
+            <p className="text-xs text-grappler-400">
               Add a competition in Event Prep to activate fight camp nutrition.
             </p>
           </div>

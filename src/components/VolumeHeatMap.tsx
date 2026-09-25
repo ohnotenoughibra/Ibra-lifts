@@ -290,7 +290,7 @@ export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-grappler-50">Weekly Volume Tracker</h1>
+            <h1 className="text-lg font-bold text-grappler-50 leading-tight">Weekly Volume Tracker</h1>
             <p className="text-xs text-grappler-400">
               Sets per muscle group vs. MEV / MAV / MRV landmarks
             </p>

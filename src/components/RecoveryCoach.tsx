@@ -386,7 +386,7 @@ export default function RecoveryCoach({ onClose, embedded }: RecoveryCoachProps)
                 <Sparkles className="w-4 h-4 text-primary-400" />
               </div>
               <div>
-                <h1 className="font-bold text-grappler-50 text-lg leading-tight">Recovery Coach</h1>
+                <h1 className="text-lg font-bold text-grappler-50 leading-tight">Recovery Coach</h1>
                 <p className="text-xs text-grappler-400">AI-powered recovery insights</p>
               </div>
             </div>

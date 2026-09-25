@@ -259,8 +259,8 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
-            <h2 className="text-xl font-bold text-grappler-50">Progressive Overload</h2>
-            <p className="text-sm text-grappler-400">Track weight progression over time</p>
+            <h2 className="text-lg font-bold text-grappler-50 leading-tight">Progressive Overload</h2>
+            <p className="text-xs text-grappler-400">Track weight progression over time</p>
           </div>
         </div>
 

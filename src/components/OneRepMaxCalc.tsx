@@ -225,8 +225,8 @@ export default function OneRepMaxCalc({ onClose }: OneRepMaxCalcProps) {
           <ChevronLeft className="w-5 h-5" />
         </button>
         <div>
-          <h2 className="text-xl font-bold text-grappler-50">1RM Calculator</h2>
-          <p className="text-sm text-grappler-400">Estimate and test your one-rep max</p>
+          <h2 className="text-lg font-bold text-grappler-50 leading-tight">1RM Calculator</h2>
+          <p className="text-xs text-grappler-400">Estimate and test your one-rep max</p>
         </div>
       </div>
 

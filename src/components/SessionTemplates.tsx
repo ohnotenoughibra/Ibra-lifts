@@ -755,7 +755,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-grappler-50">Templates & Programs</h1>
+            <h1 className="text-lg font-bold text-grappler-50 leading-tight">Templates & Programs</h1>
             <p className="text-xs text-grappler-400">Pick a program or start a quick workout</p>
           </div>
         </div>

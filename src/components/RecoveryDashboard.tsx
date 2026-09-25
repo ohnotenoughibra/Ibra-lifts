@@ -849,7 +849,7 @@ export default function RecoveryDashboard({ onClose = () => {}, embedded }: Reco
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-grappler-50">Recovery Dashboard</h1>
+            <h1 className="text-lg font-bold text-grappler-50 leading-tight">Recovery Dashboard</h1>
             <p className="text-xs text-grappler-400">Sleep, stress & training load insights</p>
           </div>
         </div>

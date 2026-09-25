@@ -259,7 +259,7 @@ export default function PhotoProgress({ onClose }: { onClose: () => void }) {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-grappler-100 flex items-center gap-2">
+            <h1 className="text-lg font-bold text-grappler-50 flex items-center gap-2 leading-tight">
               <Camera className="w-5 h-5 text-primary-400" />
               Photo Progress
             </h1>

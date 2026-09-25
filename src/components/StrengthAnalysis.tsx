@@ -262,8 +262,8 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
-            <h2 className="text-xl font-bold text-grappler-50">Strength Analysis</h2>
-            <p className="text-sm text-grappler-400">
+            <h2 className="text-lg font-bold text-grappler-50 leading-tight">Strength Analysis</h2>
+            <p className="text-xs text-grappler-400">
               Identify sticking points and weaknesses
             </p>
           </div>

@@ -310,11 +310,11 @@ export default function CompetitionPrep({ onClose, onNavigate }: CompetitionPrep
               <ChevronLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-grappler-50 flex items-center gap-2">
+              <h1 className="text-lg font-bold text-grappler-50 flex items-center gap-2 leading-tight">
                 <Trophy className="w-5 h-5 text-yellow-500" />
                 Fight Prep
               </h1>
-              <p className="text-sm text-grappler-400">Plan and peak for competitions</p>
+              <p className="text-xs text-grappler-400">Plan and peak for competitions</p>
             </div>
           </div>
           <button

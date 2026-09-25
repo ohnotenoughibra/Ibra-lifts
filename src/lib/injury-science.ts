@@ -375,10 +375,21 @@ export function classifyInjury(injury: InjuryEntry): InjuryClassification {
   );
 
   // Determine current phase
-  const { phase, description } = getPhaseFromDays(daysSinceInjury, healTime);
+  const timed = getPhaseFromDays(daysSinceInjury, healTime);
+  // Calendar time alone never clears a serious injury for sport — return is
+  // criteria-based (Ardern et al. 2016): an ACL rebuild is 9+ months
+  // (Grindem 2016) whatever the table says.
+  const seeClinician = grade === 'severe' || (grade === 'moderate' && (tissueType === 'ligament' || tissueType === 'bone' || tissueType === 'nerve'));
+  const phase = seeClinician && timed.phase === 'return_to_sport' ? 'remodeling' : timed.phase;
+  const description = seeClinician && timed.phase === 'return_to_sport'
+    ? 'Return to sport by criteria, not the calendar: pain ≤ 2/10 in sport movements, full range of motion, and ≥ 90 % strength vs the other side — confirmed by a physio or doctor.'
+    : timed.description;
 
   // Loading guidelines for current phase
   const loadingGuidelines = getLoadingGuidelines(tissueType, phase, injury.severity);
+  if (seeClinician) {
+    loadingGuidelines.unshift('Get this assessed by a physio or sports doctor — timelines here are rough estimates, not a diagnosis.');
+  }
 
   // Exercise avoidance/modification
   const avoidExerciseIds = REGION_AVOID_EXERCISES[injury.bodyRegion] || [];
@@ -396,6 +407,7 @@ export function classifyInjury(injury: InjuryEntry): InjuryClassification {
     avoidExerciseIds,
     modifiedExercises,
     returnProtocol,
+    seeClinician,
   };
 }
 

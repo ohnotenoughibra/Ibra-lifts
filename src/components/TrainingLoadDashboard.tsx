@@ -19,7 +19,7 @@ const ACWR_ZONES = [
   { min: 0, max: 0.8, label: 'Undertraining', color: 'blue', icon: TrendingDown, desc: 'Training load is below your baseline. Ramp up gradually to avoid detraining.', action: 'Add 1-2 sessions this week to build your chronic load.' },
   { min: 0.8, max: 1.3, label: 'Sweet Spot', color: 'green', icon: Shield, desc: 'Optimal load — injury risk is lowest here. Keep stacking quality sessions.', action: 'Stay the course — this is where gains happen safely.' },
   { min: 1.3, max: 1.5, label: 'Caution', color: 'yellow', icon: AlertTriangle, desc: 'Elevated load. You can push through short-term but watch for fatigue signals.', action: 'Monitor recovery closely. Consider an extra rest day if fatigued.' },
-  { min: 1.5, max: 99, label: 'Danger Zone', color: 'red', icon: Zap, desc: 'High injury risk — load spiked too fast. Injury risk 2-4x higher (Gabbett 2016).', action: 'Reduce volume by 30-50% this week or take a deload.' },
+  { min: 1.5, max: 99, label: 'Danger Zone', color: 'red', icon: Zap, desc: 'Load spiked well above your usual. Spikes are associated with more injuries — a trend flag, not a prediction.', action: 'Reduce volume by 30-50% this week or take a deload.' },
 ];
 
 function getACWRZone(ratio: number) {

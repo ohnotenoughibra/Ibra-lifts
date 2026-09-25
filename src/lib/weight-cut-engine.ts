@@ -30,9 +30,32 @@ import { localDayKey } from './utils';
 
 // ── Safety Thresholds ────────────────────────────────────────────────────────
 
+/** Hours between weigh-in and competing, by weigh-in format. */
+export function rehydrationHoursFor(type: WeighInType): number {
+  switch (type) {
+    case 'day_before': return 24;
+    case 'tournament_morning': return 3; // weigh in, compete the same morning
+    case 'same_day': return 4;
+    case '2hr_before': return 2;         // IBJJF-style: weigh in right before the first match
+    default: return 4;
+  }
+}
+
+/**
+ * Water-cut ceiling by recovery time (Reale et al. 2017; Barley et al. 2019).
+ * ≥ 3 % dehydration impairs grappling performance and needs ≥ 12–24 h to
+ * reverse — with only a few hours, no water cut at all.
+ */
+export function waterCutCapForHours(hours: number): number {
+  if (hours < 3) return 0;
+  if (hours < 12) return 2;
+  if (hours < 24) return 3;
+  return 5;
+}
+
 export const WEIGHT_CUT_LIMITS = {
-  /** Maximum total BW% that can be cut via water manipulation. */
-  maxWaterCutPercent: 6,
+  /** Maximum total BW% that can be cut via water manipulation (≥ 24 h to rehydrate). */
+  maxWaterCutPercent: 5,
   /** Maximum for first-time cutters. */
   maxWaterCutFirstTime: 3,
   /** Minimum recommended rehydration time (hours). */
@@ -84,7 +107,11 @@ export interface WaterProtocol {
  *
  * Reference: Barley et al. 2018 — water loading protocols in combat sports.
  */
-export function getWaterProtocol(daysToWeighIn: number, bodyWeightKg: number): WaterProtocol {
+export function getWaterProtocol(daysToWeighIn: number, bodyWeightKg: number, maxWaterCutPercent?: number): WaterProtocol {
+  // Short weigh-in-to-compete windows (< 3 h) get NO water manipulation.
+  if (maxWaterCutPercent === 0 && daysToWeighIn >= 0) {
+    return { targetMl: Math.round(bodyWeightKg * 35), targetMlPerKg: 35, note: 'Normal hydration — no water cut with this weigh-in format', phase: 'normal' };
+  }
   // Past the weigh-in. This branch used to be missing entirely: every day from
   // weigh-in onward fell through to the "zero" case and told a dehydrated
   // fighter to drink nothing, through the single most safety-critical window of
@@ -329,11 +356,14 @@ export function assessWeightCutSafety({
   const blockers: string[] = [];
   let level: WeightCutSafetyLevel = 'safe';
 
-  // Determine max water cut based on experience
-  let maxWaterCut: number = WEIGHT_CUT_LIMITS.maxWaterCutPercent;
-  if (cutExperience === 'none') {
+  // Determine max water cut based on experience AND recovery time
+  let maxWaterCut: number = Math.min(WEIGHT_CUT_LIMITS.maxWaterCutPercent, waterCutCapForHours(rehydrationTimeHours));
+  if (cutExperience === 'none' && maxWaterCut > WEIGHT_CUT_LIMITS.maxWaterCutFirstTime) {
     maxWaterCut = WEIGHT_CUT_LIMITS.maxWaterCutFirstTime;
     alerts.push('First weight cut — limited to 3% BW water manipulation. Do a trial run before actual competition.');
+  }
+  if (maxWaterCut === 0) {
+    alerts.push(`Only ~${rehydrationTimeHours} h between weigh-in and competing — no water cut. Make weight through diet over the weeks before; you'll compete close to your weigh-in weight.`);
   }
 
   // Hard blockers

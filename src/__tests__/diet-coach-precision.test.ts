@@ -55,14 +55,14 @@ describe('calculateMacros — precision & reconciliation', () => {
     expect(m!.carbs).toBeGreaterThan(0);             // not clamped to zero
   });
 
-  it('a lean athlete on an aggressive cut still gets the high-protein target (~3.1 g/kg)', () => {
+  it('a lean athlete on an aggressive cut gets the top of Helms 2014 (≈3.1 g/kg LEAN mass ≈ 2.8 g/kg BW)', () => {
     const m = calculateMacros({
       ...base, bodyWeightKg: 75, goal: 'cut',
       bodyFatPercent: 10, isCombatAthlete: true, deficitSeverity: 'aggressive',
     });
     expect(m).not.toBeNull();
-    // BF<25 → total-BW scaling at 3.1 g/kg
-    expect(m!.protein).toBe(Math.round(75 * 3.1));
+    // BF<25 → total-BW scaling at 2.8 g/kg (= 3.1 g/kg LBM at 10 % BF)
+    expect(m!.protein).toBe(Math.round(75 * 2.8));
   });
 
   it('returns null for an incomplete profile instead of NaN', () => {

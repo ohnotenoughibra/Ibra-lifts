@@ -32,31 +32,42 @@ import type { WeightUnit } from './types';
 import { weightIncrement } from './units';
 
 // ── RPE × Reps → %1RM ──────────────────────────────────────────────────────
-// RPE_TABLE[reps][rpe] = fraction of 1RM.
-// Row = reps (1-12), Column = RPE (5-10 in 0.5 steps).
-// RPE 10 = 0 reps in reserve, RPE 8 = 2 in reserve, etc.
+// RPE_TABLE[reps][rpe] = fraction of 1RM. Row = reps (1-12), column = RPE
+// 5-10 in 0.5 steps. Built from the RTS chart (Tuchscherer; the chart Helms
+// et al. 2016 use): RPE 10 column below, and every half RPE point below 10 is
+// half a rep more in reserve — pct(reps, rpe) = pct10(reps + 10 − rpe).
+// The previous hand-typed table dropped a flat ~3.2 % per rep above 3 reps,
+// so 10 reps @10 read as 70 % (RTS: 74 %) and volume-day e1RMs came out ~5 %
+// high — every heavy day after them was prescribed too heavy.
+const RTS_RPE10: number[] = [
+  1.000, 0.955, 0.922, 0.892, 0.863, 0.837, 0.811, 0.786, 0.762, 0.739, 0.707, 0.680,
+  // effective reps 13-17 (low-RPE high-rep cells): continue the 11→12 slope, easing off
+  0.653, 0.627, 0.602, 0.578, 0.555,
+];
+function pct10(effectiveReps: number): number {
+  const lo = Math.floor(effectiveReps);
+  const hi = Math.ceil(effectiveReps);
+  const at = (n: number) => RTS_RPE10[Math.min(RTS_RPE10.length, Math.max(1, n)) - 1];
+  return lo === hi ? at(lo) : (at(lo) + at(hi)) / 2;
+}
 
-export const RPE_TABLE: Record<number, Record<number, number>> = {
-  1:  { 10: 1.00, 9.5: 0.977, 9: 0.955, 8.5: 0.939, 8: 0.922, 7.5: 0.906, 7: 0.890, 6.5: 0.874, 6: 0.858, 5.5: 0.842, 5: 0.826 },
-  2:  { 10: 0.955, 9.5: 0.939, 9: 0.922, 8.5: 0.906, 8: 0.890, 7.5: 0.874, 7: 0.858, 6.5: 0.842, 6: 0.826, 5.5: 0.810, 5: 0.793 },
-  3:  { 10: 0.922, 9.5: 0.906, 9: 0.890, 8.5: 0.874, 8: 0.858, 7.5: 0.842, 7: 0.826, 6.5: 0.810, 6: 0.793, 5.5: 0.777, 5: 0.762 },
-  4:  { 10: 0.890, 9.5: 0.874, 9: 0.858, 8.5: 0.842, 8: 0.826, 7.5: 0.810, 7: 0.793, 6.5: 0.777, 6: 0.762, 5.5: 0.746, 5: 0.731 },
-  5:  { 10: 0.858, 9.5: 0.842, 9: 0.826, 8.5: 0.810, 8: 0.793, 7.5: 0.777, 7: 0.762, 6.5: 0.746, 6: 0.731, 5.5: 0.716, 5: 0.701 },
-  6:  { 10: 0.826, 9.5: 0.810, 9: 0.793, 8.5: 0.777, 8: 0.762, 7.5: 0.746, 7: 0.731, 6.5: 0.716, 6: 0.701, 5.5: 0.686, 5: 0.671 },
-  7:  { 10: 0.793, 9.5: 0.777, 9: 0.762, 8.5: 0.746, 8: 0.731, 7.5: 0.716, 7: 0.701, 6.5: 0.686, 6: 0.671, 5.5: 0.656, 5: 0.641 },
-  8:  { 10: 0.762, 9.5: 0.746, 9: 0.731, 8.5: 0.716, 8: 0.701, 7.5: 0.686, 7: 0.671, 6.5: 0.656, 6: 0.641, 5.5: 0.627, 5: 0.613 },
-  9:  { 10: 0.731, 9.5: 0.716, 9: 0.701, 8.5: 0.686, 8: 0.671, 7.5: 0.656, 7: 0.641, 6.5: 0.627, 6: 0.613, 5.5: 0.599, 5: 0.586 },
-  10: { 10: 0.701, 9.5: 0.686, 9: 0.671, 8.5: 0.656, 8: 0.641, 7.5: 0.627, 7: 0.613, 6.5: 0.599, 6: 0.586, 5.5: 0.573, 5: 0.560 },
-  11: { 10: 0.671, 9.5: 0.656, 9: 0.641, 8.5: 0.627, 8: 0.613, 7.5: 0.599, 7: 0.586, 6.5: 0.573, 6: 0.560, 5.5: 0.547, 5: 0.535 },
-  12: { 10: 0.641, 9.5: 0.627, 9: 0.613, 8.5: 0.599, 8: 0.586, 7.5: 0.573, 7: 0.560, 6.5: 0.547, 6: 0.535, 5.5: 0.523, 5: 0.511 },
-};
+export const RPE_TABLE: Record<number, Record<number, number>> = (() => {
+  const t: Record<number, Record<number, number>> = {};
+  for (let reps = 1; reps <= 12; reps++) {
+    t[reps] = {};
+    for (let rpe = 10; rpe >= 5; rpe -= 0.5) {
+      t[reps][rpe] = Math.round(pct10(reps + (10 - rpe)) * 1000) / 1000;
+    }
+  }
+  return t;
+})();
 
 /**
  * The chart stops at 12 reps. Past that, each additional rep costs roughly
- * 1.7% of 1RM — extrapolated from the 10→12 slope, which keeps 15-20 rep
+ * 1.5% of 1RM (a 20-rep max ≈ 56 % 1RM), which keeps 15-20 rep
  * strength-endurance work in a sane range instead of falling off a cliff.
  */
-const PCT_PER_REP_BEYOND_TABLE = 0.017;
+const PCT_PER_REP_BEYOND_TABLE = 0.015;
 const MAX_TABLE_REPS = 12;
 const MIN_PCT = 0.30;
 

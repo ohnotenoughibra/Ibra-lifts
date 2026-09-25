@@ -1394,7 +1394,7 @@ For accurate baselines:
   {
     id: 'article-acwr-injury',
     title: 'ACWR: The Injury Prevention Framework',
-    tldr: 'It\'s not high load that causes injuries — it\'s spikes in load. The 10% rule that prevents most training injuries.',
+    tldr: 'Big week-to-week spikes in load are linked to more injuries. Build up gradually and use the ratio as a trend flag, not a prediction.',
     category: 'periodization',
     tags: ['injury', 'ACWR', 'periodization', 'science', 'grappling'],
     readTime: 7,
@@ -1412,7 +1412,7 @@ For accurate baselines:
     content: `
 ## What is ACWR?
 
-The Acute:Chronic Workload Ratio compares your recent training load (this week) to your average load over the past month. It is one of the most validated injury prediction tools in sports science.
+The Acute:Chronic Workload Ratio compares your recent training load (this week) to your average load over the past month. Large spikes (well above your usual) are associated with higher injury risk, but the ratio has not been shown to predict injury for an individual (Impellizzeri et al. 2020) — treat it as a trend flag.
 
 **ACWR = Acute Load (this week) / Chronic Load (4-week average)**
 
@@ -1436,7 +1436,7 @@ Grapplers face unique challenges:
 
 ## The 10% Rule
 
-Never increase total weekly load by more than 10%. This single rule prevents most training-related injuries.
+Increase total weekly load gradually. "10% a week" is a sensible rule of thumb, but a trial of the 10% rule did not reduce injuries by itself (Buist et al. 2008) — the bigger risk is sudden spikes after easy weeks or time off.
 `
   },
   {
@@ -2167,7 +2167,7 @@ However, the research is still evolving. The most important factor is overall en
       'Plan training in phases: off-season (build base), pre-competition (peak), competition (rest and prime), post-competition (recover)',
       'Reduce lifting volume 30-40% as competition approaches while maintaining intensity',
       'Adapt sport-specific priorities: grapplers need grip and pulls, strikers need rotation and power',
-      'Never increase total training load (lifting + sport) by more than 10% per week',
+      'Build total training load (lifting + sport) gradually; avoid sudden spikes',
     ],
     relatedArticleIds: ['article-undulating-periodization', 'article-mma-programming', 'article-acwr-injury', 'article-concurrent-training'],
     applyCta: { label: 'View your program', overlayId: 'periodization' },
@@ -2241,7 +2241,7 @@ You need to be strong, powerful, AND well-conditioned. You also need to spend mo
 
 ## The 10% Rule for Combat Athletes
 
-Never increase total training load (lifting + sport) by more than 10% per week. Combat sports are already demanding. Spikes in load = injury risk.
+Build total training load (lifting + sport) gradually — roughly 10% per week is a sensible rule of thumb. Combat sports are already demanding; sudden spikes are what to avoid.
 
 ## Key Takeaways
 

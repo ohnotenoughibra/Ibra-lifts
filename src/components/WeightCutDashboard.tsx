@@ -13,7 +13,7 @@ import {
   getWaterProtocol, getSodiumProtocol, getCarbProtocol,
   generateDailyChecklist, assessWeightCutSafety, projectWeighInWeight,
   checkEmergencyTriggers, getRehydrationProtocol,
-  WEIGHT_CUT_LIMITS,
+  WEIGHT_CUT_LIMITS, rehydrationHoursFor, waterCutCapForHours,
 } from '@/lib/weight-cut-engine';
 import type { WeightCutDailyLog, WeightCutSafetyLevel } from '@/lib/types';
 
@@ -101,7 +101,10 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
   // the card read "nothing until after weigh-in / 0 ml" indefinitely. The other
   // protocols (carbs, checklist, projection) are weigh-in-relative and stay clamped.
   const isPostWeighIn = daysToWeighIn < 0;
-  const waterProtocol = getWaterProtocol(daysToWeighIn, currentWeightKg);
+  // Re-derive the cap from the weigh-in format so plans saved before the
+  // recovery-time rule (flat 6 %) get the safe ceiling too.
+  const waterCap = plan ? Math.min(plan.maxWaterCutPercent, waterCutCapForHours(rehydrationHoursFor(plan.weighInType))) : undefined;
+  const waterProtocol = getWaterProtocol(daysToWeighIn, currentWeightKg, waterCap);
   const sodiumProtocol = getSodiumProtocol(daysToWeighIn);
   const carbProtocol = getCarbProtocol(Math.max(0, daysToWeighIn), currentWeightKg);
   const checklist = generateDailyChecklist(Math.max(0, daysToWeighIn), currentWeightKg);

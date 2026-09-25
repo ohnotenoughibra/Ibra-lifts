@@ -283,9 +283,13 @@ function assessNutrition(
 
   // Protein score: target 1.6-2.2g/kg for resistance training (Schoenfeld & Aragon 2018)
   let proteinScore = 70;
-  const weightKg = user?.heightCm
-    ? estimateWeightFromHeight(user.heightCm, user.sex)
-    : 80;
+  // Real body weight first — estimating from height (BMI 23.5) treated a 95 kg
+  // grappler as 74 kg and overstated protein/kg by ~28 %.
+  const weightKg = user?.bodyWeightKg && user.bodyWeightKg > 0
+    ? user.bodyWeightKg
+    : user?.heightCm
+      ? estimateWeightFromHeight(user.heightCm, user.sex)
+      : 80;
   const proteinPerKg = totalProtein / weightKg;
 
   if (proteinPerKg >= 2.0) proteinScore = 100;
@@ -293,10 +297,11 @@ function assessNutrition(
   else if (proteinPerKg >= 1.2) proteinScore = 60;
   else proteinScore = 35;
 
-  // Meal frequency: 3+ meals = good protein distribution
-  const mealFreqScore = dayMeals.length >= 4 ? 100 : dayMeals.length >= 3 ? 80 : 50;
+  // Meal count carries little weight: total daily protein matters far more
+  // than distribution (Stokes 2018; Schoenfeld & Aragon 2018).
+  const mealFreqScore = dayMeals.length >= 3 ? 100 : dayMeals.length >= 2 ? 85 : 70;
 
-  base.score = Math.round(calScore * 0.3 + proteinScore * 0.5 + mealFreqScore * 0.2);
+  base.score = Math.round(calScore * 0.35 + proteinScore * 0.55 + mealFreqScore * 0.1);
   base.detail = `${totalProtein}g protein (${proteinPerKg.toFixed(1)}g/kg), ${totalCals} kcal`;
 
   return base;

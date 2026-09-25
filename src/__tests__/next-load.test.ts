@@ -26,9 +26,10 @@ describe('suggestNextLoad', () => {
     expect(next('back-squat', [log('back-squat', 100, 5, 7)], 5, 8).weight).toBeGreaterThan(100);
   });
   it('rep-range change re-expresses load via e1RM (5 → 10 reps)', () => {
+    // RTS: 5 @8 ≈ 81 % (e1RM ≈ 123) → 10 @8 ≈ 68 % ≈ 84 kg
     const w = next('back-squat', [log('back-squat', 100, 5, 8)], 10, 8).weight;
-    expect(w).toBeGreaterThanOrEqual(77.5);
-    expect(w).toBeLessThanOrEqual(82.5);
+    expect(w).toBeGreaterThanOrEqual(82.5);
+    expect(w).toBeLessThanOrEqual(85);
   });
   it('deload (lower RPE target) lightens the load', () => {
     expect(next('back-squat', [log('back-squat', 100, 5, 8)], 5, 7).weight).toBeLessThan(100);
@@ -97,7 +98,7 @@ describe('prefill uses the engine (store.startWorkout)', () => {
     } as unknown as WorkoutSession);
     const set0 = useAppStore.getState().activeWorkout!.exerciseLogs[0].sets[0];
     expect(set0.reps).toBe(10);
-    expect(set0.weight).toBeLessThanOrEqual(82.5);
-    expect(set0.weight).toBeGreaterThanOrEqual(77.5);
+    expect(set0.weight).toBeLessThanOrEqual(85);
+    expect(set0.weight).toBeGreaterThanOrEqual(82.5);
   });
 });

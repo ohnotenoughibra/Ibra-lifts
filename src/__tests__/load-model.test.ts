@@ -9,10 +9,18 @@ import {
 } from '@/lib/load-model';
 
 describe('rpeToPercentage', () => {
-  it('matches the Helms/Zourdos chart at known anchors', () => {
+  it('matches the RTS chart (Tuchscherer / Helms 2016) at known anchors', () => {
     expect(rpeToPercentage(10, 1)).toBe(1.0);
-    expect(rpeToPercentage(8, 5)).toBeCloseTo(0.793, 3);
-    expect(rpeToPercentage(7, 12)).toBeCloseTo(0.56, 3);
+    expect(rpeToPercentage(10, 5)).toBeCloseTo(0.863, 3);
+    expect(rpeToPercentage(10, 10)).toBeCloseTo(0.739, 3);
+    expect(rpeToPercentage(8, 5)).toBeCloseTo(0.811, 3);   // = 7 reps @10
+    expect(rpeToPercentage(9.5, 1)).toBeCloseTo(0.978, 3); // half a rep in reserve
+    expect(rpeToPercentage(7, 12)).toBeCloseTo(0.602, 3);
+  });
+  it('a 20-rep max sits near 55-60 % 1RM', () => {
+    const p = rpeToPercentage(10, 20);
+    expect(p).toBeGreaterThan(0.54);
+    expect(p).toBeLessThan(0.6);
   });
 
   it('falls as reps rise at a fixed RPE', () => {
@@ -91,9 +99,9 @@ describe('carryOverLoad — undulating (DUP) transitions', () => {
       targetReps: 12, targetRPE: 7, unit: 'kg',
     })!;
     expect(r).not.toBeNull();
-    // e1RM ≈ 100 / 0.858 ≈ 116.6; 12 reps @ RPE 7 ≈ 0.560 → ≈ 65 kg
-    expect(r.suggested).toBeGreaterThan(60);
-    expect(r.suggested).toBeLessThan(70);
+    // e1RM ≈ 100 / 0.863 ≈ 115.9; 12 reps @ RPE 7 ≈ 0.602 → ≈ 70 kg
+    expect(r.suggested).toBeGreaterThanOrEqual(67.5);
+    expect(r.suggested).toBeLessThanOrEqual(72.5);
     // The old linear model produced ~75 kg here — far too heavy for 12 reps.
     expect(r.suggested).toBeLessThan(75);
   });
@@ -121,8 +129,8 @@ describe('carryOverLoad — undulating (DUP) transitions', () => {
       lastWeight: 100, lastReps: 5, lastRPE: 8,
       targetReps: 12, targetRPE: 7, unit: 'kg',
     })!;
-    expect(r.targetPct).toBeCloseTo(0.56, 2);
-    expect(r.lastPct).toBeCloseTo(0.793, 2);
+    expect(r.targetPct).toBeCloseTo(0.602, 2);
+    expect(r.lastPct).toBeCloseTo(0.811, 2);
   });
 
   it('applies a too_hard intensity factor on top of the rep change', () => {

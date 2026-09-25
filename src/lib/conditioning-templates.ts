@@ -367,10 +367,10 @@ const CONDITIONING_TEMPLATES: ConditioningTemplate[] = [
   // ---- General conditioning -----------------------------------------------
   {
     id: 'general-tabata-classic',
-    name: 'Tabata Classic',
+    name: 'Tabata-Style Circuit',
     type: 'tabata',
     description:
-      'The original Tabata protocol applied to four bodyweight exercises. 20 seconds of all-out work, 10 seconds rest, repeated for 8 rounds per exercise. Pure anaerobic suffering.',
+      'Tabata-style 20/10 intervals applied to four bodyweight exercises, 8 rounds each. (The original Tabata study was one 4-minute bike bout at supramaximal intensity and improved both aerobic and anaerobic capacity.)',
     targetSport: ['general'],
     difficulty: 'advanced',
     totalDuration: 16,
@@ -431,16 +431,16 @@ const CONDITIONING_TEMPLATES: ConditioningTemplate[] = [
   },
   {
     id: 'general-assault-bike-intervals',
-    name: 'Assault Bike Intervals',
+    name: 'Assault Bike Sprint Intervals (SIT)',
     type: 'interval',
     description:
-      'Ten rounds of 30-second max-effort sprints on the assault bike with 90 seconds of easy recovery spinning. Develops the repeated-sprint ability fighters need across multiple rounds.',
+      'Five 30-second max-effort sprints with 4 minutes of easy spinning — sprint-interval training (Gibala 2006): anaerobic capacity and VO2max in little time. For repeated-sprint ability use Air Bike & Sprints → Repeated Sprints.',
     targetSport: ['general'],
     difficulty: 'intermediate',
-    totalDuration: 20,
+    totalDuration: 28,
     workInterval: 30,
-    restInterval: 90,
-    rounds: 10,
+    restInterval: 240,
+    rounds: 5,
     exercises: [
       {
         name: 'Assault Bike Sprint',

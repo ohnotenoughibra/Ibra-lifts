@@ -1509,6 +1509,8 @@ export interface InjuryClassification {
   avoidExerciseIds: string[];
   modifiedExercises: { exerciseId: string; modification: string }[];
   returnProtocol: ReturnToTrainingPhase[];
+  /** Severe, or a ligament/bone/nerve injury beyond mild: get it assessed; no automatic return-to-sport. */
+  seeClinician?: boolean;
 }
 
 // ── Block Suggestion Types ──────────────────────────────────────────────────

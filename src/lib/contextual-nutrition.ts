@@ -394,7 +394,7 @@ export function getContextualNutrition(
   const remainingCalsForFat = adjustedCalories - (adjustedProtein * 4) - (adjustedCarbs * 4);
   // Hormonal-health fat floor in g/kg (NOT a fraction of base): >= 0.7 g/kg
   // bodyweight so a high-carb day can't drive fat below the testosterone-protective
-  // threshold (Volek 2001: T declines below ~0.6 g/kg).
+  // threshold (Whittaker & Wu 2021: very-low-fat diets lower testosterone).
   const minFat = Math.round(bodyWeightKg * 0.7);
   const derivedFat = Math.max(minFat, Math.round(remainingCalsForFat / 9));
 

@@ -997,6 +997,11 @@ export default function InjuryLogger({ onClose, onNavigate }: InjuryLoggerProps)
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden space-y-3"
                     >
+                      {classification.seeClinician && (
+                        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+                          Get this assessed by a physio or sports doctor. Return to sparring is based on pain, range and strength — not days.
+                        </div>
+                      )}
                       {/* Current Phase Description */}
                       <div className="bg-grappler-700/50 rounded-lg p-3">
                         <p className="text-xs text-grappler-200 leading-relaxed">

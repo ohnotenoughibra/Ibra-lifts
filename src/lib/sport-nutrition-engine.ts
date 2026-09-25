@@ -87,15 +87,20 @@ export function generateCoachingTips(ctx: SportCoachingContext): CoachingTip[] {
         icon: 'alert-triangle', color: 'text-amber-400', priority: 0,
       });
       if (isCutting) {
+        // No passive-sweat / hot-bath advice from a generic tip: water cuts
+        // depend on weigh-in format, age and experience — the Weight Cut plan
+        // (safety-gated) owns that. Here: only what is safe for everyone.
         tips.push({
-          text: 'Sodium under 1000mg today. Sip water, don\'t chug. Hot bath tonight for passive water loss.',
+          text: 'Making weight? Follow your Weight Cut plan in Fight Prep — no sweat suits or hot baths without it. Otherwise sip water normally.',
           icon: 'thermometer', color: 'text-red-400', priority: 0,
         });
       }
     } else if (ctx.daysToCompetition <= 5) {
       // Fight week
       tips.push({
-        text: `${ctx.daysToCompetition}d to comp. Taper water intake gradually. Strict macro adherence.`,
+        text: isCutting
+          ? `${ctx.daysToCompetition}d to comp. Follow your Weight Cut plan's water schedule. Strict macro adherence.`
+          : `${ctx.daysToCompetition}d to comp. Hydrate normally, keep carbs up, no new foods.`,
         icon: 'target', color: 'text-primary-400', priority: 0,
       });
     } else if (ctx.daysToCompetition <= 7) {

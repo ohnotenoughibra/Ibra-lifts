@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
 import { CompetitionType, CompetitionEvent, WeighInType } from '@/lib/types';
 import { useAppStore } from '@/lib/store';
 import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib/fight-camp-engine';
-import { detectWeightCutPhase, assessWeightCutSafety, getWaterProtocol, getSodiumProtocol } from '@/lib/weight-cut-engine';
+import { detectWeightCutPhase, assessWeightCutSafety, getWaterProtocol, getSodiumProtocol, rehydrationHoursFor, waterCutCapForHours } from '@/lib/weight-cut-engine';
 import { calculateElectrolyteNeeds } from '@/lib/electrolyte-engine';
 import WeightCutDashboard from './WeightCutDashboard';
 import { resolveWeightUnit } from '@/lib/units';
@@ -477,13 +477,13 @@ export default function CompetitionPrep({ onClose }: CompetitionPrepProps) {
                   currentPhase: 'not_started',
                   phaseStartDate: new Date().toISOString(),
                   weighInType: formWeighInType,
-                  rehydrationTimeHours: formWeighInType === 'day_before' ? 24 : formWeighInType === '2hr_before' ? 2 : 6,
+                  rehydrationTimeHours: rehydrationHoursFor(formWeighInType),
                   waterLoadStarted: false,
                   sodiumLoadStarted: false,
                   carbDepletionStarted: false,
                   safetyLevel: 'safe',
                   safetyAlerts: [],
-                  maxWaterCutPercent: 6,
+                  maxWaterCutPercent: waterCutCapForHours(rehydrationHoursFor(formWeighInType)),
                   dailyLogs: [],
                   isActive: true,
                 });

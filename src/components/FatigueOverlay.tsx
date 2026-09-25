@@ -254,8 +254,8 @@ export default function FatigueOverlay({ onClose = () => {}, embedded }: Fatigue
                 {/* Post-deload prediction inline */}
                 <div className="grid grid-cols-3 gap-2 pt-2 border-t border-grappler-700/50">
                   <div className="text-center">
-                    <div className="text-sm font-bold text-green-400">+{prediction.expectedStrengthBounce}%</div>
-                    <div className="text-xs text-grappler-500">strength bounce</div>
+                    <div className="text-sm font-bold text-green-400">Fresher</div>
+                    <div className="text-xs text-grappler-500">back to baseline or a bit above</div>
                   </div>
                   <div className="text-center">
                     <div className="text-sm font-bold text-primary-400">Day {prediction.estimatedPeakDay}</div>

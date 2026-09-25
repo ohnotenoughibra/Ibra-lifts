@@ -15,17 +15,18 @@
  */
 
 import type { Exercise, ExperienceLevel, BiologicalSex, BaselineLifts, WorkoutLog, WeightUnit } from './types';
+import { rpeToPercentage } from './load-model';
 
 // ── 1RM ↔ Working Weight Conversion ─────────────────────────────────────────
-// Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020)
+// Brzycki 1993 — accurate up to ~10 reps; accuracy falls beyond (Reynolds et al. 2006)
 
 export function workingWeightFrom1RM(oneRM: number, targetReps: number): number {
   if (oneRM <= 0) return 0;
   if (targetReps <= 1) return oneRM;
-  // Mirror the cap in estimate1RM: past ~12 reps Brzycki stops being
-  // predictive, and beyond ~37 reps the coefficient goes negative, which
-  // would hand a strength-endurance set a zero or negative target.
-  return oneRM * (1.0278 - 0.0278 * Math.min(targetReps, 12));
+  // Same curve the rest of the app prescribes with (load-model, RTS chart),
+  // which extrapolates past 12 reps — capping at 12 gave a 20-rep target a
+  // 12-rep load (≈ 69 % instead of ≈ 56 % 1RM).
+  return oneRM * rpeToPercentage(10, targetReps);
 }
 
 /**
@@ -44,7 +45,7 @@ export function estimate1RM(weight: number, reps: number): number {
   if (!Number.isFinite(weight) || !Number.isFinite(reps)) return 0;
   if (weight <= 0 || reps <= 0) return 0;
   if (reps === 1) return weight;
-  // Brzycki 1993, validated across all rep ranges (Reynolds et al. 2006, Pereira et al. 2020)
+  // Brzycki 1993 — accurate up to ~10 reps; accuracy falls beyond (Reynolds et al. 2006)
   return weight / (1.0278 - 0.0278 * Math.min(reps, 12));
 }
 

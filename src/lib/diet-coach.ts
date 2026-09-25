@@ -34,7 +34,8 @@ import { safeDayKey, localDaysAgoKey } from './utils';
 /** Metabolic equivalent values (kcal/kg/hr) for training types. */
 const SESSION_MET_VALUES: Record<string, number> = {
   // Grappling
-  bjj_gi: 9.0, bjj_nogi: 9.5, wrestling: 10.0, judo: 10.0, sambo: 9.5,
+  // Measured sparring costs are ~6–10 METs (Ainsworth 2011 Compendium)
+  bjj_gi: 7.5, bjj_nogi: 8.0, wrestling: 9.0, judo: 9.0, sambo: 8.5,
   // Striking
   boxing: 9.0, kickboxing: 8.5, muay_thai: 9.0, karate: 7.5, taekwondo: 7.5,
   // MMA
@@ -60,8 +61,8 @@ const LIFTING_MET_VALUES: Record<string, number> = {
 const INTENSITY_MULTIPLIERS: Record<string, number> = {
   light_flow: 0.7,
   moderate: 1.0,
-  hard_sparring: 1.3,
-  competition_prep: 1.4,
+  hard_sparring: 1.2,
+  competition_prep: 1.2,
 };
 
 /**
@@ -126,7 +127,9 @@ export function estimateSessionCalories(
   const baseMET = SESSION_MET_VALUES[sessionType] ?? 5.0;
   const intensityMult = intensity ? (INTENSITY_MULTIPLIERS[intensity] ?? 1.0) : 1.0;
   const hours = durationMinutes / 60;
-  return Math.round(baseMET * intensityMult * bodyWeightKg * hours);
+  // NET METs (MET − 1): resting burn is already counted in BMR — gross METs
+  // double-counted ~1 kcal/kg/h (Ainsworth 2011).
+  return Math.round(Math.max(0, baseMET * intensityMult - 1) * bodyWeightKg * hours);
 }
 
 /**
@@ -139,7 +142,7 @@ export function estimateLiftingCalories(
 ): number {
   const baseMET = LIFTING_MET_VALUES[workoutType] ?? 5.0;
   const hours = durationMinutes / 60;
-  return Math.round(baseMET * bodyWeightKg * hours);
+  return Math.round((baseMET - 1) * bodyWeightKg * hours); // net METs (BMR counted separately)
 }
 
 interface DynamicTDEEInput {
@@ -317,13 +320,14 @@ export function calculateMacros({
         // Target ~2.6 g/kg LBM, expressed back as g/kg total BW.
         proteinPerKg = 2.6 * (leanMassKg / bw);
       } else if (isCombatAthlete && deficitSeverity === 'aggressive') {
-        proteinPerKg = 3.1;
+        // Helms 2014's 2.3–3.1 is per kg LEAN mass; ~2.8 g/kg body weight covers it for lean athletes.
+        proteinPerKg = 2.8;
       } else if (isCombatAthlete && deficitSeverity === 'moderate') {
         proteinPerKg = 2.7;
       } else {
         proteinPerKg = 2.4;
       }
-      // Fat floor: 0.8 g/kg male, 1.0 female. Volek 2001: T declines below 0.6 g/kg.
+      // Fat floor: 0.8 g/kg male, 1.0 female. Diets with ≤ ~20 % energy from fat lower testosterone (Whittaker & Wu 2021).
       fatPerKg = isFemale ? 1.0 : 0.8;
       break;
     }

@@ -21,6 +21,7 @@ import type {
   ActivityCategory,
 } from './types';
 import { localDayKey, live } from './utils';
+import { unclaimedWhoopLoad } from './whoop-training';
 
 // ─── Exported Interfaces ────────────────────────────────────────────────────
 
@@ -138,6 +139,8 @@ const ZONE_COLORS: Record<number, string> = {
 export function calculateEnhancedACWR(
   workoutLogs: WorkoutLog[],
   trainingSessions?: TrainingSession[],
+  /** Whoop workouts not logged in the app (runs, conditioning) count too. */
+  whoopWorkouts?: WhoopWorkout[],
 ): EnhancedACWR {
   // Collect all daily sRPE loads for the last 28 days
   const now = Date.now();
@@ -181,6 +184,12 @@ export function calculateEnhancedACWR(
     });
   }
 
+  // Whoop-only workouts — nothing above accounts for them (see whoop-training)
+  const whoopOnly = whoopWorkouts
+    ? unclaimedWhoopLoad(whoopWorkouts, workoutLogs, trainingSessions, COMBAT_SPORT_IDS)
+    : [];
+  whoopOnly.forEach(w => addLoad(w.date, w.duration, w.rpe));
+
   // Check if any data exists
   const totalLoad = dailyLoad.reduce((a, b) => a + b, 0);
   if (totalLoad === 0) {
@@ -191,6 +200,7 @@ export function calculateEnhancedACWR(
   const firstEver = Math.min(
     ...workoutLogs.map(l => new Date(l.date).getTime()),
     ...(trainingSessions ?? []).map(s => new Date(s.date).getTime()),
+    ...whoopOnly.map(w => w.date.getTime()),
   );
   if (!Number.isFinite(firstEver) || now - firstEver < 21 * DAY_MS) {
     return { acute: 0, chronic: 0, ratio: 0, status: 'no_data' };
@@ -752,7 +762,7 @@ export function calculateAllFatigueMetrics(
   const matTime = calculateMatTime(whoopWorkouts, trainingSessions);
 
   return {
-    acwr: calculateEnhancedACWR(workoutLogs, trainingSessions),
+    acwr: calculateEnhancedACWR(workoutLogs, trainingSessions, whoopWorkouts),
     heatmap: calculateIntensityHeatmap(workoutLogs, trainingSessions),
     highIntensityMinutes: calculateHighIntensityMinutes(whoopWorkouts, workoutLogs, trainingSessions),
     zones: calculateZoneDistribution(whoopWorkouts),

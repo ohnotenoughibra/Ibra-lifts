@@ -52,6 +52,7 @@
 - `RecoveryCoach.tsx` (~400) — Recovery recommendations (embedded in RecoveryHub readiness tab)
 - `RecoveryDashboard.tsx` (~850) — Recovery overview with wearable data
 - `WearableIntegration.tsx` (~2,100) — Whoop connection + data display
+- `WhoopLiftStats.tsx` (~70) — Whoop strain/HR, strain per tonne vs usual and HR-RPE vs logged RPE for one lift (Workout History)
 - `SorenessCheck.tsx` (~630) — Muscle soreness tracking
 - `FatigueOverlay.tsx` (~600) — Fatigue warnings
 

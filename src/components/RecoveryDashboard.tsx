@@ -77,11 +77,12 @@ function metricColor(good: boolean, mid: boolean): string {
 }
 
 export default function RecoveryDashboard({ onClose = () => {}, embedded }: RecoveryDashboardProps) {
-  const { workoutLogs, bodyWeightLog, trainingSessions, user, latestWhoopData, wearableHistory, rawMeals, macroTargets, waterLog, injuryLog, quickLogs } = useAppStore(
+  const { workoutLogs, bodyWeightLog, trainingSessions, whoopWorkouts, user, latestWhoopData, wearableHistory, rawMeals, macroTargets, waterLog, injuryLog, quickLogs } = useAppStore(
     useShallow(s => ({
       workoutLogs: s.workoutLogs,
       bodyWeightLog: s.bodyWeightLog,
       trainingSessions: s.trainingSessions,
+      whoopWorkouts: s.whoopWorkouts,
       user: s.user,
       latestWhoopData: s.latestWhoopData,
       wearableHistory: s.wearableHistory,
@@ -135,7 +136,7 @@ export default function RecoveryDashboard({ onClose = () => {}, embedded }: Reco
 
   // Training load calculations (sRPE-weighted ACWR)
   const trainingLoad = useMemo(() => {
-    const acwr = calculateEnhancedACWR(workoutLogs, trainingSessions);
+    const acwr = calculateEnhancedACWR(workoutLogs, trainingSessions, whoopWorkouts);
     return {
       acute: acwr.acute,
       chronic: acwr.chronic,
@@ -144,7 +145,7 @@ export default function RecoveryDashboard({ onClose = () => {}, embedded }: Reco
       isTooHigh: acwr.status === 'high' || acwr.status === 'very_high',
       isTooLow: acwr.status === 'low',
     };
-  }, [workoutLogs, trainingSessions]);
+  }, [workoutLogs, trainingSessions, whoopWorkouts]);
 
   // Use performance-engine as the single source of truth for readiness score
   const recoveryScore = useMemo(() => {

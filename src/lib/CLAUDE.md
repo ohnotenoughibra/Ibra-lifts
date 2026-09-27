@@ -147,8 +147,12 @@ Block lifecycle: `active` → `completed` (via `completeMesocycle`, requires ≥
 - `data-safety.ts` — Sync failure tracking
 
 ### Integration
-- `whoop.ts` — Whoop API calls
-- `useWhoopSync.ts` — Background Whoop sync hook
+- `whoop.ts` — Whoop API calls (`whoopFetchAll` pages through `next_token`)
+- `whoop-sync.ts` / `useWhoopSync.ts` — The one Whoop sync + its background hook
+- `whoop-history.ts` — Merge fetched Whoop days/workouts into the stored rolling history (90/60 days); picks the backfill window
+- `whoop-training.ts` — `estimateRPE`, link lifts to their Whoop workout after scoring, strain-per-tonne insight, Whoop-only workouts as training load
+- `whoop-webhook.ts` — Whoop webhook signature check + recovery push payload
+- `sleep-plan.ts` — 3-night sleep debt vs Whoop's need, bedtime target
 - `notifications.ts` — Push notification scheduling
 - `push-subscription.ts` — Web push subscription management (VAPID key exchange, subscribe/unsubscribe)
 - `health-import.ts` — Apple Health XML + Google Fit data import and normalization

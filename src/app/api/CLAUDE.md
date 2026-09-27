@@ -39,7 +39,8 @@ All routes use `runtime = 'nodejs'` and `dynamic = 'force-dynamic'` (never cache
 | `auth/route.ts` | GET | Public | OAuth2 initiation |
 | `callback/route.ts` | GET | Public | OAuth2 callback, token exchange |
 | `data/route.ts` | POST | Token-based (not session) | Fetch Whoop data |
-| `tokens/route.ts` | — | — | Token save/restore |
+| `tokens/route.ts` | — | — | Token save/restore (also stores `whoop_user_id` for the webhook) |
+| `webhook/route.ts` | POST | Whoop HMAC signature (`WHOOP_CLIENT_SECRET`) | `recovery.updated` → recovery push notification |
 
 ### AI Coach (`/api/ai-coach/`)
 | Route | Method | Auth | Purpose |

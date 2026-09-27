@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { verifyWhoopState } from '@/lib/whoop-state';
 import { auth } from '@/lib/auth';
 import { encrypt, decrypt } from '@/lib/crypto';
+import { whoopFetch } from '@/lib/whoop';
 
 /**
  * GET /api/whoop/tokens
@@ -85,8 +86,10 @@ export async function POST(request: Request) {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `;
+    // Whoop's own user id — the webhook only tells us that, not our user id.
+    await sql`ALTER TABLE whoop_tokens ADD COLUMN IF NOT EXISTS whoop_user_id TEXT`;
 
-    await sql`
+    const { rows } = await sql`
       INSERT INTO whoop_tokens (user_id, access_token, refresh_token, expires_at, updated_at)
       VALUES (${session.user.id}, ${encryptedAccessToken}, ${encryptedRefreshToken}, ${expires_at || ''}, NOW())
       ON CONFLICT (user_id)
@@ -95,7 +98,20 @@ export async function POST(request: Request) {
         refresh_token = ${encryptedRefreshToken},
         expires_at = ${expires_at || ''},
         updated_at = NOW()
+      RETURNING whoop_user_id
     `;
+
+    // Link the Whoop account: on every (re)connect — it may be a different
+    // Whoop account — and once on the first refresh after this shipped.
+    // Best effort; the save itself already succeeded.
+    if (state !== undefined || !rows[0]?.whoop_user_id) {
+      const profile = await whoopFetch('/user/profile/basic', access_token);
+      const whoopUserId = profile.data?.user_id;
+      if (whoopUserId != null) {
+        await sql`UPDATE whoop_tokens SET whoop_user_id = ${String(whoopUserId)} WHERE user_id = ${session.user.id}`
+          .catch(err => console.error('Whoop user link failed:', err));
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

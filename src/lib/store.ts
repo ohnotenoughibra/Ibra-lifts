@@ -38,6 +38,7 @@ import {
   WearableData,
   CompetitionEvent,
   WhoopWorkout,
+  WhoopBodyMeasurement,
   QuickLog,
   GripTest,
   GripExerciseLog,
@@ -397,8 +398,9 @@ interface AppState {
   latestWhoopData: WearableData | null;
   // Device-local Whoop sync health (shown as "Whoop · updated 3 min ago").
   whoopSync?: { lastAttemptAt?: string; lastSuccessAt?: string; lastError?: string };
-  wearableHistory: WearableData[]; // 7-day trend for multi-day analysis
-  whoopWorkouts: WhoopWorkout[]; // Recent Whoop-tracked workouts for HR correlation
+  wearableHistory: WearableData[]; // Rolling Whoop history (≤90 days, merged per sync — see whoop-history)
+  whoopWorkouts: WhoopWorkout[]; // Whoop-tracked workouts (≤60 days) for HR correlation + training load
+  whoopBody: WhoopBodyMeasurement | null; // Latest Whoop body snapshot (max HR, weight)
 
   // Offline queue
   isOnline: boolean;
@@ -722,6 +724,7 @@ interface AppState {
   setLatestWhoopData: (data: WearableData | null) => void;
   setWearableHistory: (data: WearableData[]) => void;
   setWhoopWorkouts: (data: WhoopWorkout[]) => void;
+  setWhoopBody: (data: WhoopBodyMeasurement | null) => void;
   applyWhoopAdjustment: () => void;
 
   // Online status
@@ -956,6 +959,7 @@ export const useAppStore = create<AppState>()(
       whoopSync: {},
       wearableHistory: [],
       whoopWorkouts: [],
+      whoopBody: null,
       isOnline: true,
       lastSyncAt: null,
       lastCompletedWorkout: null,
@@ -1431,6 +1435,7 @@ export const useAppStore = create<AppState>()(
       },
       setWearableHistory: (data) => set({ wearableHistory: data }),
       setWhoopWorkouts: (data) => set({ whoopWorkouts: data }),
+      setWhoopBody: (data) => set({ whoopBody: data }),
 
       applyWhoopAdjustment: () => {
         const { activeWorkout, latestWhoopData, wearableHistory } = get();
@@ -1571,10 +1576,11 @@ export const useAppStore = create<AppState>()(
 
         // Autoregulated deload: check ACWR to decide if deload week is needed
         // Bosquet et al. 2007 — deload is recovery tool, not ritual. Skip when fatigue is low.
-        const { workoutLogs, trainingSessions } = get();
+        const { workoutLogs, trainingSessions, whoopWorkouts } = get();
         const acwr = calculateEnhancedACWR(
           workoutLogs.filter(l => !l._deleted),
           trainingSessions.filter(s => !s._deleted),
+          whoopWorkouts,
         );
         // Include deload by default; skip only when athlete is clearly undertrained/fresh
         // ACWR < 0.85 = low training stimulus, no accumulated fatigue to recover from
@@ -3053,8 +3059,11 @@ export const useAppStore = create<AppState>()(
         const hadPR = activeWorkout.exerciseLogs.some((ex) => ex.personalRecord);
 
         // Auto-correlate with Whoop workout HR data if available
-        const { whoopWorkouts } = get();
-        const whoopHR = matchWhoopWorkout(new Date(), duration, whoopWorkouts);
+        // Usually misses (Whoop scores a workout minutes after Finish) — the
+        // next Whoop sync back-fills it (whoop-training backfillLiftWhoopHR).
+        const { whoopWorkouts, trainingSessions: sessionsNow } = get();
+        const matClaimed = new Set(sessionsNow.filter(s => !s._deleted && s.whoopWorkoutId).map(s => s.whoopWorkoutId!));
+        const whoopHR = matchWhoopWorkout(new Date(), duration, whoopWorkouts, matClaimed);
 
         // Create workout log — use mesocycleId captured at start time to prevent
         // misattribution when block transitions happen mid-workout or between sessions
@@ -5072,6 +5081,7 @@ export const useAppStore = create<AppState>()(
           latestWhoopData: null,
           wearableHistory: [],
           whoopWorkouts: [],
+          whoopBody: null,
           isOnline: true,
           lastSyncAt: null,
           notificationPreferences: {
@@ -5515,6 +5525,12 @@ export const useAppStore = create<AppState>()(
         workoutSkips: state.workoutSkips?.slice(-20) ?? [],
         fightCampPlans: state.fightCampPlans?.slice(-3) ?? [],
         weightCutPlans: state.weightCutPlans?.slice(-3) ?? [],
+
+        // Whoop history — device-local (not cloud-synced; a new device backfills
+        // 60 days from Whoop). Already capped at 90 days / 60 days by whoop-history.
+        wearableHistory: state.wearableHistory ?? [],
+        whoopWorkouts: state.whoopWorkouts ?? [],
+        whoopBody: state.whoopBody ?? null,
 
         // Small arrays — persist as-is
         injuryLog: state.injuryLog ?? [],

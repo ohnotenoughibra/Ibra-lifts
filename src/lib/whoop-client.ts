@@ -5,6 +5,7 @@
  * used its own transform and never auto-imported mat sessions).
  */
 import { useAppStore } from './store';
+import { estimateRPE } from './whoop-training';
 import type { WearableData, WearableProvider, WhoopWorkout, WhoopBodyMeasurement, ActivityType, ActivityCategory, TrainingIntensity } from './types';
 
 export const LS_KEYS = {
@@ -173,6 +174,9 @@ export function transformWhoopData(apiData: WhoopApiResponse): TransformResult {
   if (apiData.sleep) {
     for (const sl of apiData.sleep) {
       if (sl.score_state && sl.score_state !== 'SCORED') continue;
+      // Naps share the day key with the main sleep and would overwrite it
+      // (a 25-min nap read as "0.4h sleep" and tanked readiness).
+      if (sl.nap) continue;
       // Use END time (wake-up) as the date key — matches recovery's day
       const dateKey = whoopDateKey(sl);
       if (!dateKey) continue;
@@ -215,6 +219,8 @@ export function transformWhoopData(apiData: WhoopApiResponse): TransformResult {
         sleepCycleCount: stages?.sleep_cycle_count ?? null,
         sleepConsistency: sl.score?.sleep_consistency_percentage ?? null,
         sleepNeededHours,
+        sleepStart: sl.start ?? null,
+        sleepEnd: sl.end ?? null,
       });
     }
   }
@@ -550,106 +556,8 @@ export function strainToIntensity(strain: number | null): TrainingIntensity {
   return 'competition_prep';
 }
 
-/**
- * Estimate RPE (1-10) from Whoop data using multiple physiological signals.
- *
- * First principles:
- * - RPE reflects total perceived effort, not just cardiovascular load
- * - Heart rate intensity ratio (avgHR/maxHR) is the strongest single predictor
- *   of how hard someone is working moment-to-moment
- * - Whoop strain is logarithmic (each point is exponentially harder) so a
- *   linear mapping to RPE is fundamentally wrong
- * - Duration matters: 90min at moderate HR feels harder than 15min at the same HR
- * - HR zone distribution captures the time spent at redline intensities
- * - Combat sports add isometric/neurological fatigue beyond what HR captures
- *
- * Signals are weighted and combined into a composite score:
- *   40% HR intensity ratio  — how close to max on average
- *   30% Strain (non-linear) — cumulative cardiovascular load
- *   15% HR zone distribution — time spent at high zones
- *   15% Duration             — session length context
- *   +0.5 combat sport bonus  — neurological fatigue not captured by HR
- */
-export function estimateRPE(
-  strain: number | null,
-  avgHR: number | null,
-  maxHR: number | null,
-  durationMin: number,
-  zones: { zone: number; minutes: number }[],
-  isCombatSport: boolean,
-): number {
-  // No data at all → neutral default
-  if (strain == null && avgHR == null) return 5;
-
-  const signals: { value: number; weight: number }[] = [];
-
-  // --- Signal 1: HR Intensity Ratio (strongest predictor) ---
-  // Based on exercise physiology: %maxHR maps directly to perceived effort
-  if (avgHR != null && maxHR != null && maxHR > 100) {
-    const ratio = avgHR / maxHR;
-    let hrRPE: number;
-    if (ratio <= 0.55)      hrRPE = 1;
-    else if (ratio <= 0.65) hrRPE = 2 + (ratio - 0.55) / 0.10;       // 2–3
-    else if (ratio <= 0.72) hrRPE = 3 + (ratio - 0.65) / 0.07;       // 3–4
-    else if (ratio <= 0.78) hrRPE = 4 + (ratio - 0.72) / 0.06;       // 4–5
-    else if (ratio <= 0.83) hrRPE = 5 + ((ratio - 0.78) / 0.05) * 1.5; // 5–6.5
-    else if (ratio <= 0.88) hrRPE = 6.5 + ((ratio - 0.83) / 0.05) * 1.5; // 6.5–8
-    else if (ratio <= 0.93) hrRPE = 8 + (ratio - 0.88) / 0.05;       // 8–9
-    else                    hrRPE = 9 + Math.min(1, (ratio - 0.93) / 0.05); // 9–10
-    signals.push({ value: hrRPE, weight: 0.40 });
-  }
-
-  // --- Signal 2: Strain (non-linear / logarithmic mapping) ---
-  // Whoop strain is logarithmic 0-21: each point requires exponentially more effort.
-  // Piecewise mapping that respects this curve.
-  if (strain != null) {
-    let strainRPE: number;
-    if (strain <= 4)        strainRPE = 1 + (strain / 4) * 2;               // 1–3
-    else if (strain <= 8)   strainRPE = 3 + ((strain - 4) / 4) * 2;         // 3–5
-    else if (strain <= 12)  strainRPE = 5 + ((strain - 8) / 4) * 1.5;       // 5–6.5
-    else if (strain <= 16)  strainRPE = 6.5 + ((strain - 12) / 4) * 1.5;    // 6.5–8
-    else if (strain <= 19)  strainRPE = 8 + ((strain - 16) / 3) * 1.5;      // 8–9.5
-    else                    strainRPE = 9.5 + ((strain - 19) / 2) * 0.5;    // 9.5–10
-    signals.push({ value: Math.min(10, strainRPE), weight: 0.30 });
-  }
-
-  // --- Signal 3: HR Zone distribution ---
-  // Weighted average zone (higher zones → more effort). Zone 0-5 scale → RPE 1-10.
-  if (zones.length > 0) {
-    const totalMin = zones.reduce((s, z) => s + z.minutes, 0);
-    if (totalMin > 0) {
-      const avgZone = zones.reduce((s, z) => s + z.zone * z.minutes, 0) / totalMin;
-      const zoneRPE = 1 + (avgZone / 5) * 9; // 1–10
-      signals.push({ value: zoneRPE, weight: 0.15 });
-    }
-  }
-
-  // --- Signal 4: Duration context ---
-  // Longer sessions accumulate fatigue — same avg HR for 90min feels much harder than 15min.
-  if (durationMin > 0) {
-    let durationRPE: number;
-    if (durationMin <= 10)      durationRPE = 3;
-    else if (durationMin <= 20) durationRPE = 4;
-    else if (durationMin <= 40) durationRPE = 5;
-    else if (durationMin <= 60) durationRPE = 6;
-    else if (durationMin <= 90) durationRPE = 7;
-    else                        durationRPE = 8;
-    signals.push({ value: durationRPE, weight: 0.15 });
-  }
-
-  if (signals.length === 0) return 5;
-
-  const totalWeight = signals.reduce((s, sig) => s + sig.weight, 0);
-  let rpe = signals.reduce((s, sig) => s + sig.value * sig.weight, 0) / totalWeight;
-
-  // Combat sports: grappling/striking have neurological & isometric fatigue
-  // not reflected in HR data (grip fighting, bracing, adrenaline, etc.)
-  if (isCombatSport) {
-    rpe += 0.5;
-  }
-
-  return Math.max(1, Math.min(10, Math.round(rpe)));
-}
+// Moved to the pure whoop-training module (fatigue-metrics needs it without the store).
+export { estimateRPE };
 
 export interface AutoImportResult {
   imported: number;

@@ -928,6 +928,8 @@ export function matchWhoopWorkout(
   logDate: Date,
   logDurationMinutes: number,
   whoopWorkouts: WhoopWorkout[],
+  /** Whoop workouts already claimed elsewhere (e.g. imported as a mat session). */
+  excludeIds?: ReadonlySet<string>,
 ): WorkoutLog['whoopHR'] | undefined {
   if (!whoopWorkouts || whoopWorkouts.length === 0) return undefined;
 
@@ -941,6 +943,7 @@ export function matchWhoopWorkout(
   let bestOverlap = 0;
 
   for (const ww of whoopWorkouts) {
+    if (excludeIds?.has(ww.id)) continue;
     const wwStart = new Date(ww.start).getTime();
     const wwEnd = new Date(ww.end).getTime();
 
@@ -964,5 +967,6 @@ export function matchWhoopWorkout(
     strain: bestMatch.strain ?? 0,
     calories: bestMatch.calories ?? 0,
     zones: bestMatch.zones.length > 0 ? bestMatch.zones : undefined,
+    whoopWorkoutId: bestMatch.id,
   };
 }

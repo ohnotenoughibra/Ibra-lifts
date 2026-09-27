@@ -134,6 +134,41 @@ export async function whoopFetch(
   }
 }
 
+/** Whoop's per-page maximum. */
+const PAGE_LIMIT = '25';
+/** Safety cap: 8 pages × 25 = 200 records per collection (60 days of 2-a-days fits). */
+const MAX_PAGES = 8;
+
+export function clampDays(raw: unknown): number {
+  const n = Math.floor(Number(raw));
+  if (!Number.isFinite(n) || n < 1) return 7;
+  return Math.min(60, n);
+}
+
+/**
+ * Fetch every page of a Whoop collection in the window (follows `next_token`).
+ * Returns `{ data: { records } }` like a single-page whoopFetch; an error on a
+ * later page keeps the records already fetched and reports the error.
+ */
+export async function whoopFetchAll(
+  endpoint: string,
+  accessToken: string,
+  range: { start: string; end: string },
+): Promise<{ data: { records: unknown[] } | null; error?: string }> {
+  const records: unknown[] = [];
+  let nextToken: string | undefined;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const params: Record<string, string> = { ...range, limit: PAGE_LIMIT };
+    if (nextToken) params.nextToken = nextToken;
+    const res = await whoopFetch(endpoint, accessToken, params);
+    if (res.error) return page === 0 ? { data: null, error: res.error } : { data: { records }, error: res.error };
+    records.push(...(res.data?.records ?? []));
+    nextToken = res.data?.next_token || undefined;
+    if (!nextToken) break;
+  }
+  return { data: { records } };
+}
+
 /**
  * Safely embed a value in an inline <script> tag.
  * JSON.stringify handles most cases, but we also replace the </script>

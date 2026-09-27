@@ -1948,6 +1948,20 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
         )}
       </AnimatePresence>
 
+      {/* Evening: tonight's bedtime from Whoop's sleep need + your usual wake time */}
+      {directive.bedtime && new Date().getHours() >= 17 && (
+        <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-grappler-800/60 border border-grappler-700/40 mb-2" data-testid="bedtime-target">
+          <Moon className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+          <span className="text-xs text-grappler-300">
+            In bed by <span className="font-semibold text-grappler-100">{directive.bedtime.bedtime}</span> to get
+            {' '}{directive.bedtime.needHours.toFixed(1)}h before your usual {directive.bedtime.wake} wake-up
+            {directive.sleepDebt && directive.sleepDebt.deficitHours >= 1 && (
+              <span className="text-grappler-400"> · {directive.sleepDebt.deficitHours.toFixed(1)}h short over the last {directive.sleepDebt.nights} nights</span>
+            )}
+          </span>
+        </div>
+      )}
+
       {directive.todayPerformance && directive.todayType === 'recovery' ? (
         <PostWorkoutPhase
           todayPerformance={directive.todayPerformance}

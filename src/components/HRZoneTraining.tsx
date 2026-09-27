@@ -141,14 +141,26 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
     whoopWorkouts,
     trainingSessions,
     latestWhoopData,
+    whoopBody,
   } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<TabKey>('zones');
 
   // --- Zones Tab state ---
-  const defaultMaxHR = user?.age ? 220 - user.age : 186;
+  // Whoop's measured max HR when we have it — 220 − age is ±10-12 bpm off for many athletes.
+  const whoopMaxHR = whoopBody?.maxHeartRate && whoopBody.maxHeartRate > 120 ? Math.round(whoopBody.maxHeartRate) : null;
+  const defaultMaxHR = whoopMaxHR ?? (user?.age ? 220 - user.age : 186);
   const wearableRestingHR = latestWhoopData?.restingHR;
   const [maxHR, setMaxHR] = useState<number>(defaultMaxHR);
+  const [maxSynced, setMaxSynced] = useState(false);
+
+  // Whoop body data can arrive after mount (first sync) — adopt it once
+  useEffect(() => {
+    if (whoopMaxHR && !maxSynced) {
+      setMaxHR(whoopMaxHR);
+      setMaxSynced(true);
+    }
+  }, [whoopMaxHR, maxSynced]);
   const [restingHR, setRestingHR] = useState<number>(wearableRestingHR || 60);
   const [rhrSynced, setRhrSynced] = useState(false);
 

@@ -15,6 +15,8 @@ import {
   transformWhoopData, transformWhoopWorkouts, transformWhoopBody, autoImportCombatWorkouts,
   type WhoopApiResponse, type AutoImportResult,
 } from './whoop-client';
+import { mergeWearableHistory, mergeWhoopWorkouts, syncWindowDays } from './whoop-history';
+import { backfillLiftWhoopHR } from './whoop-training';
 import type { WearableData, WhoopWorkout, WhoopBodyMeasurement } from './types';
 
 export interface WhoopSyncResult {
@@ -25,8 +27,13 @@ export interface WhoopSyncResult {
   workouts?: WhoopWorkout[];
   body?: WhoopBodyMeasurement | null;
   importResult?: AutoImportResult;
+  /** Lifting logs that got (or refreshed) their Whoop HR/strain this sync. */
+  liftsLinked?: number;
   warnings?: string[];
 }
+
+/** Combat workouts auto-import as mat sessions only from this far back. */
+const IMPORT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Re-fetch at most this often unless forced (was 15 min). */
 export const WHOOP_MIN_INTERVAL_MS = 5 * 60 * 1000;
@@ -121,16 +128,36 @@ async function run({ force = false }: { force?: boolean }): Promise<WhoopSyncRes
       }
     }
 
-    const res = await fetch('/api/whoop/data', {
+    // First sync / after a gap: backfill 60 days so baselines are real.
+    const days = syncWindowDays(useAppStore.getState().wearableHistory);
+    const fetchData = () => fetch('/api/whoop/data', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }),
+      body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken, days }),
     });
+    let res = await fetchData();
     if (!res.headers.get('content-type')?.includes('application/json')) {
       const error = `Whoop sync failed (server ${res.status})`;
       record({ lastError: error });
       return { status: 'error', error };
     }
-    const api: WhoopApiResponse = await res.json();
+    let api: WhoopApiResponse = await res.json();
+
+    // The server (webhook) may have rotated the single-use refresh token and
+    // saved it to the DB — ours is then dead. Retry once with the DB's tokens
+    // before calling the connection lost.
+    if (!api.connected && api.requiresReconnect) {
+      const usedRefresh = refreshToken;
+      if (await restoreTokensFromDb()) {
+        const dbRefresh = getToken(LS_KEYS.refreshToken) || '';
+        const dbAccess = getToken(LS_KEYS.accessToken);
+        if (dbAccess && (dbRefresh !== usedRefresh || dbAccess !== accessToken)) {
+          accessToken = dbAccess;
+          refreshToken = dbRefresh;
+          res = await fetchData();
+          if (res.headers.get('content-type')?.includes('application/json')) api = await res.json();
+        }
+      }
+    }
     storeRefreshed(api as never, refreshToken);
 
     if (!api.connected) {
@@ -147,18 +174,32 @@ async function run({ force = false }: { force?: boolean }): Promise<WhoopSyncRes
     }
 
     const { data } = transformWhoopData(api);
-    const workouts = transformWhoopWorkouts(api);
+    const fetchedWorkouts = transformWhoopWorkouts(api);
+    const body = transformWhoopBody(api);
     const store = useAppStore.getState();
+    // Merge, don't replace — the fetch window is short after the first backfill.
+    const history = mergeWearableHistory(store.wearableHistory ?? [], data);
+    const workouts = mergeWhoopWorkouts(store.whoopWorkouts ?? [], fetchedWorkouts);
     if (data.length > 0) {
       store.setLatestWhoopData(data[data.length - 1]);
-      store.setWearableHistory(data);
+      store.setWearableHistory(history);
     }
     store.setWhoopWorkouts(workouts);
+    if (body) store.setWhoopBody(body);
     // Mat sessions from Whoop used to appear only after opening Wearable.
-    const importResult = workouts.length > 0 ? autoImportCombatWorkouts(workouts) : undefined;
+    // Only the last week, as before the backfill: import dedupes by Whoop id
+    // alone, so 60 days would duplicate mat sessions the athlete logged by hand.
+    const importCutoff = Date.now() - IMPORT_WINDOW_MS;
+    const recent = fetchedWorkouts.filter(w => new Date(w.start).getTime() >= importCutoff);
+    const importResult = recent.length > 0 ? autoImportCombatWorkouts(recent) : undefined;
+    // Link lifts to their Whoop workout now that Whoop has scored it (runs
+    // after the mat import so a BJJ session is never claimed by a lift).
+    const after = useAppStore.getState();
+    const links = backfillLiftWhoopHR(after.workoutLogs, workouts, after.trainingSessions);
+    for (const l of links) after.updateWorkoutLog(l.logId, { whoopHR: l.whoopHR });
     record({ lastSuccessAt: new Date().toISOString(), lastError: null });
     return {
-      status: 'ok', api, data, workouts, body: transformWhoopBody(api), importResult,
+      status: 'ok', api, data: history, workouts, body, importResult, liftsLinked: links.length,
       warnings: (api as { warnings?: string[] }).warnings,
     };
   } catch (e) {

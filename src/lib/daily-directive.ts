@@ -160,6 +160,8 @@ interface DirectiveInput {
   nutritionPeriodPlan?: NutritionPeriodPlan | null;
   bodyWeightLog?: BodyWeightEntry[];
   weeklyCheckIns?: WeeklyCheckIn[];
+  /** Today's protein target from the nutrition resolver (falls back to macroTargets). */
+  proteinTarget?: number;
 }
 
 export function generateDailyDirective(input: DirectiveInput): DailyDirective {
@@ -227,7 +229,7 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
   const todayStr = new Date().toDateString();
   const todayMeals = meals.filter(m => new Date(m.date).toDateString() === todayStr);
   const todayProtein = todayMeals.reduce((sum, m) => sum + (m.protein || 0), 0);
-  const proteinTarget = macroTargets.protein || 0;
+  const proteinTarget = input.proteinTarget ?? macroTargets.protein ?? 0;
   const proteinGap = Math.round(Math.max(0, proteinTarget - todayProtein));
 
   // ─── Today's workouts already done ───

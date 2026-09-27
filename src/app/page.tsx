@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useAppStore } from '@/lib/store';
 import { useDbSync } from '@/lib/useDbSync';
 import { flushSyncQueue } from '@/lib/db-sync';
+import { useNutritionAutopilot } from '@/lib/useNutritionAutopilot';
 import { useWhoopSync } from '@/lib/useWhoopSync';
 import Onboarding from '@/components/Onboarding';
 import Dashboard from '@/components/Dashboard';
@@ -46,6 +47,9 @@ export default function Home() {
 
   // Background Whoop sync — keeps recovery/strain/sleep fresh without opening overlay
   useWhoopSync();
+
+  // Adaptive nutrition: keep the stored macro targets on this week's measured base
+  useNutritionAutopilot(isInitialLoadComplete);
 
   // When auth session is available, ensure the store user ID matches
   useEffect(() => {

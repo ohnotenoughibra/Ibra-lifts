@@ -1,203 +1,104 @@
 'use client';
 
+/**
+ * Nutrition — rebuilt (2026-09).
+ *
+ *   Today   what's left, why, and the day as meals around your training
+ *   Plan    the week, meals picked for each slot, shopping list, recipes, my foods
+ *   Coach   goal + rate, adaptive vs fixed, preferences, 7-day review
+ *
+ * One number everywhere: every screen reads lib/nutrition-targets.
+ * Logging is one sheet (search / describe / quick / scan) with Undo on every log.
+ */
+import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight, Plus, LayoutDashboard, CalendarRange, GraduationCap } from 'lucide-react';
 import { usePersistentState } from '@/lib/use-persistent-state';
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ChevronLeft,
-  ChevronRight,
-  CalendarDays,
-  LayoutDashboard,
-  GraduationCap,
-  Zap,
-  X,
-} from 'lucide-react';
-import { cn, localDayKey } from '@/lib/utils';
+import { localDayKey, cn } from '@/lib/utils';
+import { mealTypeForHour } from '@/lib/food-search';
+import type { MealType } from '@/lib/types';
+import { useNutritionDay } from '@/hooks/useNutritionDay';
+import { useToast } from './Toast';
 import { useAppStore } from '@/lib/store';
-import { useNutrition } from '@/hooks/useNutrition';
-import NutritionDashboard from './nutrition/NutritionDashboard';
-import NutritionLogSheet from './nutrition/NutritionLogSheet';
-import NutritionCoach from './nutrition/NutritionCoach';
-import NutritionInsights from './nutrition/NutritionInsights';
+import TodayView from './nutrition/TodayView';
+import PlanView from './nutrition/PlanView';
+import CoachView from './nutrition/CoachView';
+import FoodLogger from './nutrition/FoodLogger';
+import { Sheet, MEAL_LABEL } from './nutrition/ui';
 
-// 'log' is no longer a tab — logging is a bottom sheet opened from the dashboard
-// FAB, so you never leave "Today" to add a meal.
-type Tab = 'dashboard' | 'review' | 'coach';
+type Tab = 'today' | 'plan' | 'coach';
 
-interface NutritionTrackerProps {
-  onClose: () => void;
-}
+export default function NutritionTracker({ onClose, onNavigate }: { onClose: () => void; onNavigate?: (view: string) => void }) {
+  const [tab, setTab] = usePersistentState<Tab>('ui:nutrition-tab-v2', 'today');
+  const [dayKey, setDayKey] = useState(() => localDayKey());
+  const [logger, setLogger] = useState<{ mealType: MealType; when: Date } | null>(null);
+  const day = useNutritionDay(dayKey);
+  const undoMeals = useAppStore(s => s.undoMeals);
+  const { showToast } = useToast();
 
-export default function NutritionTracker({ onClose }: NutritionTrackerProps) {
-  const [activeTab, setActiveTab] = usePersistentState<Tab>('ui:nutrition-tab', 'dashboard');
-  const [showLog, setShowLog] = useState(false);
+  const shift = (n: number) => {
+    const d = new Date(`${dayKey}T12:00:00`); d.setDate(d.getDate() + n);
+    const k = localDayKey(d);
+    if (k <= localDayKey()) setDayKey(k);
+  };
+  const label = useMemo(() => day.isToday ? 'Today'
+    : new Date(`${dayKey}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }), [dayKey, day.isToday]);
 
-  // Date navigation
-  // Local calendar day — useNutrition keys meals by local day, so the picker
-  // must agree or an evening-logged meal vanishes from the day it was entered
-  const [selectedDate, setSelectedDate] = useState(() => localDayKey());
-  const todayStr = localDayKey();
-  const isToday = selectedDate === todayStr;
-
-  const navigateDate = (direction: -1 | 1) => {
-    const d = new Date(selectedDate + 'T12:00:00');
-    d.setDate(d.getDate() + direction);
-    const newStr = localDayKey(d);
-    if (newStr <= todayStr) setSelectedDate(newStr);
+  const openLogger = (mealType?: MealType, when?: Date) => {
+    const at = when ?? (day.isToday ? new Date() : new Date(`${dayKey}T12:00:00`));
+    setLogger({ mealType: mealType ?? mealTypeForHour(at.getHours() + at.getMinutes() / 60), when: at });
   };
 
-  const selectedDateFormatted = new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
-
-  const nutrition = useNutrition(selectedDate);
-  const activeDietPhase = useAppStore(s => s.activeDietPhase);
-  const phaseLabel = activeDietPhase?.isActive ? activeDietPhase.goal : null;
-
-  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: 'dashboard', label: 'Today', icon: <LayoutDashboard className="w-4 h-4" /> },
-    { id: 'review', label: 'Review', icon: <Zap className="w-4 h-4" /> },
-    { id: 'coach', label: 'Coach', icon: <GraduationCap className="w-4 h-4" /> },
-  ];
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      transition={{ duration: 0.3 }}
-      className="min-h-screen bg-grappler-900 pb-24 safe-area-top"
-    >
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-grappler-900 border-b border-grappler-800">
-        <div className="flex items-center justify-between px-4 py-3">
-          <button
-            aria-label="Go back"
-            onClick={onClose}
-            className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0"
-          >
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
+      className="min-h-screen bg-grappler-900 safe-area-top">
+      <div className="sticky top-0 z-20 bg-grappler-900/95 backdrop-blur border-b border-grappler-800">
+        <div className="flex items-center justify-between px-2 py-2">
+          <button aria-label="Go back" onClick={onClose} className="w-11 h-11 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800">
             <ChevronLeft className="w-5 h-5" />
-            <span className="text-sm">Back</span>
           </button>
-
-          {/* Date navigation */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => navigateDate(-1)}
-              className="p-1 text-grappler-400 hover:text-grappler-200 transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => !isToday && setSelectedDate(todayStr)}
-              className={cn(
-                'text-xs px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors',
-                isToday ? 'text-primary-400 font-semibold' : 'text-grappler-400 hover:text-grappler-200 bg-grappler-800'
-              )}
-            >
-              <CalendarDays className="w-3 h-3" />
-              {isToday ? 'Today' : selectedDateFormatted}
-            </button>
-            <button
-              onClick={() => navigateDate(1)}
-              disabled={isToday}
-              className={cn(
-                'p-1 transition-colors',
-                isToday ? 'text-grappler-700 cursor-not-allowed' : 'text-grappler-400 hover:text-grappler-200'
-              )}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="w-16 flex justify-end">
-            {phaseLabel && (
-              <span className={cn(
-                'text-xs font-semibold px-2 py-0.5 rounded-full capitalize',
-                phaseLabel === 'cut' ? 'bg-red-500/20 text-red-400' :
-                phaseLabel === 'bulk' ? 'bg-emerald-500/20 text-emerald-400' :
-                'bg-blue-500/20 text-blue-400'
-              )}>
-                {phaseLabel}
-              </span>
-            )}
-          </div>
+          {tab === 'today' ? (
+            <div className="flex items-center gap-1">
+              <button aria-label="Previous day" onClick={() => shift(-1)} className="w-11 h-11 flex items-center justify-center text-grappler-400"><ChevronLeft className="w-4 h-4" /></button>
+              <button onClick={() => setDayKey(localDayKey())} className={cn('text-sm font-semibold px-2 min-w-[96px]', day.isToday ? 'text-grappler-50' : 'text-primary-400')}>{label}</button>
+              <button aria-label="Next day" onClick={() => shift(1)} disabled={day.isToday} className="w-11 h-11 flex items-center justify-center text-grappler-400 disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
+            </div>
+          ) : <span className="text-sm font-semibold text-grappler-50">Nutrition</span>}
+          <span className="w-11" />
         </div>
-
-        {/* Tab bar */}
-        <div className="flex px-4 gap-1">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-all border-b-2',
-                activeTab === tab.id
-                  ? 'text-primary-400 border-primary-400'
-                  : 'text-grappler-500 border-transparent hover:text-grappler-300'
-              )}
-            >
-              {tab.icon}
-              {tab.label}
+        <div className="flex px-4 gap-1" role="tablist">
+          {([['today', 'Today', LayoutDashboard], ['plan', 'Plan', CalendarRange], ['coach', 'Coach', GraduationCap]] as const).map(([k, l, Icon]) => (
+            <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+              className={cn('flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium border-b-2 transition-colors',
+                tab === k ? 'text-primary-400 border-primary-400' : 'text-grappler-500 border-transparent')}>
+              <Icon className="w-4 h-4" />{l}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Tab content */}
       <div className="px-4 pt-4">
-        {activeTab === 'dashboard' && (
-          <NutritionDashboard
-            nutrition={nutrition}
-            onOpenLog={() => setShowLog(true)}
-          />
-        )}
-        {activeTab === 'review' && (
-          <NutritionInsights
-            todayMeals={nutrition.meals}
-            allMeals={nutrition.allMeals}
-            targets={nutrition.targets}
-            remaining={nutrition.remaining}
-            totals={nutrition.totals}
-            macroTargets={nutrition.macroTargets}
-            mealHistoryIndex={nutrition.mealHistoryIndex}
-          />
-        )}
-        {activeTab === 'coach' && (
-          <NutritionCoach nutrition={nutrition} />
-        )}
+        {tab === 'today' && <TodayView day={day} onLog={openLogger} onOpenSettings={() => setTab('coach')} />}
+        {tab === 'plan' && <PlanView day={day} />}
+        {tab === 'coach' && <CoachView day={day} onNavigate={onNavigate} />}
       </div>
 
-      {/* Log — a bottom sheet over whatever you're looking at, so logging never
-          requires leaving the dashboard. */}
-      <AnimatePresence>
-        {showLog && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center"
-            onClick={() => setShowLog(false)}
-          >
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              onClick={e => e.stopPropagation()}
-              className="w-full max-w-lg max-h-[88vh] bg-grappler-900 rounded-t-2xl flex flex-col overlay-safe"
-            >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-grappler-800 flex-shrink-0">
-                <span className="text-base font-bold text-grappler-100">Log food</span>
-                <button onClick={() => setShowLog(false)} className="p-1.5 text-grappler-400 hover:text-grappler-200" aria-label="Close">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="overflow-y-auto px-4 py-4 flex-1">
-                <NutritionLogSheet nutrition={nutrition} selectedDate={selectedDate} />
-              </div>
-            </motion.div>
-          </motion.div>
+      {tab === 'today' && (
+        <button onClick={() => openLogger()} aria-label="Log food"
+          className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-30 h-14 px-6 rounded-full bg-primary-500 text-white font-semibold shadow-lg shadow-primary-500/30 flex items-center gap-2">
+          <Plus className="w-5 h-5" /> Log food
+        </button>
+      )}
+
+      <Sheet open={!!logger} onClose={() => setLogger(null)} title={logger ? `Log · ${MEAL_LABEL[logger.mealType]}${day.isToday ? '' : ` · ${label}`}` : 'Log'}>
+        {logger && (
+          <FoodLogger day={day} mealType={logger.mealType} when={logger.when}
+            onLogged={(ids, what) => {
+              setLogger(null);
+              showToast(`Logged ${what}`, 'success', { label: 'Undo', onClick: () => undoMeals(ids) });
+            }} />
         )}
-      </AnimatePresence>
+      </Sheet>
     </motion.div>
   );
 }

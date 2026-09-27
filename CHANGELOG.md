@@ -5,6 +5,31 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semve
 
 ## [Unreleased]
 
+### Nutrition, rebuilt
+
+**One number everywhere, targets that learn what you burn, logging in seconds, and meals planned around your training — with food from MPreis, Spar, Billa and Hofer.**
+
+#### Added
+- **Adaptive targets** — expenditure measured from what you log and how your weight trend moves (21 days, updated every Monday), blended with the formula until there's enough data. Pick a goal and rate (e.g. −0.5 kg/week) and the calories follow. Fixed targets remain an option.
+- **Training-day fuelling that still adds up** — double days (lift + mats), hard sparring and lifts get more carbs, rest days fewer, and the week averages your target (it used to stack +10–40 % on a TDEE that already counted training, eating half a cut's deficit).
+- **Fight week only when you have to make weight** — carbs, water and sodium follow the weight-cut protocols by days to the weigh-in (day-before vs same-day formats), no dehydration for small cuts or 2-hour weigh-ins, refuel targets after the scale, fight-day fuel. No cut needed → no deficit, carbs up before the fight.
+- **Gram-based logging** — a new built-in library of ~180 foods per 100 g in German and English (Magertopfen, Skyr, Kaisersemmel, Almdudler, Gröstl, Kaspressknödel…), serving chips + grams, and edits rescale the macros.
+- **Describe or photograph a meal** — Claude splits "2 Semmeln mit Schinken und eine Melange" or a plate photo into foods with grams; you check before it's logged. Needs `ANTHROPIC_API_KEY`.
+- **Packaged products** — OpenFoodFacts search with Austrian products first; save any product to My foods.
+- **My foods & recipes** — your own foods from a label, and recipes with ingredients in grams, cooked weight and portions.
+- **Your day as meals** — slots around your training time (pre-training carbs, big post-training meal), what's left spread over the meals to come, and a scaled recipe suggestion for each ("Hendl-Reis-Bowl · 210 g Hühnerbrust · 95 g Reis").
+- **Plan** — the next 7 days with a meal per slot (swap / pin), a shopping list by aisle, a 31-recipe book (Tyrolean classics made lean, meal prep, pre/post training), filtered by diet and dislikes.
+- **Undo** on every log, delete and copy.
+
+#### Fixed
+- Screens disagreed on today's targets (dashboard vs Home strip vs directive vs fight-camp card at bodyweight × 33) — all read one resolver now.
+- Energy availability used a weekly exercise total as a daily cost (~7× too high) → false RED-S warnings.
+- BJJ tournaments were detected as "post competition"; deleted competitions still forced fight-week targets; weight classes in lbs were compared as kg.
+- Weekly check-in: losing slower than planned did nothing; the calorie floor was overwritten.
+- Copy yesterday brought back deleted meals; toasts (and Undo) inside every full-screen tool were silently dropped; a weigh-in never updated the profile weight.
+- Search: "Reis" found ice cream, "2 Semmeln" found nothing; OpenFoodFacts product images were blocked.
+- Weight-cut dashboard counted days to the event, not the weigh-in, and showed water loading for formats with no time to rehydrate.
+
 **Whoop that actually coaches: real baselines, Whoop data on your lifts, sleep you can plan, and your recovery on your lock screen.**
 
 ### Added

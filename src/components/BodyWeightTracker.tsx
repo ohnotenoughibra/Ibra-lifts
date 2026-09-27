@@ -6,7 +6,7 @@ import { useAppStore } from '@/lib/store';
 import { Scale, Plus, Trash2, TrendingUp, TrendingDown, Minus as TrendFlat, Activity, ChevronDown, ChevronUp, Lightbulb, Heart, Dumbbell, Utensils, AlertTriangle, Info } from 'lucide-react';
 import EmptyState from './EmptyState';
 import { cn } from '@/lib/utils';
-import { calculateAdherence, analyzeWeightTrend, calculateEnergyAvailability, estimateDailyExerciseCost } from '@/lib/diet-coach';
+import { calculateAdherence, analyzeWeightTrend, calculateEnergyAvailability, dailyExerciseCostLastWeek } from '@/lib/diet-coach';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { resolveWeightUnit } from '@/lib/units';
 
@@ -428,7 +428,7 @@ const SUGGESTION_STYLES = {
 };
 
 export default function BodyWeightTracker() {
-  const { bodyWeightLog: rawBodyWeightLog, bodyComposition: rawBodyComposition, addBodyWeight, deleteBodyWeight, addBodyComposition, deleteBodyComposition, user, activeDietPhase, meals: rawMeals, macroTargets, trainingSessions } = useAppStore();
+  const { bodyWeightLog: rawBodyWeightLog, bodyComposition: rawBodyComposition, addBodyWeight, deleteBodyWeight, addBodyComposition, deleteBodyComposition, user, activeDietPhase, meals: rawMeals, macroTargets, trainingSessions, workoutLogs } = useAppStore();
   const bodyWeightLog = rawBodyWeightLog.filter(e => !e._deleted);
   const meals = rawMeals.filter(m => !m._deleted);
   const bodyComposition = rawBodyComposition || [];
@@ -760,11 +760,7 @@ export default function BodyWeightTracker() {
             // term inflated EA by exactly the training cost — the dominant term
             // for a combat athlete — so this tile read "caution" while the Diet
             // Coach, which does pass it, read "RED-S risk" for the same athlete.
-            const exerciseCost = estimateDailyExerciseCost(
-              trainingSessions?.slice(-7) || [],
-              [],
-              wKg,
-            );
+            const exerciseCost = dailyExerciseCostLastWeek(trainingSessions, workoutLogs, wKg);
             const ea = calculateEnergyAvailability(
               macroTargets?.calories || 0,
               exerciseCost,

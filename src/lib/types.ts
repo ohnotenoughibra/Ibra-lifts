@@ -572,11 +572,35 @@ export interface SupersetGroup {
 // Nutrition & Macro Tracking
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'pre_workout' | 'post_workout';
 
+/** How the athlete wants nutrition planned. Synced. */
+export interface NutritionPrefs {
+  /** adaptive = targets from measured expenditure + phase rate; fixed = macroTargets as set. */
+  targetMode: 'adaptive' | 'fixed';
+  mealsPerDay: number;                 // 3–6
+  trainingTime: 'morning' | 'midday' | 'afternoon' | 'evening';
+  diet: DietaryRestriction[];
+  /** Foods/ingredients to leave out of suggestions (lowercase words). */
+  dislikes: string[];
+  cookingTime: 'quick' | 'normal' | 'meal_prep';
+  updatedAt?: string;
+}
+
+/** Chosen meals for upcoming days + shopping list ticks. Synced (whole object, newest wins). */
+export interface MealPlanState {
+  /** `${dayKey}|${slotId}` → recipe id */
+  picks: Record<string, string>;
+  /** Shopping list items ticked off (food ids). */
+  bought: string[];
+  updatedAt?: string;
+}
+
 export interface MacroTargets {
   calories: number;
   protein: number;   // grams
   carbs: number;     // grams
   fat: number;       // grams
+  /** Set on every write so the sync merge keeps the newest (db-sync updatedAtFields). */
+  updatedAt?: string;
 }
 
 export interface MealEntry {
@@ -590,6 +614,65 @@ export interface MealEntry {
   fat: number;
   portion?: string;  // e.g. "1 cup", "200g", "2 scoops"
   notes?: string;
+  /** Grams eaten — with per100g the entry can be re-scaled when edited. */
+  grams?: number;
+  /** Nutrition per 100 g of what was eaten (lets an edit of grams rescale macros). */
+  per100g?: Per100g;
+  fiber?: number;
+  /** Where it came from — food library id (builtin/custom/OFF/recipe). */
+  foodId?: string;
+  source?: FoodSource;
+  updatedAt?: string;
+  _deleted?: boolean;
+  _deletedAt?: number;
+}
+
+export type FoodSource = 'builtin' | 'custom' | 'recipe' | 'openfoodfacts' | 'ai' | 'quick' | 'history';
+
+/** Nutrition per 100 g (or 100 ml). */
+export interface Per100g {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  sugar?: number;
+  salt?: number;
+}
+
+export interface FoodServing { label: string; grams: number }
+
+export interface RecipeIngredient {
+  name: string;
+  grams: number;
+  per100g: Per100g;
+  foodId?: string;
+}
+
+/**
+ * A food in the athlete's own library: a custom food, a saved barcode/OFF
+ * product, or a recipe (ingredients → per-100 g of the cooked dish). Synced.
+ */
+export interface FoodItem {
+  id: string;
+  kind: 'food' | 'recipe';
+  name: string;
+  brand?: string;
+  per100g: Per100g;
+  /** First serving is the default. */
+  servings: FoodServing[];
+  barcode?: string;
+  source: FoodSource;
+  /** Recipes: what went in, and what the whole pot weighs cooked. */
+  ingredients?: RecipeIngredient[];
+  yieldGrams?: number;
+  /** Recipes: how many portions the pot makes (default serving = yield / portions). */
+  portions?: number;
+  tags?: string[];
+  timesUsed?: number;
+  lastUsed?: string;
+  createdAt: string;
+  updatedAt?: string;
   _deleted?: boolean;
   _deletedAt?: number;
 }

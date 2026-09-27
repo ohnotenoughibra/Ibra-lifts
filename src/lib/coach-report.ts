@@ -131,10 +131,14 @@ export function buildCoachReport(input: CoachReportInput): string {
     const last = sorted[sorted.length - 1];
     const twoWeeksAgo = sorted.find(e => new Date(e.date).getTime() >= DAYS(14));
     if (twoWeeksAgo) {
-      const delta = last.weight - twoWeeksAgo.weight;
+      // Entries carry their own unit — compare in the latest entry's unit
+      // (the label was hard-coded "kg" even for lbs logs).
+      const unit = last.unit === 'lbs' ? 'lbs' : 'kg';
+      const toUnit = (e: typeof last) => e.unit === unit ? e.weight : unit === 'kg' ? e.weight * 0.45359237 : e.weight / 0.45359237;
+      const delta = last.weight - toUnit(twoWeeksAgo);
       const sign = delta > 0 ? '+' : '';
       lines.push('BODY WEIGHT');
-      lines.push(`  Latest:        ${last.weight}kg (${sign}${delta.toFixed(1)}kg in 14d)`);
+      lines.push(`  Latest:        ${last.weight}${unit} (${sign}${delta.toFixed(1)}${unit} in 14d)`);
       lines.push('');
     }
   }

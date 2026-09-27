@@ -39,7 +39,12 @@
 - `ConditioningSession.tsx` (~1,160) — Conditioning workout logging
 
 ### Nutrition
-- `NutritionTracker.tsx` (~2,500) — Meal logging, macro dashboard, water
+- `NutritionTracker.tsx` (~110) — Nutrition shell: Today / Plan / Coach + the log sheet
+- `nutrition/TodayView.tsx` — ring, why-sheet, fight week, water, meal timeline with scaled recipe suggestions
+- `nutrition/FoodLogger.tsx` + `AmountPicker.tsx` — search / describe (Claude) / quick / scan; grams + servings
+- `nutrition/PlanView.tsx` + `MyFoods.tsx` — 7-day plan, shopping list, recipe book, custom foods + recipe builder
+- `nutrition/CoachView.tsx` — goal + rate, adaptive/fixed, profile, meal prefs, 7-day review
+- `nutrition/Sheets.tsx`, `nutrition/ui.tsx` — recipe / why / entry sheets; ring, bars, chips, sheet
 - `BarcodeScanner.tsx` (~510) — Camera barcode scanner, OpenFoodFacts lookup, lazy-loaded. Distinguishes a transient lookup failure (Retry) from a genuine not-found (manual entry); releases the camera between scans
 - `DietCoach.tsx` (~1,550) — Diet phase management, weekly check-ins
 - `NutritionTrends.tsx` (~435) — Nutrition analytics

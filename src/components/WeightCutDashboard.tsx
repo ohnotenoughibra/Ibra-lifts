@@ -7,7 +7,9 @@ import {
   ChevronDown, ChevronUp, Activity, Thermometer, X,
   Target, TrendingDown, Shield, Zap,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, localDayKey, asLocalDate } from '@/lib/utils';
+import { analyzeWeightTrend } from '@/lib/diet-coach';
+import { trendWeightKg, defaultWeighIn } from '@/lib/nutrition-targets';
 import { useAppStore } from '@/lib/store';
 import {
   getWaterProtocol, getSodiumProtocol, getCarbProtocol,
@@ -42,7 +44,8 @@ const PHASE_LABELS: Record<string, { name: string; color: string }> = {
 export default function WeightCutDashboard({ competitionId, onClose }: WeightCutDashboardProps) {
   const competitions = useAppStore(s => s.competitions);
   const weightCutPlans = useAppStore(s => s.weightCutPlans ?? []);
-  const bodyWeightLog = useAppStore(s => s.bodyWeightLog.filter(e => !e._deleted));
+  const rawBodyWeightLog = useAppStore(s => s.bodyWeightLog);
+  const bodyWeightLog = useMemo(() => rawBodyWeightLog.filter(e => !e._deleted), [rawBodyWeightLog]);
   const user = useAppStore(s => s.user);
 
   const [showChecklist, setShowChecklist] = useState(true);
@@ -53,27 +56,27 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
   const competition = competitions.find(c => c.id === competitionId);
   const plan = weightCutPlans.find(p => p.competitionId === competitionId);
 
-  if (!competition) {
-    return (
-      <div className="p-6 text-center text-zinc-400">
-        <p>Competition not found.</p>
-        <button aria-label="Close" onClick={onClose} className="mt-4 text-blue-400 hover:text-blue-300">Close</button>
-      </div>
-    );
-  }
+  // Days to the WEIGH-IN (a day-before weigh-in is one day earlier than the
+  // event — the old count was to the event, so "1 day out" was weigh-in day).
+  const weighInType = plan?.weighInType ?? (competition ? defaultWeighIn(competition.type) : 'same_day');
+  const daysToWeighIn = useMemo(() => {
+    if (!competition) return 0;
+    const eventKey = localDayKey(asLocalDate(competition.date as Date | string));
+    const d = Math.round((Date.parse(`${eventKey}T12:00:00`) - Date.parse(`${localDayKey()}T12:00:00`)) / 864e5);
+    return weighInType === 'day_before' ? d - 1 : d;
+  }, [competition, weighInType]);
 
-  const eventDate = new Date(competition.date);
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const daysToWeighIn = Math.ceil((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  // Trend weight, not the last array element.
+  const currentWeightKg = useMemo(
+    () => trendWeightKg({ user, macroTargets: { calories: 0, protein: 0, carbs: 0, fat: 0 }, bodyWeightLog }) ?? 70,
+    [bodyWeightLog, user],
+  );
 
-  const currentWeightKg = useMemo(() => {
-    if (bodyWeightLog.length === 0) return user?.bodyWeightKg ?? 70;
-    const latest = bodyWeightLog[bodyWeightLog.length - 1];
-    return latest.unit === 'lbs' ? latest.weight * 0.453592 : latest.weight;
-  }, [bodyWeightLog, user]);
-
-  const targetWeightKg = competition.weightClass ?? currentWeightKg;
+  // Weight class is stored in the user's unit (it was used as kg — lb users never "needed" a cut).
+  const classKg = competition?.weightClass != null
+    ? (user?.weightUnit === 'lbs' ? competition.weightClass * 0.45359237 : competition.weightClass)
+    : null;
+  const targetWeightKg = plan?.targetWeightKg ?? classKg ?? currentWeightKg;
   const totalToLose = Math.max(0, currentWeightKg - targetWeightKg);
   const progressPercent = totalToLose > 0
     ? Math.min(100, Math.round(((plan?.startWeightKg ?? currentWeightKg) - currentWeightKg) / totalToLose * 100))
@@ -103,24 +106,24 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
   const isPostWeighIn = daysToWeighIn < 0;
   // Re-derive the cap from the weigh-in format so plans saved before the
   // recovery-time rule (flat 6 %) get the safe ceiling too.
-  const waterCap = plan ? Math.min(plan.maxWaterCutPercent, waterCutCapForHours(rehydrationHoursFor(plan.weighInType))) : undefined;
+  const waterCap = plan
+    ? Math.min(plan.maxWaterCutPercent, waterCutCapForHours(rehydrationHoursFor(plan.weighInType)))
+    : waterCutCapForHours(rehydrationHoursFor(weighInType));
   const waterProtocol = getWaterProtocol(daysToWeighIn, currentWeightKg, waterCap);
   const sodiumProtocol = getSodiumProtocol(daysToWeighIn);
   const carbProtocol = getCarbProtocol(Math.max(0, daysToWeighIn), currentWeightKg);
-  const checklist = generateDailyChecklist(Math.max(0, daysToWeighIn), currentWeightKg);
+  // Pass the cap so a 2-hour weigh-in doesn't get a water-loading checklist; and
+  // don't clamp — past the weigh-in the checklist's rehydration branch applies.
+  const checklist = generateDailyChecklist(daysToWeighIn, currentWeightKg, waterCap ?? waterCutCapForHours(rehydrationHoursFor(weighInType)));
 
   // Phase info
   const phaseInfo = PHASE_LABELS[checklist.phase] ?? PHASE_LABELS.not_started;
 
   // Weight projection (use recent trend from body weight log)
+  // Weekly change from the EMA trend by calendar window (was: last 7 ENTRIES vs the 7 before).
   const recentWeeklyChange = useMemo(() => {
-    if (bodyWeightLog.length < 7) return -0.5; // assume moderate loss if no data
-    const recent7 = bodyWeightLog.slice(-7);
-    const older7 = bodyWeightLog.slice(-14, -7);
-    if (older7.length === 0) return -0.5;
-    const recentAvg = recent7.reduce((s, e) => s + (e.unit === 'lbs' ? e.weight * 0.453592 : e.weight), 0) / recent7.length;
-    const olderAvg = older7.reduce((s, e) => s + (e.unit === 'lbs' ? e.weight * 0.453592 : e.weight), 0) / older7.length;
-    return recentAvg - olderAvg;
+    const t = analyzeWeightTrend(bodyWeightLog, 'kg');
+    return t.trendData.length >= 4 ? t.weeklyChange : -0.5; // assume moderate loss without data
   }, [bodyWeightLog]);
 
   const projection = projectWeighInWeight(currentWeightKg, targetWeightKg, Math.max(0, daysToWeighIn), recentWeeklyChange);
@@ -129,13 +132,24 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
   // imported but never invoked, so it never reached an athlete.
   const rehydrationPhases = useMemo(() => {
     if (!isPostWeighIn) return null;
-    const waterCutKg = Math.max(0, currentWeightKg - targetWeightKg);
+    // What came off as WATER: capped by the format's water-cut ceiling (the
+    // whole remaining gap is not water — most of a cut is fat + glycogen).
+    const waterCutKg = Math.min(Math.max(0, currentWeightKg - targetWeightKg), currentWeightKg * (waterCap ?? 3) / 100);
     return getRehydrationProtocol(
-      waterCutKg > 0 ? waterCutKg : currentWeightKg * 0.03,
+      waterCutKg > 0 ? waterCutKg : currentWeightKg * 0.02,
       plan?.rehydrationTimeHours ?? 24,
       currentWeightKg,
     );
-  }, [isPostWeighIn, currentWeightKg, targetWeightKg, plan?.rehydrationTimeHours]);
+  }, [isPostWeighIn, currentWeightKg, targetWeightKg, plan?.rehydrationTimeHours, waterCap]);
+
+  if (!competition) {
+    return (
+      <div className="p-6 text-center text-zinc-400">
+        <p>Competition not found.</p>
+        <button aria-label="Close" onClick={onClose} className="mt-4 text-blue-400 hover:text-blue-300">Close</button>
+      </div>
+    );
+  }
 
   return (
     <motion.div

@@ -12,7 +12,7 @@ import {
   getPhaseRecommendation,
   calculateAdherence,
   calculateEnergyAvailability,
-  estimateDailyExerciseCost,
+  dailyExerciseCostLastWeek,
   getPhaseDietParams,
 } from '@/lib/diet-coach';
 import { DietGoal, BiologicalSex, NutritionPhaseType } from '@/lib/types';
@@ -104,6 +104,7 @@ export default function DietCoach() {
     setNutritionPeriodPlan,
     advanceNutritionPhase,
   } = useAppStore();
+  const adaptiveMode = useAppStore(s => (s.nutritionPrefs?.targetMode ?? 'adaptive') === 'adaptive');
 
   const activeIllness = useMemo(() => getActiveIllness(), [getActiveIllness]);
   const isIll = !!activeIllness && (activeIllness.status === 'active' || activeIllness.status === 'recovering');
@@ -280,11 +281,7 @@ export default function DietCoach() {
   // Energy availability calculation (for display)
   const energyAvailability = useMemo(() => {
     if (!macroTargets?.calories || !bodyWeightKg) return null;
-    const exerciseCost = estimateDailyExerciseCost(
-      trainingSessions?.slice(-7) || [],
-      [],
-      bodyWeightKg,
-    );
+    const exerciseCost = dailyExerciseCostLastWeek(trainingSessions, workoutLogs, bodyWeightKg);
     const leanMassKg = latestBodyFat
       ? bodyWeightKg * (1 - latestBodyFat / 100)
       : bodyWeightKg * 0.8; // fallback estimate
@@ -293,7 +290,7 @@ export default function DietCoach() {
       exerciseCost,
       leanMassKg,
     );
-  }, [macroTargets?.calories, bodyWeightKg, trainingSessions, latestBodyFat]);
+  }, [macroTargets?.calories, bodyWeightKg, trainingSessions, workoutLogs, latestBodyFat]);
 
   // Handle starting a new diet phase
   const handleStartPhase = () => {
@@ -427,6 +424,11 @@ export default function DietCoach() {
       animate={{ opacity: 1, scale: 1 }}
       className="card overflow-hidden"
     >
+      {adaptiveMode && (
+        <p className="px-4 pt-3 text-[11px] text-amber-300">
+          Adaptive targets are on — your calories follow what you actually burn, so check-ins here only change targets in Fixed mode (Nutrition → Coach).
+        </p>
+      )}
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}

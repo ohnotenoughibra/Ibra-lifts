@@ -31,6 +31,7 @@ import { SetLog, ExerciseLog, MuscleGroup, Mesocycle } from '@/lib/types';
 import { exercises as exerciseLibrary, getExerciseById, searchExercises } from '@/lib/exercises';
 import { exportWorkoutHistoryPdf } from '@/lib/pdf-export';
 import TrainingCalendar from './TrainingCalendar';
+import WhoopLiftStats from './WhoopLiftStats';
 import { useShallow } from 'zustand/react/shallow';
 import { Layers } from 'lucide-react';
 import { resolveWeightUnit } from '@/lib/units';
@@ -776,12 +777,18 @@ export default function WorkoutHistory() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 mt-0.5">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
                       <p className="text-xs text-grappler-400">{formatDate(log.date)}</p>
                       <span className="text-grappler-600 text-xs">·</span>
                       <p className="text-xs text-grappler-400">{formatNumber(Math.round(log.totalVolume))} {weightUnit}</p>
                       <span className="text-grappler-600 text-xs">·</span>
                       <p className="text-xs text-grappler-400">{log.duration} min</p>
+                      {log.whoopHR && log.whoopHR.strain > 0 && (
+                        <>
+                          <span className="text-grappler-600 text-xs">·</span>
+                          <p className="text-xs text-grappler-400">strain {log.whoopHR.strain.toFixed(1)}</p>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -857,6 +864,8 @@ export default function WorkoutHistory() {
                         </>
                       )}
                     </div>
+
+                    {editingLogId !== log.id && <WhoopLiftStats log={log} allLogs={workoutLogs} />}
 
                     {/* Duration edit (visible in edit mode) */}
                     {editingLogId === log.id && (

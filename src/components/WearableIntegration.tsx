@@ -38,7 +38,7 @@ import {
   ChevronDown,
   Shield,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, localDayKey } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
 import { WearableData, WearableProvider, WhoopWorkout, WhoopBodyMeasurement, ActivityType, ActivityCategory, TrainingIntensity } from '@/lib/types';
 import HealthImport from './HealthImport';
@@ -56,7 +56,7 @@ import {
   transformWhoopWorkouts,
 } from '@/lib/whoop-client';
 import { syncWhoop } from '@/lib/whoop-sync';
-import { resolveWeightUnit } from '@/lib/units';
+import { resolveWeightUnit, fromKg, toKg } from '@/lib/units';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -120,6 +120,8 @@ function trendIcon(current: number, previous: number) {
 export default function WearableIntegration({ onClose }: WearableIntegrationProps) {
   const user = useAppStore(s => s.user);
   const weightUnit = resolveWeightUnit(user?.weightUnit);
+  const bodyWeightLog = useAppStore(s => s.bodyWeightLog);
+  const [weightLogged, setWeightLogged] = useState(false);
   const [wearableData, setWearableData] = useState<WearableData[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -188,7 +190,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       if (r.status === 'ok') {
         setIsConnected(true);
         setWhoopProfile(r.api?.profile);
-        setWearableData(r.data ?? []);
+        // This screen is a 7-day view; the store keeps the full history.
+        setWearableData((r.data ?? []).slice(-7));
         setWhoopWorkouts(r.workouts ?? []);
         setWhoopBody(r.body ?? null);
         setLastSync(new Date());
@@ -312,6 +315,23 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     [wearableData],
   );
 
+  // Offer Whoop's weight to the body-weight tracker — only when nothing is
+  // logged today and it differs from the last entry (Whoop's weight is typed
+  // into the Whoop profile, so an unchanged value is just stale, not a weigh-in).
+  const whoopWeightToLog = useMemo(() => {
+    if (weightLogged || whoopBody?.weightKg == null) return null;
+    const value = Math.round(fromKg(whoopBody.weightKg, weightUnit) * 10) / 10;
+    const live = (bodyWeightLog ?? []).filter(e => !e._deleted)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const last = live[0];
+    if (last && localDayKey(new Date(last.date)) === localDayKey(new Date())) return null;
+    if (last) {
+      const lastValue = fromKg(toKg(last.weight, resolveWeightUnit(last.unit)), weightUnit);
+      if (Math.abs(lastValue - value) < 0.3) return null;
+    }
+    return value;
+  }, [whoopBody, weightUnit, bodyWeightLog, weightLogged]);
+
   const avgRecovery = useMemo(() => {
     const scores = wearableData
       .map((d) => d.recoveryScore)
@@ -346,6 +366,8 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
     setLastSync(null);
     setError(null);
     useAppStore.getState().setWhoopWorkouts([]);
+    useAppStore.getState().setWhoopBody(null);
+    useAppStore.getState().setWearableHistory([]);
   };
 
   const handleSync = () => {
@@ -910,6 +932,18 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
                           <div className="bg-grappler-900/50 rounded-lg p-3">
                             <span className="text-xs text-grappler-400 flex items-center gap-1"><Scale className="w-3 h-3" /> Weight</span>
                             <p className="text-lg font-bold text-grappler-100 mt-0.5">{weightUnit === 'kg' ? Math.round(whoopBody.weightKg * 10) / 10 : Math.round(whoopBody.weightKg * 2.20462 * 10) / 10} <span className="text-xs font-normal text-grappler-400">{weightUnit}</span></p>
+                            {whoopWeightToLog != null && (
+                              <button
+                                onClick={() => {
+                                  useAppStore.getState().addBodyWeight(whoopWeightToLog, 'From Whoop profile');
+                                  setWeightLogged(true);
+                                }}
+                                className="mt-1.5 text-[11px] font-medium text-primary-400 hover:text-primary-300"
+                              >
+                                Log to body weight
+                              </button>
+                            )}
+                            {weightLogged && <p className="mt-1.5 text-[11px] text-green-400">Logged</p>}
                           </div>
                         )}
                       </div>

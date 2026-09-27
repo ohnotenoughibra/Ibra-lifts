@@ -37,6 +37,7 @@ import { INTENSITY_LABELS, type TrainingIntensity } from './types';
 import { localDayKey, asLocalDate } from './utils';
 import { carryOverLoad } from './load-model';
 import { resolveWeightUnit, type WeightUnit } from './units';
+import { recentSleepDebt, isSignificantSleepDebt, bedtimeTarget, type SleepDebt, type BedtimeTarget } from './sleep-plan';
 
 /** Filter out soft-deleted items */
 function active<T>(arr: T[]): T[] {
@@ -115,6 +116,10 @@ export interface DailyDirective {
   nutritionPhaseTag: string | null;
   /** Whether the periodization engine recommends transitioning to a new phase */
   phaseTransitionRecommended: boolean;
+  /** Hours short of Whoop's sleep need over the last 3 nights (null without Whoop sleep data). */
+  sleepDebt: SleepDebt | null;
+  /** Tonight's bedtime from usual wake time − Whoop sleep need (null without data). */
+  bedtime: BedtimeTarget | null;
 }
 
 export type SessionGrade = 'S' | 'A' | 'B' | 'C';
@@ -568,9 +573,15 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     }
   }
 
-  // Sleep action based on readiness
+  // Sleep action — a concrete bedtime when Whoop knows your need and wake time
+  const debt = recentSleepDebt(wearableHistory);
+  const sleepDebt = debt.nights > 0 ? debt : null;
+  const bedtime = bedtimeTarget(wearableHistory);
   const sleepFactor = readiness.factors.find(f => f.source === 'sleep' && f.available);
-  if (sleepFactor && sleepFactor.score < 50) {
+  if (bedtime && (debt.shortNights >= 1 || (sleepFactor && sleepFactor.score < 50))) {
+    actions.push(`In bed by ${bedtime.bedtime} tonight — Whoop says you need ${bedtime.needHours.toFixed(1)}h`
+      + (debt.deficitHours >= 1 ? ` (${debt.deficitHours.toFixed(1)}h short over 3 nights)` : ''));
+  } else if (sleepFactor && sleepFactor.score < 50) {
     actions.push('Prioritize sleep tonight — aim for 7-9hrs');
   }
 
@@ -620,6 +631,10 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     } else {
       trainingModification = 'Keep RPE ≤7 today. Drop top sets by 10% and focus on technique.';
     }
+  } else if ((todayType === 'lift' || todayType === 'both') && isSignificantSleepDebt(debt)) {
+    // One short night is in today's recovery score already; several in a row
+    // is accumulated debt that a single green morning hides.
+    trainingModification = `Sleep debt: ${debt.deficitHours.toFixed(1)}h short over ${debt.nights} nights — keep top sets at RPE ≤7 and skip the last set of isolation work.`;
   }
 
   return {
@@ -651,6 +666,8 @@ export function generateDailyDirective(input: DirectiveInput): DailyDirective {
     skippedSessions: skippedSessionNames,
     nutritionPhaseTag,
     phaseTransitionRecommended,
+    sleepDebt,
+    bedtime,
   };
 }
 

@@ -3,6 +3,24 @@
 All notable changes to Roots Gains are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semver.
 
+## [Unreleased]
+
+**Whoop that actually coaches: real baselines, Whoop data on your lifts, sleep you can plan, and your recovery on your lock screen.**
+
+### Added
+- **Whoop on your lifts** — once Whoop scores a workout, the matching lift in History shows strain, avg/max HR and calories, your strain per 1,000 kg vs your usual, and the RPE your heart rate suggests vs what you logged. (Matching at "Finish" almost always ran before Whoop had the workout.)
+- **Bedtime target** — in the evening Home shows when to be in bed: your usual wake time minus Whoop's sleep need.
+- **Sleep debt changes the plan** — 2+ nights ≥1h short of Whoop's need (≥2.5h total) caps top sets at RPE 7 on a lift day, even when this morning's recovery is green.
+- **Recovery push** — when Whoop scores your recovery, you get "Recovery 34% — yellow · HRV 52 ms…" without opening the app (needs push + recovery alerts on). Set the webhook URL `<app>/api/whoop/webhook` (v2) in the Whoop developer dashboard.
+- **Log Whoop weight** — the Wearable screen offers to add your Whoop profile weight to body weight when it differs from your last weigh-in.
+
+### Fixed
+- **Whoop baselines were ~6 days, not 14** — every sync replaced the history with the last 7 days and nothing was kept across reloads. The first sync now backfills 60 days, later syncs merge in, and the history is kept on the device (90 days).
+- **Training load misses** — runs, conditioning and anything else only Whoop tracked now count in Load (acute:chronic), without double-counting logged lifts or imported mat sessions.
+- **Naps overwrote last night's sleep** — a 25-min nap read as "0.4h sleep".
+- Heart-rate zones and the VO2max estimate use Whoop's measured max HR instead of 220 − age / a flat 190.
+- A server-side token refresh no longer forces a Whoop reconnect: the app retries with the saved tokens first.
+
 ## [2.23.0] - 2026-09-25
 
 **Progress you can trust: no more crashes on old data, no false alarms, and an app that heals itself after an update.**

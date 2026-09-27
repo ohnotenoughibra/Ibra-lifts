@@ -42,11 +42,12 @@ const HEATMAP_DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 export default function TrainingLoadDashboard({ onClose }: { onClose: () => void }) {
   const workoutLogs = useAppStore(s => s.workoutLogs);
   const trainingSessions = useAppStore(s => s.trainingSessions ?? []);
+  const whoopWorkouts = useAppStore(s => s.whoopWorkouts);
   const [selectedHeatmapDay, setSelectedHeatmapDay] = useState<{ date: string; intensity: number; sessions: number } | null>(null);
 
   const acwr = useMemo(
-    () => calculateEnhancedACWR(workoutLogs, trainingSessions),
-    [workoutLogs, trainingSessions]
+    () => calculateEnhancedACWR(workoutLogs, trainingSessions, whoopWorkouts),
+    [workoutLogs, trainingSessions, whoopWorkouts]
   );
 
   const heatmap = useMemo(

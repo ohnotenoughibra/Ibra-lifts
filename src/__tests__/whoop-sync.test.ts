@@ -34,7 +34,7 @@ function mockFetch(handler: (url: string, init?: RequestInit) => unknown) {
 
 beforeEach(() => {
   localStorage.clear();
-  useAppStore.setState({ whoopSync: {}, latestWhoopData: null, wearableHistory: [] } as never);
+  useAppStore.setState({ whoopSync: {}, latestWhoopData: null, wearableHistory: [], whoopWorkouts: [], whoopBody: null, workoutLogs: [], trainingSessions: [] } as never);
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -105,5 +105,77 @@ describe('syncWhoop', () => {
     useAppStore.setState({ latestWhoopData: { ...useAppStore.getState().latestWhoopData!, recoveryScore: null } });
     expect((await syncWhoop()).status).toBe('ok'); // recovery not scored yet → keep checking
     expect(calls.filter(c => c.startsWith('POST /api/whoop/data')).length).toBe(2);
+  });
+
+  it('asks for a 60-day backfill first, then a short window, and MERGES history', async () => {
+    localStorage.setItem('whoop_access_token', 'at');
+    localStorage.setItem('whoop_token_expires', String(Date.now() + 3600e3));
+    const old = Array.from({ length: 30 }, (_, i) => ({
+      id: `old${i}`, date: new Date(now.getTime() - (i + 1) * 864e5), provider: 'whoop', hrv: 55,
+    }));
+    const bodies: any[] = [];
+    mockFetch((u, init) => { if (u.includes('/api/whoop/data')) bodies.push(JSON.parse(String(init?.body))); return apiOk; });
+    await syncWhoop({ force: true });
+    expect(bodies[0].days).toBe(60);
+    useAppStore.setState({ wearableHistory: old as never });
+    await syncWhoop({ force: true });
+    expect(bodies[1].days).toBe(10);
+    const hist = useAppStore.getState().wearableHistory;
+    expect(hist.length).toBe(31); // 30 stored days kept + today
+    expect(hist[hist.length - 1].recoveryScore).toBe(71);
+  });
+
+  it('back-fills Whoop HR onto a lift logged before Whoop scored it', async () => {
+    localStorage.setItem('whoop_access_token', 'at');
+    localStorage.setItem('whoop_token_expires', String(Date.now() + 3600e3));
+    const finish = new Date(now.getTime() - 3600e3);
+    useAppStore.setState({ workoutLogs: [{ id: 'L1', date: finish, duration: 60, exercises: [], totalVolume: 8000, overallRPE: 8 }] as never });
+    const w = { id: 'W1', sport_id: 45, sport_name: 'weightlifting', start: iso(new Date(finish.getTime() - 3600e3)), end: iso(finish),
+      score_state: 'SCORED', score: { strain: 9.1, average_heart_rate: 118, max_heart_rate: 161, kilojoule: 1500, zone_durations: {} } };
+    mockFetch(() => ({ ...apiOk, workouts: [w] }));
+    const r = await syncWhoop({ force: true });
+    expect(r.liftsLinked).toBe(1);
+    const log = useAppStore.getState().workoutLogs.find(l => l.id === 'L1')!;
+    expect(log.whoopHR).toMatchObject({ strain: 9.1, avgHR: 118, whoopWorkoutId: 'W1' });
+    expect(log.updatedAt).toBeTruthy(); // syncs to the cloud like any edit
+  });
+
+  it('retries with the DB tokens when the server rotated ours (webhook refresh)', async () => {
+    localStorage.setItem('whoop_access_token', 'stale');
+    localStorage.setItem('whoop_refresh_token', 'rt-dead');
+    localStorage.setItem('whoop_token_expires', String(Date.now() + 3600e3));
+    mockFetch((u, init) => {
+      if (u.includes('/api/whoop/tokens') && (init?.method ?? 'GET') === 'GET') {
+        return { tokens: { access_token: 'fresh', refresh_token: 'rt-new', expires_at: String(Date.now() + 3600e3) } };
+      }
+      if (u.includes('/api/whoop/data')) {
+        const body = JSON.parse(String(init?.body));
+        return body.access_token === 'fresh' ? apiOk : { connected: false, requiresReconnect: true };
+      }
+      return {};
+    });
+    const r = await syncWhoop({ force: true });
+    expect(r.status).toBe('ok');
+    expect(localStorage.getItem('whoop_refresh_token')).toBe('rt-new');
+  });
+});
+
+
+describe('syncWhoop mat import window', () => {
+  it('backfill does not auto-import mat sessions older than a week', async () => {
+    localStorage.setItem('whoop_access_token', 'at');
+    localStorage.setItem('whoop_token_expires', String(Date.now() + 3600e3));
+    const bjj = (id: string, daysAgo: number) => {
+      const start = new Date(now.getTime() - daysAgo * 864e5);
+      return { id, sport_id: 70, sport_name: 'jiu jitsu', start: iso(start), end: iso(new Date(start.getTime() + 3600e3)),
+        score_state: 'SCORED', score: { strain: 14, average_heart_rate: 150, max_heart_rate: 185, kilojoule: 3000, zone_durations: {} } };
+    };
+    mockFetch(() => ({ ...apiOk, workouts: [bjj('recent', 2), bjj('old', 30)] }));
+    await syncWhoop({ force: true });
+    const ids = useAppStore.getState().trainingSessions.map(s => s.whoopWorkoutId);
+    expect(ids).toContain('recent');
+    expect(ids).not.toContain('old');
+    // …but the old one is still stored for training load
+    expect(useAppStore.getState().whoopWorkouts.map(w => w.id)).toContain('old');
   });
 });

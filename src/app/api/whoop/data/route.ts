@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { refreshAccessToken, whoopFetch } from '@/lib/whoop';
+import { refreshAccessToken, whoopFetch, whoopFetchAll, clampDays } from '@/lib/whoop';
 import { rateLimit, getClientIP } from '@/lib/rate-limit';
 
 /**
@@ -27,6 +27,9 @@ function crossSite(request: NextRequest): boolean {
 }
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
+
+export const maxDuration = 30;
+
 
 export async function POST(request: NextRequest) {
   if (crossSite(request)) {
@@ -92,18 +95,19 @@ export async function POST(request: NextRequest) {
   }
 
   // --- Step 4: Fetch all data in parallel ---
+  // `days` (1–60, default 7): the client asks for a 60-day backfill on first
+  // sync and a short window after that, then merges into its stored history.
+  const days = clampDays(body.days);
   const now = new Date();
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 7);
-  const startStr = weekAgo.toISOString();
-  const endStr = now.toISOString();
+  const since = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  const range = { start: since.toISOString(), end: now.toISOString() };
 
   const [recoveryResult, cyclesResult, sleepResult, workoutsResult, bodyResult] =
     await Promise.all([
-      whoopFetch('/recovery', accessToken, { start: startStr, end: endStr, limit: '7' }),
-      whoopFetch('/cycle', accessToken, { start: startStr, end: endStr, limit: '7' }),
-      whoopFetch('/activity/sleep', accessToken, { start: startStr, end: endStr, limit: '7' }),
-      whoopFetch('/activity/workout', accessToken, { start: startStr, end: endStr, limit: '10' }),
+      whoopFetchAll('/recovery', accessToken, range),
+      whoopFetchAll('/cycle', accessToken, range),
+      whoopFetchAll('/activity/sleep', accessToken, range),
+      whoopFetchAll('/activity/workout', accessToken, range),
       whoopFetch('/user/measurement/body', accessToken),
     ]);
 

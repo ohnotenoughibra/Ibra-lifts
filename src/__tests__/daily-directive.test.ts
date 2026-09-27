@@ -315,3 +315,48 @@ describe('generateDailyDirective', () => {
     expect(typeof directive.headline).toBe('string');
   });
 });
+
+// ── Whoop sleep plan (2026-09) ────────────────────────────────────────────
+
+describe('generateDailyDirective — Whoop sleep debt & bedtime', () => {
+  function night(daysAgo: number, asleep: number, recovery = 80): WearableData {
+    const wake = new Date();
+    wake.setDate(wake.getDate() - daysAgo);
+    wake.setHours(6, 30, 0, 0);
+    return {
+      id: `n${daysAgo}`, date: wake, provider: 'whoop', hrv: 70, restingHR: 50, sleepScore: 85,
+      sleepHours: asleep, recoveryScore: recovery, strain: 8, respiratoryRate: null, skinTemp: null,
+      caloriesBurned: null, spo2: null, sleepEfficiency: null, deepSleepMinutes: null, remSleepMinutes: null,
+      sleepDisturbances: null, lightSleepMinutes: null, sleepCycleCount: null, sleepConsistency: null,
+      sleepNeededHours: 8.5, avgHeartRate: null, maxHeartRate: null, sleepEnd: wake.toISOString(),
+    } as WearableData;
+  }
+  const liftDay = () => makeMinimalDirectiveInput({
+    user: makeUser({ trainingDays: [0, 1, 2, 3, 4, 5, 6] }),
+    currentMesocycle: makeMesocycle(),
+  });
+
+  it('three short nights → sleep-debt training change + a concrete bedtime', () => {
+    const history = [night(2, 6.5), night(1, 6.5), night(0, 7)];
+    const d = generateDailyDirective({ ...liftDay(), wearableHistory: history, wearableData: history[2] });
+    expect(d.sleepDebt).toMatchObject({ nights: 3, shortNights: 3, deficitHours: 5.5 });
+    expect(d.bedtime).toMatchObject({ wake: '06:30', needHours: 8.5 });
+    expect(d.readinessScore).toBeGreaterThanOrEqual(55); // green Whoop day — only the debt changes the plan
+    expect(d.trainingModification).toMatch(/^Sleep debt: 5\.5h short over 3 nights/);
+    expect(d.actions.some(a => a.startsWith(`In bed by ${d.bedtime!.bedtime}`))).toBe(true);
+  });
+
+  it('well slept → no sleep-debt change, no bedtime nag', () => {
+    const history = [night(2, 8.6), night(1, 8.5), night(0, 8.7)];
+    const d = generateDailyDirective({ ...liftDay(), wearableHistory: history, wearableData: history[2] });
+    expect(d.sleepDebt?.shortNights).toBe(0);
+    expect(d.trainingModification ?? '').not.toMatch(/Sleep debt/);
+    expect(d.actions.some(a => a.startsWith('In bed by'))).toBe(false);
+  });
+
+  it('without Whoop sleep data both stay null', () => {
+    const d = generateDailyDirective(liftDay());
+    expect(d.sleepDebt).toBeNull();
+    expect(d.bedtime).toBeNull();
+  });
+});

@@ -75,7 +75,7 @@ function getNSLabel(score: number): string {
 }
 
 export default function FatigueOverlay({ onClose = () => {}, embedded }: FatigueOverlayProps) {
-  const { workoutLogs, wearableHistory, whoopWorkouts, trainingSessions, currentMesocycle } = useAppStore();
+  const { workoutLogs, wearableHistory, whoopWorkouts, whoopBody, trainingSessions, currentMesocycle } = useAppStore();
   const [protocolsExpanded, setProtocolsExpanded] = useState(false);
   const [detailsExpanded, setDetailsExpanded] = useState(false);
 
@@ -114,8 +114,9 @@ export default function FatigueOverlay({ onClose = () => {}, embedded }: Fatigue
   const allProtocols = useMemo<DeloadProtocol[]>(() => getDeloadProtocols(), []);
 
   const metrics = useMemo<FatigueMetricsData>(
-    () => calculateAllFatigueMetrics(workoutLogs, wearableHistory, whoopWorkouts, trainingSessions),
-    [workoutLogs, wearableHistory, whoopWorkouts, trainingSessions],
+    // Whoop's measured max HR beats the highest cycle HR seen / a flat 190.
+    () => calculateAllFatigueMetrics(workoutLogs, wearableHistory, whoopWorkouts, trainingSessions, whoopBody?.maxHeartRate),
+    [workoutLogs, wearableHistory, whoopWorkouts, trainingSessions, whoopBody],
   );
 
   const debtColor = useMemo(() => getDebtColor(fatigueDebt.currentDebt), [fatigueDebt.currentDebt]);

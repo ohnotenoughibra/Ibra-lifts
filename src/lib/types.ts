@@ -325,6 +325,8 @@ export interface WorkoutLog {
     strain: number;
     calories: number;
     zones?: { zone: number; minutes: number }[];
+    /** The Whoop workout this was matched to (lets a re-score update it). */
+    whoopWorkoutId?: string;
   };
   /** Set when a log is mutated post-hoc (e.g. data migrations) so the cloud
    *  union-merge prefers this version over an older server copy. */
@@ -644,6 +646,8 @@ export interface WearableData {
   sleepNeededHours: number | null;  // Total sleep need (baseline + debt + strain)
   avgHeartRate: number | null;      // Cycle average heart rate (bpm)
   maxHeartRate: number | null;      // Cycle max heart rate (bpm)
+  sleepStart?: string | null;       // ISO time main sleep began (bedtime)
+  sleepEnd?: string | null;         // ISO time main sleep ended (wake-up)
   notes?: string;
 }
 

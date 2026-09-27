@@ -65,7 +65,9 @@ Living map of how the pieces connect. When you need to change something, look he
 | Recovery coach | `src/lib/recovery-coach.ts` | Sleep/nutrition/stress recommendations |
 | Recovery UI | `src/components/RecoveryCoach.tsx` | Recovery recommendations interface |
 | Readiness UI | `src/components/PerformanceReadiness.tsx` | Readiness dashboard |
-| Whoop sync | `src/lib/useWhoopSync.ts` | Background Whoop data sync (30-min intervals) |
+| Whoop sync | `src/lib/whoop-sync.ts` + `useWhoopSync.ts` | One sync path: 60-day backfill first, then a 10-day window merged into the stored history (`whoop-history.ts`); links lifts to Whoop workouts (`whoop-training.ts`) |
+| Whoop webhook | `src/app/api/whoop/webhook/route.ts` | `recovery.updated` → morning recovery push (once/day) |
+| Sleep plan | `src/lib/sleep-plan.ts` | 3-night sleep debt + bedtime target → Daily Directive |
 
 **Flow**: Whoop data + manual logs → `performance-engine` scores readiness (redistributes weights if data missing) → `readiness-throttle` gates workout intensity → `auto-adjust` incorporates into session modifications → `recovery-coach` generates recommendations
 

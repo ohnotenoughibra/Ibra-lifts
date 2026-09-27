@@ -14,7 +14,11 @@ import { POST as saveTokens } from '@/app/api/whoop/tokens/route';
 import { POST as dataProxy } from '@/app/api/whoop/data/route';
 import { GET as callback } from '@/app/api/whoop/callback/route';
 
-beforeEach(() => { process.env.AUTH_SECRET = 'test-secret-test-secret-test-secret'; session.user = { id: 'victim' }; saved.length = 0; });
+beforeEach(() => {
+  process.env.AUTH_SECRET = 'test-secret-test-secret-test-secret'; session.user = { id: 'victim' }; saved.length = 0;
+  // Token saves look up the Whoop user id — keep the test off the network.
+  global.fetch = vi.fn(async () => new Response('{}', { status: 404 })) as typeof fetch;
+});
 
 describe('signed state', () => {
   it('round-trips and rejects tampering or age', () => {

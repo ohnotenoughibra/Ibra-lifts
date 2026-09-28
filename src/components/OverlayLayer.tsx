@@ -16,7 +16,7 @@
  *   that scroll their own inner panel closed themselves on scroll-up before);
  *   an edge drag never starts on a sideways chip row / carousel.
  */
-import { useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { motion, useMotionValue, animate, type Variants } from 'framer-motion';
 
 export type NavDirection = 'push' | 'pop';
@@ -78,6 +78,79 @@ function inHorizontalScroller(target: HTMLElement, root: HTMLElement): boolean {
   return false;
 }
 
+/**
+ * Headers get out of the way: scrolling a tool's main area down slides its
+ * pinned header(s) up out of view, scrolling up (or reaching the top) brings
+ * them back — like Safari's toolbar. Works on any tool without per-tool code:
+ * it hides whatever `.sticky` element is currently pinned to the top of the
+ * area being scrolled. Never while a field in the header has focus.
+ */
+/** Paint the notch strip the colour of whatever sits right under it (tools use
+ *  grappler-900 or -950), so it reads as part of the header, not a band. */
+function syncStripColour(strip: HTMLElement | null) {
+  const h = strip?.offsetHeight ?? 0;
+  if (!strip || h === 0) return; // no notch
+  strip.style.visibility = 'hidden';
+  let el = document.elementFromPoint(window.innerWidth / 2, h + 2) as HTMLElement | null;
+  strip.style.visibility = '';
+  for (; el; el = el.parentElement) {
+    const bg = getComputedStyle(el).backgroundColor;
+    if (/^rgb\(/.test(bg)) { // solid colours only — a translucent strip would show content through
+      strip.style.backgroundColor = bg;
+      return;
+    }
+  }
+}
+
+function useHideHeadersOnScroll(rootRef: React.RefObject<HTMLElement>, stripRef: React.RefObject<HTMLElement>) {
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const last = new WeakMap<Element, number>();
+    const hiddenEls = new Set<HTMLElement>();
+    let travel = 0;
+
+    const show = () => {
+      if (hiddenEls.size === 0) return;
+      hiddenEls.forEach(el => el.removeAttribute('data-chrome-hidden'));
+      hiddenEls.clear();
+      window.setTimeout(() => syncStripColour(stripRef.current), 240);
+    };
+    const hide = (scroller: HTMLElement) => {
+      const top = scroller.getBoundingClientRect().top;
+      const vh = window.innerHeight;
+      scroller.querySelectorAll<HTMLElement>('.sticky').forEach(el => {
+        const r = el.getBoundingClientRect();
+        if (r.height === 0 || r.height > vh * 0.45) return;           // not a header
+        if (r.top > top + 80 || r.bottom <= top) return;             // not pinned at the top
+        if (el.closest('[role="dialog"], [data-keep-header]')) return;
+        if (el.contains(document.activeElement)) return;              // typing in its search
+        el.setAttribute('data-chrome-hidden', '');
+        hiddenEls.add(el);
+      });
+    };
+
+    const onScroll = (e: Event) => {
+      const sc = e.target as HTMLElement;
+      if (!(sc instanceof HTMLElement) || sc.clientHeight < window.innerHeight * 0.4) return; // inner lists, chip rows
+      const st = sc.scrollTop;
+      const prev = last.get(sc) ?? st;
+      last.set(sc, st);
+      const max = sc.scrollHeight - sc.clientHeight;
+      if (st <= 24) { travel = 0; show(); return; }
+      if (st >= max - 2 && st > prev) return;                        // iOS bounce at the bottom
+      const d = st - prev;
+      travel = (d > 0) === (travel > 0) ? travel + d : d;
+      if (travel > 24 && hiddenEls.size === 0) hide(sc);
+      else if (travel < -16) show();
+    };
+    // Sampled while the header is showing: after the slide-in, and after it returns.
+    const t = window.setTimeout(() => syncStripColour(stripRef.current), 600);
+    root.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    return () => { window.clearTimeout(t); root.removeEventListener('scroll', onScroll, { capture: true }); show(); };
+  }, [rootRef, stripRef]);
+}
+
 export default function OverlayLayer({ direction, canDrag, onDismiss, children }: {
   direction: NavDirection;
   /** False while a sheet/dialog is open above this layer. */
@@ -88,6 +161,8 @@ export default function OverlayLayer({ direction, canDrag, onDismiss, children }
   const rootRef = useRef<HTMLDivElement>(null);
   const dragX = useMotionValue(0);
   const dragY = useMotionValue(0);
+  const stripRef = useRef<HTMLDivElement>(null);
+  useHideHeadersOnScroll(rootRef, stripRef);
   const g = useRef<{ x0: number; y0: number; t0: number; mode: 'edge' | 'pull' | null; armed: boolean; decided: boolean }>(
     { x0: 0, y0: 0, t0: 0, mode: null, armed: false, decided: false },
   );
@@ -162,6 +237,8 @@ export default function OverlayLayer({ direction, canDrag, onDismiss, children }
       className="fixed inset-0 z-overlay bg-grappler-900 shadow-2xl"
       role="presentation"
     >
+      {/* Solid strip under the notch / clock: content never shows above a header */}
+      <div ref={stripRef} aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-[75] bg-grappler-900" style={{ height: 'env(safe-area-inset-top)' }} />
       <motion.div
         ref={rootRef}
         style={{ x: dragX, y: dragY }}

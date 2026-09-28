@@ -885,10 +885,10 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
       <AnimatePresence>
         {showSuccess && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-green-500/15 border border-green-500/40 text-green-400 px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg"
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-above-nav inset-x-0 mx-auto w-fit z-50 bg-green-500/15 border border-green-500/40 text-green-400 px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg"
           >
             <Check className="w-4 h-4" />
             <span className="text-sm font-medium">{successMessage}</span>

@@ -132,10 +132,11 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
   }, [level]);
   return (
     <motion.div
-      initial={{ y: -40, opacity: 0 }}
+      initial={{ y: 40, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      exit={{ y: -40, opacity: 0 }}
-      className="fixed top-3 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-2rem)] max-w-sm safe-area-top"
+      exit={{ y: 40, opacity: 0 }}
+      // Bottom slot (with the toasts), never over the header's buttons.
+      className="fixed bottom-above-nav inset-x-0 mx-auto z-[60] w-[calc(100%-2rem)] max-w-sm"
       role="status"
     >
       <button
@@ -617,6 +618,10 @@ export default function Dashboard({
       className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-40 safe-area-bottom lg:pb-0"
       {...(layerNode ? { inert: '', 'aria-hidden': true } as Record<string, unknown> : {})}
     >
+      {/* Solid strip under the notch / clock — the header scrolls away with
+          the page, and content used to scroll up into the status bar. */}
+      <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 bg-grappler-900 lg:hidden" style={{ height: 'env(safe-area-inset-top)' }} />
+
       {/* Morning Ritual — once-per-day readiness reveal animation */}
       <AnimatePresence>
         {showMorningRitual && activeTab === 'home' && (
@@ -752,7 +757,9 @@ export default function Dashboard({
         <div className="flex-1 min-w-0 lg:flex">
           <div className="flex-1 min-w-0 lg:max-w-4xl">
             {/* Mobile Header (hidden on desktop — sidebar replaces it) */}
-            <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800 safe-area-top lg:hidden">
+            <header
+              className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800 safe-area-top lg:hidden"
+            >
               {/* Row 1: Editorial wordmark + key actions */}
               <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
                 <div className="flex items-baseline gap-2">
@@ -1043,10 +1050,10 @@ export default function Dashboard({
       <AnimatePresence>
         {loginBonusToast && (
           <motion.div
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50"
-            initial={{ opacity: 0, y: -40, scale: 0.9 }}
+            className="fixed bottom-above-nav inset-x-0 mx-auto w-fit z-50"
+            initial={{ opacity: 0, y: 40, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 25 }}
           >
             <button

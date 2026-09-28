@@ -16,6 +16,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semve
 - **System back (Android back, browser back, Safari edge-swipe)** closes the top-most layer: a sheet or dialog inside a tool first, then the tool, then the tool under it; on Train / Progress / Tools it goes to Today before leaving the app. On a running workout it's "Leave workout for now"; on running cardio it asks before ending.
 - **Swipe to close a tool**: pull down from the very top, or drag from the left edge (for the home-screen app, which has no back button).
 - **One way out of every tool**: a back arrow top-left (44 px) everywhere — it used to be a ✕ on the left in some tools, a ✕ on the right in others and a back arrow in the rest. ✕ now only closes sheets and dialogs.
+- **Calendar → Edit Workout** asks "Discard changes?" before ✕, Cancel, a tap outside or back throws away edited sets (unchanged → it just closes); back closes the exercise search first. Edit / move / delete buttons in the day list are 40 px (were 28).
 - **Air bike & sprints**: back steps from a protocol to the list; while running it asks "End this session?" (keep going / end & log) and on the log screen "Discard this session?" — it used to drop straight out. The running timer and the log screen ignore pull-to-close.
 
 #### Fixed

@@ -8,6 +8,7 @@ import { cn, formatNumber } from '@/lib/utils';
 import { WorkoutLog, TrainingSession, ExerciseLog, SetLog } from '@/lib/types';
 import { exercises as allExercises } from '@/lib/exercises';
 import { resolveWeightUnit } from '@/lib/units';
+import BackLayer from './BackLayer';
 
 export default function TrainingCalendar() {
   const {
@@ -320,6 +321,7 @@ export default function TrainingCalendar() {
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
             onClick={() => setSelectedDate(null)}
           >
+            <BackLayer onBack={() => setSelectedDate(null)} />
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -557,6 +559,7 @@ export default function TrainingCalendar() {
             className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
             onClick={() => { setEditingWorkout(null); setEditingSession(null); }}
           >
+            <BackLayer onBack={() => { setEditingWorkout(null); setEditingSession(null); }} />
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}

@@ -166,6 +166,8 @@ Block lifecycle: `active` → `completed` (via `completeMesocycle`, requires ≥
 ### Utilities
 - `utils.ts` — cn() helper, date/weight formatting
 - `haptics.ts` — Vibration API wrapper
+- `back-stack.ts` — one owner for browser history: every open layer (tab ≠ Today, tool, running workout, sheet) owns one entry; system back closes the top-most (`useBackLayer`, `LAYER_RANK`)
+- `scroll-lock.ts` — iOS-correct, reference-counted body scroll lock
 - `confetti.ts` — Milestone animations
 - `rate-limit.ts` — Client-side rate limiting
 - `data-export.ts` — CSV/JSON export

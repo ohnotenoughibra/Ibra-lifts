@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame,
   Calendar,
-  ChevronLeft,
   ChevronDown,
   ChevronUp,
   Target,
@@ -30,6 +29,7 @@ import type { FightCampPhaseConfig } from '@/lib/types';
 import { getSupplementPlan, getPreCompetitionPauses } from '@/lib/supplement-engine';
 import { calculateElectrolyteNeeds, getIntraTrainingFuel, getTournamentDayFuel } from '@/lib/electrolyte-engine';
 import { resolveWeightUnit } from '@/lib/units';
+import { BackButton } from './_ToolShell';
 
 interface FightCampNutritionProps {
   onClose: () => void;
@@ -124,9 +124,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
       >
         <div className="min-h-screen px-4 pt-6 pb-24 max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
-            <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            <BackButton onClick={onClose} />
             <h1 className="text-lg font-bold text-grappler-50 leading-tight">Fight Camp Nutrition</h1>
           </div>
           <div className="text-center py-16">
@@ -154,9 +152,7 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            <BackButton onClick={onClose} />
             <div>
               <h1 className="text-xl font-bold text-grappler-50 flex items-center gap-2">
                 <Flame className="w-5 h-5 text-blue-500" />

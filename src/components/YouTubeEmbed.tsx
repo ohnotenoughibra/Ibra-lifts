@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, ExternalLink } from 'lucide-react';
+import BackLayer from './BackLayer';
 
 interface YouTubeEmbedProps {
   exerciseName: string;
@@ -154,6 +155,7 @@ export default function YouTubeEmbed({ exerciseName, videoUrl, onClose }: YouTub
         animate="visible"
         exit="exit"
       >
+        <BackLayer onBack={onClose} />
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/80 backdrop-blur-sm"

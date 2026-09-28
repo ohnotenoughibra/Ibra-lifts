@@ -32,6 +32,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { hapticLight, hapticMedium } from '@/lib/haptics';
 import type { ContentCategory, KnowledgeArticle, LearningPath } from '@/lib/types';
 import type { OverlayView } from './dashboard-types';
+import { BackButton } from './_ToolShell';
 
 // ── Category gradient map ────────────────────────────────────────────────
 const CAT_STYLE: Record<string, { gradient: string; accent: string; bg: string }> = {
@@ -207,11 +208,14 @@ export default function KnowledgeHub({ onClose, initialCategory, onNavigate }: K
     <div className="min-h-screen bg-grappler-900 px-4 pt-6 pb-24 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-grappler-50">Knowledge Hub</h2>
-          <p className="text-xs text-grappler-500 mt-1">
-            {readCount}/{totalArticles} articles read
-          </p>
+        <div className="flex items-center gap-3">
+          {onClose && <BackButton onClick={onClose} />}
+          <div>
+            <h2 className="text-xl font-bold text-grappler-50">Knowledge Hub</h2>
+            <p className="text-xs text-grappler-500 mt-1">
+              {readCount}/{totalArticles} articles read
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -223,11 +227,6 @@ export default function KnowledgeHub({ onClose, initialCategory, onNavigate }: K
           >
             <Search className="w-5 h-5" />
           </button>
-          {onClose && (
-            <button onClick={onClose} aria-label="Close" className="p-2 text-grappler-400 hover:text-grappler-200">
-              <X className="w-5 h-5" />
-            </button>
-          )}
         </div>
       </div>
 

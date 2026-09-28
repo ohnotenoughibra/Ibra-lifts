@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { MealType } from '@/lib/types';
+import BackLayer from '@/components/BackLayer';
 
 export const MEAL_LABEL: Record<MealType, string> = {
   breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack',
@@ -91,6 +92,7 @@ export function Sheet({ open, onClose, title, children, footer }: {
       {open && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={onClose}>
+          <BackLayer onBack={onClose} />
           <motion.div role="dialog" aria-label={title}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             onClick={e => e.stopPropagation()}

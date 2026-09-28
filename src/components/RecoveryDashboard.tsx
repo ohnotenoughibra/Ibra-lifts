@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ChevronLeft,
   ChevronDown,
   Moon,
   Activity,
@@ -31,6 +30,7 @@ import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { calculateEnhancedACWR } from '@/lib/fatigue-metrics';
 import { getReadinessSummary } from '@/lib/performance-engine';
+import { BackButton } from './_ToolShell';
 
 interface RecoveryDashboardProps {
   onClose?: () => void;
@@ -846,9 +846,7 @@ export default function RecoveryDashboard({ onClose = () => {}, embedded }: Reco
     >
       <div className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 px-4 py-3">
         <div className="flex items-center gap-3">
-          <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <div>
             <h1 className="text-lg font-bold text-grappler-50 leading-tight">Recovery Dashboard</h1>
             <p className="text-xs text-grappler-400">Sleep, stress & training load insights</p>

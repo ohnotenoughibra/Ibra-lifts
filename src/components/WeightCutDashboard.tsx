@@ -11,6 +11,7 @@ import { cn, localDayKey, asLocalDate } from '@/lib/utils';
 import { analyzeWeightTrend } from '@/lib/diet-coach';
 import { trendWeightKg, defaultWeighIn } from '@/lib/nutrition-targets';
 import { useAppStore } from '@/lib/store';
+import { useBackLayer } from '@/lib/back-stack';
 import {
   getWaterProtocol, getSodiumProtocol, getCarbProtocol,
   generateDailyChecklist, assessWeightCutSafety, projectWeighInWeight,
@@ -47,6 +48,7 @@ export default function WeightCutDashboard({ competitionId, onClose }: WeightCut
   const rawBodyWeightLog = useAppStore(s => s.bodyWeightLog);
   const bodyWeightLog = useMemo(() => rawBodyWeightLog.filter(e => !e._deleted), [rawBodyWeightLog]);
   const user = useAppStore(s => s.user);
+  useBackLayer(true, onClose);
 
   const [showChecklist, setShowChecklist] = useState(true);
   const [showSafety, setShowSafety] = useState(true);

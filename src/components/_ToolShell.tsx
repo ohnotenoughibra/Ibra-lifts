@@ -7,7 +7,8 @@
  *   - Editorial brutalist header (Onboarding pattern): step indicator + display
  *     headline + hairline rule + one-line description.
  *   - Solid surfaces (no frosted glass, no backdrop-blur).
- *   - Sticky close (X) in top-left thumb-zone, NOT a floating pill.
+ *   - Sticky back (‹) top-left — the same BackButton every tool uses. Tools
+ *     slide in from the right like a pushed page; ✕ is for sheets/dialogs.
  *   - Optional sticky bottom CTA.
  *   - Single shared `<Section>` primitive — kills the 4+ duplicate Section
  *     definitions across the codebase.
@@ -21,7 +22,7 @@
  */
 
 import { ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // ─── ToolShell ──────────────────────────────────────────────────────────
@@ -44,13 +45,7 @@ export function ToolShell({ onClose, eyebrow, title, description, footer, childr
     <div className="fixed inset-0 z-overlay bg-grappler-950 flex flex-col">
       {/* Top sticky chrome — close only. Title scrolls away with content. */}
       <div className="sticky top-0 z-10 bg-grappler-950 safe-area-top flex justify-start px-4 pt-3 pb-2">
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          className="p-3 -ml-2 hover:bg-grappler-800 rounded-lg active:scale-95 transition"
-        >
-          <X className="w-5 h-5 text-grappler-300" />
-        </button>
+        <BackButton onClick={onClose} />
       </div>
 
       {/* Scrollable body */}
@@ -84,6 +79,22 @@ export function ToolShell({ onClose, eyebrow, title, description, footer, childr
         </div>
       )}
     </div>
+  );
+}
+
+// ─── BackButton ─────────────────────────────────────────────────────────
+// The one way out of a full-screen tool: top-left, 44 × 44, "Go back".
+// Put it first in the tool's header row. (Sheets and dialogs keep their ✕.)
+
+export function BackButton({ onClick, label = 'Go back', className }: { onClick: () => void; label?: string; className?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      className={cn('-ml-2 w-11 h-11 flex-shrink-0 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 active:scale-95 transition', className)}
+    >
+      <ChevronLeft className="w-6 h-6" />
+    </button>
   );
 }
 

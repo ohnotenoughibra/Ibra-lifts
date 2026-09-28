@@ -4,9 +4,11 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { badges as allBadges, getBadgesByCategory } from '@/lib/gamification';
-import { Trophy, Lock, Share2, ChevronLeft } from 'lucide-react';
+import { Trophy, Lock, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from './BackLayer';
 import type { BadgeCategory } from '@/lib/types';
+import { BackButton } from './_ToolShell';
 
 const CATEGORIES: { id: BadgeCategory; label: string; color: string }[] = [
   { id: 'strength', label: 'Strength', color: 'text-red-400' },
@@ -44,9 +46,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800">
         <div className="flex items-center gap-3 p-4">
-          <button onClick={onClose} aria-label="Go back" className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <div className="flex-1">
             <h1 className="text-lg font-bold text-grappler-50 flex items-center gap-2 leading-tight">
               <Trophy className="w-5 h-5 text-yellow-400" />
@@ -159,6 +159,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
               exit={{ opacity: 0, y: 20 }}
               className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-8"
             >
+              <BackLayer onBack={() => setSelectedBadge(null)} />
               <div className={cn(
                 'rounded-lg p-5 border shadow-2xl',
                 badge.earned

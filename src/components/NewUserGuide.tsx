@@ -17,6 +17,7 @@ import {
   Award,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from './BackLayer';
 
 interface NewUserGuideProps {
   onComplete: () => void;
@@ -159,6 +160,7 @@ export default function NewUserGuide({ onComplete }: NewUserGuideProps) {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top"
     >
+      <BackLayer onBack={onComplete} />
       {/* Top bar */}
       <div className="px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-1.5">

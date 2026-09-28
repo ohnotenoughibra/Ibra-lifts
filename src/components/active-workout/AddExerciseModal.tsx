@@ -4,6 +4,7 @@ import type * as React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Search } from 'lucide-react';
+import BackLayer from '../BackLayer';
 import type { Exercise, WorkoutSession, ExerciseLog, PreWorkoutCheckIn } from '@/lib/types';
 import type { ActiveWorkoutThrottle } from '@/lib/store';
 
@@ -31,6 +32,7 @@ export default function AddExerciseModal({ addExerciseSearch, setAddExerciseSear
       role="dialog"
       aria-modal="true"
     >
+      <BackLayer onBack={() => setShowAddExerciseModal(false)} />
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

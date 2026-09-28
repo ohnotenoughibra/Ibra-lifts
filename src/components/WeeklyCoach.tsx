@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ChevronLeft,
   Brain,
   TrendingUp,
   Check,
@@ -30,6 +29,7 @@ import { useComputedGamification } from '@/lib/computed-gamification';
 import { WeeklySummary } from '@/lib/types';
 import { formatNumber, formatDate } from '@/lib/utils';
 import { resolveWeightUnit } from '@/lib/units';
+import { BackButton } from './_ToolShell';
 
 interface WeeklyCoachProps {
   onClose: () => void;
@@ -121,9 +121,7 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
         <div className="min-h-screen px-4 pt-6 pb-24">
           {/* Header */}
           <div className="flex items-center gap-3 mb-8">
-            <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            <BackButton onClick={onClose} />
             <h1 className="text-lg font-bold text-grappler-50 leading-tight">AI Coach</h1>
           </div>
 
@@ -160,9 +158,7 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
       <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto">
         <div className="min-h-screen px-4 pt-6 pb-24">
           <div className="flex items-center gap-3 mb-8">
-            <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            <BackButton onClick={onClose} />
             <h1 className="text-xl font-bold text-grappler-50">AI Coach</h1>
           </div>
 
@@ -188,9 +184,7 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
       <div className="min-h-screen px-4 pt-6 pb-24 max-w-2xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <h1 className="text-xl font-bold text-grappler-50">AI Coach</h1>
         </div>
 

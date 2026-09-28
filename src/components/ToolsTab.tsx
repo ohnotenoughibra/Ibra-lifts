@@ -111,7 +111,7 @@ export default function ToolsTab({ onNavigate }: Props) {
   };
 
   return (
-    <div className="px-4 pt-4 pb-nav max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto">
       {/* Editorial header */}
       <header className="mb-5">
         <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-grappler-500 mb-3">

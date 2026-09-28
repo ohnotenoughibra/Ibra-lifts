@@ -4,7 +4,7 @@ import { usePersistentState } from '@/lib/use-persistent-state';
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, Search, Dumbbell, Target, Brain, ChevronDown,
+  Search, Dumbbell, Target, Brain, ChevronDown,
   Trophy, Flame, Clock, Filter, Calendar,
   Navigation, Crosshair, Footprints, Bike,
 } from 'lucide-react';
@@ -14,6 +14,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { cn, formatNumber, localDayKey, localDaysAgoKey } from '@/lib/utils';
 import type { WorkoutLog, TrainingSession, MentalCheckIn } from '@/lib/types';
 import { resolveWeightUnit } from '@/lib/units';
+import { BackButton } from './_ToolShell';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -169,12 +170,10 @@ export default function TrainingJournal({ onClose }: { onClose: () => void }) {
       <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800/50">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
+            <BackButton onClick={onClose} />
             <Calendar className="w-5 h-5 text-primary-400" />
             <h1 className="text-lg font-display font-bold text-grappler-100">Training Journal</h1>
           </div>
-          <button onClick={onClose} aria-label="Close" className="p-2 text-grappler-400 hover:text-grappler-200 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Search + filter bar */}

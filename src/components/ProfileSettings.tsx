@@ -22,7 +22,6 @@ import {
   Scale,
   Watch,
   Activity,
-  X,
   Pencil,
   AlertTriangle,
   Mail,
@@ -46,6 +45,7 @@ import {
   TrendingUp,
   Lock,
 } from 'lucide-react';
+import { BackButton } from './_ToolShell';
 import HiddenExercisesSetting from './HiddenExercisesSetting';
 import { cn, formatNumber } from '@/lib/utils';
 import { useComputedGamification } from '@/lib/computed-gamification';
@@ -58,6 +58,7 @@ import NotificationSettings from './NotificationSettings';
 import WeekLayoutSheet from './WeekLayoutSheet';
 import { WEEK_ORDER, DAY_SHORT } from '@/lib/plan-edit';
 import type { OverlayView } from './dashboard-types';
+import BackLayer from './BackLayer';
 import { hapticMedium, hapticHeavy, hapticLight } from '@/lib/haptics';
 import { resolveWeightUnit } from '@/lib/units';
 
@@ -636,13 +637,7 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
 
       {/* Close button (overlay mode) */}
       {onClose && (
-        <button
-          onClick={() => { onClose(); hapticLight(); }}
-          className="w-8 h-8 rounded-xl bg-grappler-800/60 backdrop-blur-sm flex items-center justify-center hover:bg-grappler-700/80 transition-colors active:scale-95 z-10 mb-2"
-          aria-label="Close"
-        >
-          <X className="w-4 h-4 text-grappler-400" />
-        </button>
+        <BackButton onClick={() => { onClose(); hapticLight(); }} className="z-10 mb-2" />
       )}
 
       {/* ════════════════════════════════════════════════════════════════ */}
@@ -1385,6 +1380,7 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
             className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center"
             onClick={() => setSelectedBadge(null)}
           >
+            <BackLayer onBack={() => setSelectedBadge(null)} />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
@@ -1465,6 +1461,7 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
             onClick={() => setConfirmDialog(null)}
             onKeyDown={(e) => { if (e.key === 'Escape') setConfirmDialog(null); }}
           >
+            <BackLayer onBack={() => setConfirmDialog(null)} />
             <motion.div
               initial={{ opacity: 0, y: 40, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}

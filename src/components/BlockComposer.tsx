@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, Heart, Flame, Target, Play, ListPlus, SlidersHorizontal, X, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useBackLayer } from '@/lib/back-stack';
 import { GoalFocus, SessionsPerWeek } from '@/lib/types';
 
 export type PeriodizationStyle = 'linear' | 'undulating' | 'block' | 'conjugate';
@@ -116,6 +117,7 @@ export default function BlockComposer({
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [mode, onClose]);
+  useBackLayer(mode === 'sheet' && !!onClose, () => onClose?.());
   const totalSessions = weeks * days;
   const waveDesc = WAVE_OPTIONS.find(w => w.value === periodization)?.desc;
 

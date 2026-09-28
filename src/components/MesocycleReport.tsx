@@ -11,7 +11,6 @@ import {
   Dumbbell,
   Star,
   BarChart3,
-  ChevronLeft,
   Zap,
   Minus,
   Award,
@@ -23,6 +22,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from './BackLayer';
 import { Mesocycle, WorkoutLog, WeightUnit } from '@/lib/types';
 import {
   generateMesocycleReport,
@@ -30,6 +30,7 @@ import {
   formatDuration,
   MesocycleReport as ReportType,
 } from '@/lib/mesocycle-report';
+import { BackButton } from './_ToolShell';
 
 interface MesocycleReportProps {
   mesocycle: Mesocycle;
@@ -110,6 +111,7 @@ export default function MesocycleReport({
           onClick={() => setShowDeleteConfirm(false)}
           onKeyDown={(e) => { if (e.key === 'Escape') setShowDeleteConfirm(false); }}
         >
+          <BackLayer onBack={() => setShowDeleteConfirm(false)} />
           <div className="bg-grappler-800 rounded-lg p-6 max-w-sm w-full space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-grappler-100">Delete Mesocycle?</h3>
             <p className="text-sm text-grappler-400">
@@ -136,9 +138,7 @@ export default function MesocycleReport({
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800 p-4">
         <div className="flex items-center gap-3">
-          <button onClick={onClose} aria-label="Go back" className="w-10 h-10 rounded-xl bg-grappler-800 flex items-center justify-center">
-            <ChevronLeft className="w-5 h-5 text-grappler-300" />
-          </button>
+          <BackButton onClick={onClose} />
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold text-grappler-100 truncate">Block Report</h1>
             <p className="text-xs text-grappler-400">{mesocycle.name}</p>

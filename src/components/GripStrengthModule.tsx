@@ -6,7 +6,6 @@ import { useAppStore } from '@/lib/store';
 import { useWeightUnit } from '@/hooks/useWeightUnit';
 import { weightIncrement as getWeightIncrement } from '@/lib/units';
 import {
-  X,
   Grip,
   Plus,
   Minus,
@@ -23,6 +22,7 @@ import {
   Award,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BackButton } from './_ToolShell';
 import type { GripTest, GripExerciseLog } from '@/lib/types';
 
 interface GripStrengthModuleProps {
@@ -292,9 +292,7 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800">
         <div className="p-4 flex items-center gap-3">
-          <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm btn-circle">
-            <X className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <div className="flex-1">
             <h1 className="text-xl font-bold text-white flex items-center gap-2">
               <Grip className="w-5 h-5 text-blue-400" />

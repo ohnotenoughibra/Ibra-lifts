@@ -19,7 +19,9 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import EmptyState from './EmptyState';
+import BackLayer from './BackLayer';
 import { cn } from '@/lib/utils';
+import { BackButton } from './_ToolShell';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -251,13 +253,7 @@ export default function PhotoProgress({ onClose }: { onClose: () => void }) {
       {/* ----------------------------------------------------------------- */}
       <div className="sticky top-0 z-20 bg-grappler-950 border-b border-grappler-800">
         <div className="flex items-center gap-3 p-4">
-          <button
-            onClick={onClose}
-            aria-label="Go back"
-            className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <div className="flex-1">
             <h1 className="text-lg font-bold text-grappler-50 flex items-center gap-2 leading-tight">
               <Camera className="w-5 h-5 text-primary-400" />
@@ -854,6 +850,7 @@ function AddPhotoModal({
       className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center"
       onClick={onClose}
     >
+      <BackLayer onBack={onClose} />
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -1051,6 +1048,7 @@ function ViewPhotoModal({
       className="fixed inset-0 z-50 bg-black/90 flex flex-col"
       onClick={onClose}
     >
+      <BackLayer onBack={onClose} />
       {/* Top bar */}
       <div className="flex items-center justify-between p-4 shrink-0" onClick={(e) => e.stopPropagation()}>
         <button
@@ -1150,6 +1148,7 @@ function GalleryPickerModal({
       className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center"
       onClick={onClose}
     >
+      <BackLayer onBack={onClose} />
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

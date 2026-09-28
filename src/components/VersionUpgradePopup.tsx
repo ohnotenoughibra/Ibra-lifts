@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Download, ChevronRight, X, Check, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from './BackLayer';
 import {
   APP_VERSION,
   isUpgrade,
@@ -72,6 +73,7 @@ export default function VersionUpgradePopup() {
           role="dialog"
           aria-modal="true"
         >
+          <BackLayer onBack={handleDismiss} />
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}

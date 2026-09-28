@@ -40,6 +40,7 @@ import { estimateForceVelocityProfile, type FVProfileResult } from '@/lib/force-
 import { resolveWeightUnit } from '@/lib/units';
 import { detectCarryover } from '@/lib/carryover';
 import { getExerciseById } from '@/lib/exercises';
+import { BackButton } from './_ToolShell';
 
 interface StrengthAnalysisProps {
   onClose: () => void;
@@ -258,9 +259,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
       >
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <div>
             <h2 className="text-lg font-bold text-grappler-50 leading-tight">Strength Analysis</h2>
             <p className="text-xs text-grappler-400">
@@ -293,9 +292,7 @@ export default function StrengthAnalysis({ onClose }: StrengthAnalysisProps) {
     >
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-          <ChevronLeft className="w-5 h-5" />
-        </button>
+        <BackButton onClick={onClose} />
         <div>
           <h2 className="text-xl font-bold text-grappler-50">Strength Analysis</h2>
           <p className="text-sm text-grappler-400">

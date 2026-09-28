@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { WorkoutSession } from '@/lib/types';
 import type { OverlayView } from './dashboard-types';
+import BackLayer from './BackLayer';
 import { pointRewards } from '@/lib/gamification';
 
 // ─── Types ───
@@ -264,6 +265,7 @@ export default function RestDayMissionCard(props: RestDayMissionCardProps) {
             className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4"
             onClick={() => setShowSessionSheet(false)}
           >
+            <BackLayer onBack={() => setShowSessionSheet(false)} />
             <motion.div
               initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
               onClick={e => e.stopPropagation()}

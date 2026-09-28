@@ -62,6 +62,7 @@ import CardErrorBoundary from './CardErrorBoundary';
 import { useToast } from './Toast';
 import WorkoutStartChooser from './WorkoutStartChooser';
 import WhoopFreshness from './WhoopFreshness';
+import BackLayer from './BackLayer';
 import { usePersistentState } from '@/lib/use-persistent-state';
 import { fireConfetti } from '@/lib/confetti';
 import { generateQuickWorkout, getVolumeGaps } from '@/lib/workout-generator';
@@ -2434,6 +2435,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           onClick={() => { setDockPickerOpen(false); setDockPickerSlot(null); }}
           onKeyDown={(e) => { if (e.key === 'Escape') { setDockPickerOpen(false); setDockPickerSlot(null); } }}
         >
+          <BackLayer onBack={() => { setDockPickerOpen(false); setDockPickerSlot(null); }} />
           <div
             className="absolute bottom-0 left-0 right-0 max-h-[70vh] rounded-t-2xl bg-grappler-900 border-t border-grappler-700/50"
             onClick={(e) => e.stopPropagation()}
@@ -2501,6 +2503,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
             aria-modal="true"
             onClick={() => setShowSkipDialog(false)}
           >
+            <BackLayer onBack={() => setShowSkipDialog(false)} />
             <motion.div
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -2596,6 +2599,10 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
               setPreviousMesocycleId(null);
             }}
           >
+            <BackLayer onBack={() => {
+              setShowMigrateDialog(false);
+              setPreviousMesocycleId(null);
+            }} />
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}

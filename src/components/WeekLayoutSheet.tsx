@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Dumbbell, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useBackLayer } from '@/lib/back-stack';
 import type { CombatIntensity, CombatTrainingDay } from '@/lib/types';
 import { WEEK_ORDER, DAY_SHORT } from '@/lib/plan-edit';
 
@@ -36,6 +37,7 @@ export default function WeekLayoutSheet({ trainingDays, combatTrainingDays, sess
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+  useBackLayer(true, onClose);
 
   const toggleLift = (d: number) => setLift(l => (l.includes(d) ? l.filter(x => x !== d) : [...l, d]));
   // One tap cycles: none → light → moderate → hard → none (keeps extra sessions / labels on other days)

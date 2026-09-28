@@ -4,6 +4,7 @@ import type * as React from 'react';
 import { motion } from 'framer-motion';
 import { Check, Dumbbell } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from '../BackLayer';
 import { exercises as exerciseLibrary } from '@/lib/exercises';
 import type { MuscleGroup, Exercise, WorkoutSession, ExerciseLog, PreWorkoutCheckIn } from '@/lib/types';
 import type { ActiveWorkoutThrottle } from '@/lib/store';
@@ -23,6 +24,12 @@ export interface VolumeGapPromptProps {
 }
 
 export default function VolumeGapPrompt({ postWorkoutVolumeGaps, selectedVolumeGaps, setSelectedVolumeGaps, setShowVolumeGapPrompt, setVolumeGapDismissed, setShowFinishModal, addBonusExercise, activeWorkout, setCurrentExerciseIndex, setCurrentSetIndex }: VolumeGapPromptProps) {
+  const notToday = () => {
+    setShowVolumeGapPrompt(false);
+    setVolumeGapDismissed(true);
+    setSelectedVolumeGaps(new Set());
+    setShowFinishModal(true);
+  };
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -32,6 +39,7 @@ export default function VolumeGapPrompt({ postWorkoutVolumeGaps, selectedVolumeG
       role="dialog"
       aria-modal="true"
     >
+      <BackLayer onBack={notToday} />
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -130,12 +138,7 @@ export default function VolumeGapPrompt({ postWorkoutVolumeGaps, selectedVolumeG
 
         <div className="flex gap-3">
           <button
-            onClick={() => {
-              setShowVolumeGapPrompt(false);
-              setVolumeGapDismissed(true);
-              setSelectedVolumeGaps(new Set());
-              setShowFinishModal(true);
-            }}
+            onClick={notToday}
             className="btn btn-secondary btn-md flex-1"
           >
             Not today

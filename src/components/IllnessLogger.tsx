@@ -31,6 +31,7 @@ import {
   shouldMarkResolved,
 } from '@/lib/illness-engine';
 import { cn, localDayKey } from '@/lib/utils';
+import { BackButton } from './_ToolShell';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -367,9 +368,7 @@ export default function IllnessLogger({ onClose }: IllnessLoggerProps) {
       <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onClose} aria-label="Close" className="btn btn-ghost btn-sm p-1">
-              <X className="w-5 h-5 text-grappler-200" />
-            </button>
+            <BackButton onClick={onClose} />
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
                 <Thermometer className="w-4 h-4 text-blue-400" />

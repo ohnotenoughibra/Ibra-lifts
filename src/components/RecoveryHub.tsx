@@ -4,12 +4,12 @@ import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import {
-  ChevronLeft,
   Heart,
   BarChart3,
   Battery,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BackButton } from './_ToolShell';
 
 const RecoveryCoachTab = dynamic(() => import('./recovery-tabs/RecoveryCoachTab'), { ssr: false });
 const RecoveryAnalyticsTab = dynamic(() => import('./recovery-tabs/RecoveryAnalyticsTab'), { ssr: false });
@@ -43,9 +43,7 @@ export default function RecoveryHub({ onClose, initialTab = 'readiness' }: Recov
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-3 flex items-center gap-3">
-          <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <div>
             <h1 className="text-lg font-bold text-grappler-50 leading-tight">
               Recovery Hub

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { loadExerciseLibrary } from '@/lib/exercises';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { cn, formatNumber, formatTime } from '@/lib/utils';
 import { useScrollLock } from '@/lib/scroll-lock';
+import { pushLayer, removeLayer, useBackLayer, isTopLayer, LAYER_RANK } from '@/lib/back-stack';
 import SyncConflictResolver from './SyncConflictResolver';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import VersionUpgradePopup from './VersionUpgradePopup';
@@ -30,6 +31,7 @@ import { getLevelTitle, levelProgress, pointsToNextLevel } from '@/lib/gamificat
 // ThemeToggle moved to Settings page — no longer in header
 import { ToastProvider } from './Toast';
 import ResumeWorkoutBar from './ResumeWorkoutBar';
+import OverlayLayer from './OverlayLayer';
 import { usePersistentState } from '@/lib/use-persistent-state';
 import { HomeTabSkeleton, ProgramTabSkeleton, ExploreTabSkeleton, ProgressTabSkeleton } from './Skeleton';
 import CardErrorBoundary from './CardErrorBoundary';
@@ -153,6 +155,8 @@ function LevelUpCelebration({ level, onDismiss }: { level: number; onDismiss: ()
   );
 }
 
+const TAB_FADE = { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.14 } } as const;
+
 const TABS = [
   { id: 'home',  icon: Sun,        label: 'Today' },
   { id: 'train', icon: Calendar,   label: 'Train' },
@@ -184,49 +188,59 @@ export default function Dashboard({
   const [overlayContext, setOverlayContext] = usePersistentState<string | undefined>('ui:overlay-ctx', undefined, { storage: 'session' });
   // Stack of previous overlays for back-navigation (e.g. InjuryLogger → Rehab → tap close → goes back to InjuryLogger)
   const [overlayHistory, setOverlayHistory] = useState<{ view: NonNullable<OverlayView>; context?: string }[]>([]);
-  // Universal Tool Launcher (4th nav slot). Bottom sheet with recents + pinned + all tools + quick log.
-  const scrollPositionRef = useRef(0);
+  const [reportMesocycleId, setReportMesocycleId] = useState<string | null>(null);
 
-  // iOS-correct body scroll lock — reference-counted so nested overlays
-  // don't race. See src/lib/scroll-lock.ts for the canonical pattern.
-  useScrollLock(!!overlayView);
+  // Tools open as a layer OVER the tab (the tab stays mounted underneath), so
+  // closing one lands exactly where you were. Body scroll is locked while a
+  // layer is up — iOS-correct, reference-counted (src/lib/scroll-lock.ts).
+  const layerOpen = !!overlayView || !!reportMesocycleId;
+  useScrollLock(layerOpen);
 
-  // ── Browser back-button / iOS edge-swipe / Android back integration ──
-  // When an overlay opens we push a history entry. popstate (back) closes
-  // one level. Pressing the system back button now closes the overlay
-  // instead of exiting the app. Pairs with X-button close via history.back().
-  const popstateHandlerRef = useRef<(() => void) | null>(null);
-  popstateHandlerRef.current = () => {
-    // Pop topmost overlay first, then close root if no stack.
+  // Slide direction for the layer transition: deeper = in from the right.
+  const [navDirection, setNavDirection] = useState<'push' | 'pop'>('push');
+
+  // One level back: previous tool in the stack, else close.
+  const popOverlay = () => {
     if (overlayHistory.length > 0) {
       const previous = overlayHistory[overlayHistory.length - 1];
+      setNavDirection('pop');
       setOverlayHistory(prev => prev.slice(0, -1));
       setOverlayContext(previous.context);
       setOverlayViewRaw(previous.view);
-    } else if (overlayView) {
+    } else {
+      setNavDirection('pop');
       setOverlayViewRaw(null);
       setOverlayContext(undefined);
     }
   };
+  const popOverlayRef = useRef(popOverlay);
+  popOverlayRef.current = popOverlay;
 
-  useEffect(() => {
-    const onPop = () => popstateHandlerRef.current?.();
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
-  }, []);
+  // ── System back (Android back, browser back, Safari edge-swipe) ──
+  // Every open tool level owns one history entry in the shared back stack
+  // (src/lib/back-stack.ts), so back closes the top-most thing — a sheet
+  // inside a tool first, then the tool, then the tool under it. Closing in the
+  // UI is state-driven; this effect drops the matching history entries.
+  // Back on Train / Progress / Tools returns to Today before leaving the app.
+  // Registered before the tool layers: after a reload that restores both,
+  // the tab entry must sit UNDER the tool's.
+  const switchTabRef = useRef<(id: TabType) => void>(() => {});
+  useBackLayer(activeTab !== 'home', () => switchTabRef.current('home'), LAYER_RANK.tab);
 
-  // Push a history entry when overlay opens or stack deepens.
-  // We track depth to know when to push vs. when popstate fired.
-  const overlayDepthRef = useRef(0);
-  const skipHistoryPushRef = useRef(false);
+  const overlayLayerIds = useRef<number[]>([]);
+  const overlayDepth = overlayView ? overlayHistory.length + 1 : 0;
   useEffect(() => {
-    const newDepth = overlayView ? overlayHistory.length + 1 : 0;
-    if (newDepth > overlayDepthRef.current && !skipHistoryPushRef.current) {
-      window.history.pushState({ overlayDepth: newDepth }, '');
+    const ids = overlayLayerIds.current;
+    while (ids.length < overlayDepth) {
+      const id = pushLayer(() => {
+        overlayLayerIds.current = overlayLayerIds.current.filter(x => x !== id);
+        popOverlayRef.current();
+      }, LAYER_RANK.tool);
+      ids.push(id);
     }
-    overlayDepthRef.current = newDepth;
-    skipHistoryPushRef.current = false;
-  }, [overlayView, overlayHistory.length]);
+    while (ids.length > overlayDepth) removeLayer(ids.pop()!);
+  }, [overlayDepth]);
+  const topOverlayLayerRef = { get current() { return overlayLayerIds.current[overlayLayerIds.current.length - 1]; } };
 
   // Imported exercise library (search/swap) loads after first paint.
   useEffect(() => { void loadExerciseLibrary(); }, []);
@@ -253,42 +267,6 @@ export default function Dashboard({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Swipe-down-to-dismiss for overlays ──
-  const [overlayDragY, setOverlayDragY] = useState(0);
-  const overlayTouchStartY = useRef(0);
-  const overlayDragging = useRef(false);
-
-  const handleOverlayTouchStart = useCallback((e: React.TouchEvent) => {
-    const target = e.target as HTMLElement;
-    const container = target.closest('[data-overlay-container]');
-    if (container && container.scrollTop <= 0) {
-      overlayTouchStartY.current = e.touches[0].clientY;
-      overlayDragging.current = true;
-    }
-  }, []);
-
-  const handleOverlayTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!overlayDragging.current) return;
-    const deltaY = e.touches[0].clientY - overlayTouchStartY.current;
-    if (deltaY > 0) {
-      setOverlayDragY(deltaY);
-    }
-  }, []);
-
-  const handleOverlayTouchEnd = useCallback(() => {
-    if (overlayDragY > 150) {
-      // Route through history.back() so swipe-down-to-dismiss respects the back stack
-      // (a swipe with a parent overlay underneath returns to the parent, not the home tab).
-      if (typeof window !== 'undefined' && window.history.state?.overlayDepth) {
-        window.history.back();
-      } else {
-        setOverlayView(null);
-      }
-    }
-    setOverlayDragY(0);
-    overlayDragging.current = false;
-  }, [overlayDragY]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const setOverlayView = (view: OverlayView, context?: string) => {
     if (view !== null) {
       // If there's already an overlay open, push it onto the back stack
@@ -296,18 +274,15 @@ export default function Dashboard({
       if (overlayView && overlayView !== view) {
         setOverlayHistory(prev => [...prev, { view: overlayView, context: overlayContext }]);
       }
-      // Save scroll position before opening overlay
-      scrollPositionRef.current = window.scrollY;
+      setNavDirection('push');
     } else {
       // Closing — clear the back stack since user explicitly chose to exit
       setOverlayHistory([]);
+      setNavDirection('pop');
     }
     setOverlayViewRaw(view);
     setOverlayContext(view !== null ? context : undefined);
-    // Scroll restoration is handled by the body-scroll-lock useEffect cleanup,
-    // which uses the canonical iOS position:fixed pattern (more reliable than scrollTo).
   };
-  const [reportMesocycleId, setReportMesocycleId] = useState<string | null>(null);
   const {
     user, gamificationStats, currentMesocycle, activeWorkout, workoutMinimized, resumeWorkout, cancelWorkout,
     workoutLogs, rawMesocycleHistory, deleteMesocycle,
@@ -322,6 +297,12 @@ export default function Dashboard({
       ensureWeeklyChallenge: s.ensureWeeklyChallenge, lastCompletedWorkout: s.lastCompletedWorkout,
     }))
   );
+  // Back from a running workout = "Leave workout for now" (everything kept,
+  // Resume bar on every tab) instead of dropping out of the app mid-set.
+  const pauseWorkout = useAppStore(s => s.pauseWorkout);
+  useBackLayer(!!activeWorkout && !workoutMinimized, () => pauseWorkout(), LAYER_RANK.workout);
+  useBackLayer(!!reportMesocycleId, () => { setNavDirection('pop'); setReportMesocycleId(null); }, LAYER_RANK.tool);
+
   // Selector keeps the raw stable reference — filtering there would return a
   // fresh array every evaluation and defeat useShallow. Derive with useMemo.
   const mesocycleHistory = useMemo(
@@ -330,11 +311,49 @@ export default function Dashboard({
   );
 
   // Tab switch with haptic feedback
+  // Each tab keeps its own scroll position (was: every switch jumped to the
+  // top). Tapping the tab you're already on scrolls it back to the top.
+  const tabScroll = useRef<Partial<Record<TabType, number>>>({});
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
   const switchTab = useCallback((id: TabType) => {
     hapticLight();
+    if (id === activeTabRef.current) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    tabScroll.current[activeTabRef.current] = window.scrollY;
     setActiveTab(id);
-    window.scrollTo(0, 0);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const firstTabRender = useRef(true);
+  useLayoutEffect(() => {
+    if (firstTabRender.current) { firstTabRender.current = false; return; }
+    const y = tabScroll.current[activeTab] ?? 0;
+    window.scrollTo(0, y);
+    if (y <= 0) return;
+    // The tab's content may still be streaming in (lazy chunk, skeleton) and
+    // be too short to scroll that far yet — retry for a few frames, but stop
+    // the moment the athlete touches the screen.
+    let frames = 0;
+    let cancelled = false;
+    const stop = () => { cancelled = true; };
+    window.addEventListener('touchstart', stop, { once: true, passive: true });
+    window.addEventListener('wheel', stop, { once: true, passive: true });
+    const tick = () => {
+      if (cancelled || frames++ > 30 || Math.abs(window.scrollY - y) <= 2) return;
+      window.scrollTo(0, y);
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('touchstart', stop);
+      window.removeEventListener('wheel', stop);
+    };
+  }, [activeTab]);
+
+  switchTabRef.current = switchTab;
 
   // Keyboard navigation for tab bar (Left/Right arrows)
   const handleTabKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -445,16 +464,12 @@ export default function Dashboard({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (overlayView) {
-          if (typeof window !== 'undefined' && window.history.state?.overlayDepth) {
-            window.history.back();
-          } else {
-            setOverlayView(null);
-          }
+        // Same as the system back button: closes the top-most layer — a sheet
+        // inside the tool first, then the tool.
+        if (overlayView || reportMesocycleId) {
+          window.history.back();
         } else if (levelUpDisplay) {
           setLevelUpDisplay(null);
-        } else if (reportMesocycleId) {
-          setReportMesocycleId(null);
         }
       }
     };
@@ -500,132 +515,91 @@ export default function Dashboard({
     return (
       <CardErrorBoundary fallbackLabel="Active workout" fullScreen secondaryAction={cancelEscape}>
         <ToastProvider>
-          <ActiveWorkout />
+          {/* Opacity only — a transform here would re-anchor the workout's
+              fixed bars to this box for the length of the fade. */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}>
+            <ActiveWorkout />
+          </motion.div>
         </ToastProvider>
       </CardErrorBoundary>
     );
   }
 
-  // Full-screen overlay views — wrapped in overlay-safe for status bar clearance
-  {
-    const closeOverlay = () => {
-      // Delegate to browser history so the popstate handler does the actual pop.
-      // This keeps overlay state and browser history in sync — Android back button
-      // and iOS edge-swipe behave identically to the X button.
-      if (typeof window !== 'undefined' && window.history.state?.overlayDepth) {
-        window.history.back();
-        return;
-      }
-      // Fallback if no history entry (shouldn't happen in normal flow)
-      if (overlayHistory.length > 0) {
-        const previous = overlayHistory[overlayHistory.length - 1];
-        setOverlayHistory(prev => prev.slice(0, -1));
-        setOverlayContext(previous.context);
-        setOverlayViewRaw(previous.view);
-        return;
-      }
-      setOverlayView(null);
-    };
-    const OVERLAY_COMPONENTS: Record<string, React.ReactNode> = {
-      builder: <WorkoutBuilder onClose={closeOverlay} editTemplateId={overlayContext} />,
-      nutrition: <NutritionTracker onClose={closeOverlay} onNavigate={(v: string) => setOverlayView(v as never)} />,
-      wearable: <WearableIntegration onClose={closeOverlay} />,
-      competition: <CompetitionPrep onClose={closeOverlay} onNavigate={v => setOverlayView(v)} />,
-      mobility: <MobilityWorkouts onClose={closeOverlay} />,
-      coach: <WeeklyCoach onClose={closeOverlay} />,
-      strength: <StrengthAnalysis onClose={closeOverlay} />,
-      periodization: <PeriodizationCalendar onClose={closeOverlay} />,
-      recovery: <RecoveryHubView onClose={closeOverlay} initialTab="analytics" />,
-      injury: <InjuryLogger onClose={closeOverlay} onNavigate={setOverlayView} />,
-      rehab: <RehabPlan onClose={closeOverlay} preselectedInjuryId={overlayContext} />,
-      injury_aware_workout: <InjuryAwareWorkout onClose={closeOverlay} />,
-      plyometrics: <PlyometricsBlock onClose={closeOverlay} />,
-      athletic_benchmarks: <AthleticBenchmarks onClose={closeOverlay} onNavigate={setOverlayView} />,
-      energy_systems: <EnergySystems onClose={closeOverlay} />,
-      cardio_planner: <CardioPlanner onClose={closeOverlay} />,
-      crews: <CrewsLeaderboard onClose={closeOverlay} />,
-      technique_log: <TechniqueLog onClose={closeOverlay} />,
-      camp_timeline: <CampTimeline onClose={closeOverlay} />,
-      coach_report: <CoachReport onClose={closeOverlay} />,
-      sparring_tracker: <SparringTracker onClose={closeOverlay} />,
-      overload: <ProgressiveOverload onClose={closeOverlay} />,
-      custom_exercise: <CustomExerciseCreator onClose={closeOverlay} />,
-      templates: <SessionTemplates onClose={closeOverlay} />,
-      volume_map: <VolumeHeatMap onClose={closeOverlay} />,
-      grappling: <GrapplingTracker onClose={closeOverlay} startWithForm={overlayContext === 'log'} />,
-      quick_actions: <QuickActions onClose={closeOverlay} />,
-      grip_strength: <GripStrengthModule onClose={closeOverlay} />,
-      program_browser: <ProgramBrowserView onClose={closeOverlay} onNavigate={setOverlayView} />,
-      illness: <IllnessLogger onClose={closeOverlay} />,
-      cycle_tracking: <CycleTracking onClose={closeOverlay} />,
-      fatigue: <RecoveryHubView onClose={closeOverlay} initialTab="deload" />,
-      fight_camp: <FightCampNutrition onClose={closeOverlay} />,
-      badge_showcase: <BadgeShowcase onClose={closeOverlay} />,
-      warm_up: <WarmUpInfo onClose={closeOverlay} />,
-      movement_library: <MovementLibrary onClose={closeOverlay} />,
-      conditioning: <ConditioningSession onClose={closeOverlay} />,
-      sprints: <SprintTimer onClose={closeOverlay} />,
-      training_journal: <TrainingJournal onClose={closeOverlay} />,
-      knowledge_hub: <KnowledgeHub onClose={closeOverlay} initialCategory={overlayContext as ContentCategory | undefined} onNavigate={setOverlayView} />,
-      profile_settings: <ProfileSettings onClose={closeOverlay} onNavigate={setOverlayView} />,
-    };
-    const overlayContent = overlayView ? OVERLAY_COMPONENTS[overlayView] : null;
-    if (overlayContent) return (
-      <div
-        className="overlay-safe"
-        data-overlay-container
-        style={{
-          transform: overlayDragY > 0 ? `translateY(${overlayDragY}px)` : undefined,
-          transition: overlayDragY === 0 ? 'transform 0.3s ease' : 'none',
-        }}
-        onTouchStart={handleOverlayTouchStart}
-        onTouchMove={handleOverlayTouchMove}
-        onTouchEnd={handleOverlayTouchEnd}
-      >
-        <div className="flex justify-center pt-2 pb-1">
-          <div className="w-10 h-1 rounded-full bg-grappler-600" />
-        </div>
-        {/* Overlays return before the app-level provider below — without their
-            own, every toast (and its Undo) inside a tool was silently dropped. */}
-        <ToastProvider>{overlayContent}</ToastProvider>
-      </div>
-    );
-  }
-
-  // Mesocycle report overlay
-  if (reportMesocycleId) {
+  // Full-screen tool layer — drawn OVER the tabs (they stay mounted), see OverlayLayer.
+  // Closing is state-driven; the back-stack effect above drops the history entry.
+  const closeOverlay = () => popOverlay();
+  const OVERLAY_COMPONENTS: Record<string, React.ReactNode> = {
+    builder: <WorkoutBuilder onClose={closeOverlay} editTemplateId={overlayContext} />,
+    nutrition: <NutritionTracker onClose={closeOverlay} onNavigate={(v: string) => setOverlayView(v as never)} />,
+    wearable: <WearableIntegration onClose={closeOverlay} />,
+    competition: <CompetitionPrep onClose={closeOverlay} onNavigate={v => setOverlayView(v)} />,
+    mobility: <MobilityWorkouts onClose={closeOverlay} />,
+    coach: <WeeklyCoach onClose={closeOverlay} />,
+    strength: <StrengthAnalysis onClose={closeOverlay} />,
+    periodization: <PeriodizationCalendar onClose={closeOverlay} />,
+    recovery: <RecoveryHubView onClose={closeOverlay} initialTab="analytics" />,
+    injury: <InjuryLogger onClose={closeOverlay} onNavigate={setOverlayView} />,
+    rehab: <RehabPlan onClose={closeOverlay} preselectedInjuryId={overlayContext} />,
+    injury_aware_workout: <InjuryAwareWorkout onClose={closeOverlay} />,
+    plyometrics: <PlyometricsBlock onClose={closeOverlay} />,
+    athletic_benchmarks: <AthleticBenchmarks onClose={closeOverlay} onNavigate={setOverlayView} />,
+    energy_systems: <EnergySystems onClose={closeOverlay} />,
+    cardio_planner: <CardioPlanner onClose={closeOverlay} />,
+    crews: <CrewsLeaderboard onClose={closeOverlay} />,
+    technique_log: <TechniqueLog onClose={closeOverlay} />,
+    camp_timeline: <CampTimeline onClose={closeOverlay} />,
+    coach_report: <CoachReport onClose={closeOverlay} />,
+    sparring_tracker: <SparringTracker onClose={closeOverlay} />,
+    overload: <ProgressiveOverload onClose={closeOverlay} />,
+    custom_exercise: <CustomExerciseCreator onClose={closeOverlay} />,
+    templates: <SessionTemplates onClose={closeOverlay} />,
+    volume_map: <VolumeHeatMap onClose={closeOverlay} />,
+    grappling: <GrapplingTracker onClose={closeOverlay} startWithForm={overlayContext === 'log'} />,
+    quick_actions: <QuickActions onClose={closeOverlay} />,
+    grip_strength: <GripStrengthModule onClose={closeOverlay} />,
+    program_browser: <ProgramBrowserView onClose={closeOverlay} onNavigate={setOverlayView} />,
+    illness: <IllnessLogger onClose={closeOverlay} />,
+    cycle_tracking: <CycleTracking onClose={closeOverlay} />,
+    fatigue: <RecoveryHubView onClose={closeOverlay} initialTab="deload" />,
+    fight_camp: <FightCampNutrition onClose={closeOverlay} />,
+    badge_showcase: <BadgeShowcase onClose={closeOverlay} />,
+    warm_up: <WarmUpInfo onClose={closeOverlay} />,
+    movement_library: <MovementLibrary onClose={closeOverlay} />,
+    conditioning: <ConditioningSession onClose={closeOverlay} />,
+    sprints: <SprintTimer onClose={closeOverlay} />,
+    training_journal: <TrainingJournal onClose={closeOverlay} />,
+    knowledge_hub: <KnowledgeHub onClose={closeOverlay} initialCategory={overlayContext as ContentCategory | undefined} onNavigate={setOverlayView} />,
+    profile_settings: <ProfileSettings onClose={closeOverlay} onNavigate={setOverlayView} />,
+  };
+  let layerNode: React.ReactNode = null;
+  let layerKey = '';
+  if (overlayView && OVERLAY_COMPONENTS[overlayView]) {
+    layerKey = `ov:${overlayDepth}:${overlayView}`;
+    // Tools get their own toast provider: toasts (and their Undo) render inside the layer.
+    layerNode = <ToastProvider>{OVERLAY_COMPONENTS[overlayView]}</ToastProvider>;
+  } else if (reportMesocycleId) {
     const allMesos = [...mesocycleHistory, ...(currentMesocycle ? [currentMesocycle] : [])];
     const targetMeso = allMesos.find(m => m.id === reportMesocycleId);
     if (targetMeso) {
       const targetIdx = allMesos.indexOf(targetMeso);
       const prevMeso = targetIdx > 0 ? allMesos[targetIdx - 1] : null;
-      return (
-        <div
-          className="overlay-safe"
-          data-overlay-container
-          style={{
-            transform: overlayDragY > 0 ? `translateY(${overlayDragY}px)` : undefined,
-            transition: overlayDragY === 0 ? 'transform 0.3s ease' : 'none',
-          }}
-          onTouchStart={handleOverlayTouchStart}
-          onTouchMove={handleOverlayTouchMove}
-          onTouchEnd={handleOverlayTouchEnd}
-        >
-          <div className="flex justify-center pt-2 pb-1">
-            <div className="w-10 h-1 rounded-full bg-grappler-600" />
-          </div>
-          <MesocycleReportView
-            mesocycle={targetMeso}
-            workoutLogs={workoutLogs}
-            previousMesocycle={prevMeso}
-            weightUnit={resolveWeightUnit(user?.weightUnit)}
-            onClose={() => setReportMesocycleId(null)}
-            onDelete={(id) => { deleteMesocycle(id); setReportMesocycleId(null); }}
-          />
-        </div>
+      layerKey = `report:${reportMesocycleId}`;
+      layerNode = (
+        <MesocycleReportView
+          mesocycle={targetMeso}
+          workoutLogs={workoutLogs}
+          previousMesocycle={prevMeso}
+          weightUnit={resolveWeightUnit(user?.weightUnit)}
+          onClose={() => { setNavDirection('pop'); setReportMesocycleId(null); }}
+          onDelete={(id) => { deleteMesocycle(id); setNavDirection('pop'); setReportMesocycleId(null); }}
+        />
       );
     }
   }
+  const dismissLayer = () => {
+    if (overlayView) closeOverlay();
+    else { setNavDirection('pop'); setReportMesocycleId(null); }
+  };
 
   // Sidebar nav items (matches TABS + profile)
   const sidebarNav = [
@@ -637,7 +611,12 @@ export default function Dashboard({
   return (
     <MotionConfig reducedMotion="user">
     <ToastProvider>
-    <div className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-40 safe-area-bottom lg:pb-0">
+    {/* The tab underneath an open tool stays mounted (scroll + state kept) but
+        is inert: no focus, no taps, hidden from screen readers. */}
+    <div
+      className="min-h-[100dvh] w-full overflow-x-hidden bg-grappler-900 bg-mesh pb-40 safe-area-bottom lg:pb-0"
+      {...(layerNode ? { inert: '', 'aria-hidden': true } as Record<string, unknown> : {})}
+    >
       {/* Morning Ritual — once-per-day readiness reveal animation */}
       <AnimatePresence>
         {showMorningRitual && activeTab === 'home' && (
@@ -883,23 +862,20 @@ export default function Dashboard({
 
             {/* Main Content — pb-32 clears the 67px fixed bottom nav + safe-area + breathing room. lg:pb-6 because desktop sidebar replaces the bottom nav. */}
             <main className="px-4 pt-4 pb-32 lg:px-6 lg:pt-6 lg:pb-6">
-              <AnimatePresence mode="wait">
+              {/* No exit animation: the new tab paints immediately (mode="wait"
+                  held every switch for the old tab's fade-out). */}
                 {activeTab === 'home' && (
                   <motion.div
                     key="home"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                    {...TAB_FADE}
                   >
-                    <HomeTab onNavigate={setOverlayView} onViewReport={setReportMesocycleId} onSwitchTab={setActiveTab} />
+                    <HomeTab onNavigate={setOverlayView} onViewReport={setReportMesocycleId} onSwitchTab={switchTab} />
                   </motion.div>
                 )}
                 {activeTab === 'train' && (
                   <motion.div
                     key="train"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                    {...TAB_FADE}
                   >
                     <CardErrorBoundary fallbackLabel="Train tab">
                       <WorkoutView onNavigate={setOverlayView} />
@@ -912,9 +888,7 @@ export default function Dashboard({
                 {activeTab === 'body' && (
                   <motion.div
                     key="body"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                    {...TAB_FADE}
                   >
                     <ProgressAndHistoryTab onViewReport={setReportMesocycleId} onNavigate={setOverlayView} />
                     <div className="mt-6">
@@ -925,14 +899,12 @@ export default function Dashboard({
                 {activeTab === 'tools' && (
                   <motion.div
                     key="tools"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                    {...TAB_FADE}
                   >
                     <ToolsTab onNavigate={setOverlayView} />
                   </motion.div>
                 )}
-              </AnimatePresence>
+
             </main>
           </div>
 
@@ -1067,28 +1039,6 @@ export default function Dashboard({
         </div>
       </nav>
 
-      {/* Sync Conflict Resolver */}
-      {syncConflict && (
-        <SyncConflictResolver
-          conflict={syncConflict}
-          onResolve={resolveSyncConflict}
-          onDismiss={dismissSyncConflict}
-        />
-      )}
-
-      {/* Version Upgrade Popup */}
-      <VersionUpgradePopup />
-
-      {/* Level-Up Celebration */}
-      <AnimatePresence>
-        {levelUpDisplay && (
-          <LevelUpCelebration
-            level={levelUpDisplay}
-            onDismiss={() => setLevelUpDisplay(null)}
-          />
-        )}
-      </AnimatePresence>
-
       {/* Daily Login Bonus Toast */}
       <AnimatePresence>
         {loginBonusToast && (
@@ -1168,6 +1118,44 @@ export default function Dashboard({
         )}
       </AnimatePresence>
     </div>
+
+    {/* App-wide prompts stay outside the inert tab tree so they work over a tool too. */}
+    {/* Sync Conflict Resolver */}
+    {syncConflict && (
+      <SyncConflictResolver
+        conflict={syncConflict}
+        onResolve={resolveSyncConflict}
+        onDismiss={dismissSyncConflict}
+      />
+    )}
+
+    {/* Version Upgrade Popup */}
+    <VersionUpgradePopup />
+
+    {/* Level-Up Celebration */}
+    <AnimatePresence>
+      {levelUpDisplay && (
+        <LevelUpCelebration
+          level={levelUpDisplay}
+          onDismiss={() => setLevelUpDisplay(null)}
+        />
+      )}
+    </AnimatePresence>
+
+
+    {/* Tool layer */}
+    <AnimatePresence initial={false} custom={navDirection}>
+      {layerNode && (
+        <OverlayLayer
+          key={layerKey}
+          direction={navDirection}
+          canDrag={() => !overlayView || isTopLayer(topOverlayLayerRef.current)}
+          onDismiss={dismissLayer}
+        >
+          {layerNode}
+        </OverlayLayer>
+      )}
+    </AnimatePresence>
     </ToastProvider>
     </MotionConfig>
   );

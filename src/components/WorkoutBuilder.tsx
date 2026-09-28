@@ -27,6 +27,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from './Toast';
+import BackLayer from './BackLayer';
+import { BackButton } from './_ToolShell';
 import {
   Exercise,
   Equipment,
@@ -471,6 +473,7 @@ function QuickCustomExercise({ onSave, onClose }: {
       className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center"
       onClick={onClose}
     >
+      <BackLayer onBack={onClose} />
       <motion.div
         initial={{ y: 200 }}
         animate={{ y: 0 }}
@@ -759,9 +762,7 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
       {/* Header */}
       <header className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 p-4">
         <div className="flex items-center justify-between mb-3">
-          <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm">
-            <X className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <h1 className="font-bold text-grappler-50">
             {view === 'browse' ? 'Exercise Database' : view === 'build' ? (editTemplateId ? 'Edit Workout' : 'Build Workout') : 'Program Templates'}
           </h1>
@@ -1347,6 +1348,7 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
       {/* Template confirmation modal */}
       {pendingTemplate && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setPendingTemplate(null)}>
+          <BackLayer onBack={() => setPendingTemplate(null)} />
           <div className="bg-grappler-800 rounded-lg p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-white mb-2">Start New Program?</h3>
             <p className="text-sm text-grappler-400 mb-4">

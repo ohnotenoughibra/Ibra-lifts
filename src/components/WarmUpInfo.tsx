@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { X, Sunrise, Thermometer, Zap, BarChart3 } from 'lucide-react';
+import { Sunrise, Thermometer, Zap, BarChart3 } from 'lucide-react';
+import { BackButton } from './_ToolShell';
 import { cn } from '@/lib/utils';
 
 const PHASES = [
@@ -44,9 +45,7 @@ export default function WarmUpInfo({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top"
     >
       <header className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 p-4 flex items-center justify-between">
-        <button onClick={onClose} aria-label="Close" className="btn btn-ghost btn-sm">
-          <X className="w-5 h-5" />
-        </button>
+        <BackButton onClick={onClose} />
         <h1 className="font-bold text-grappler-50">Smart Warm-Up</h1>
         <div className="w-10" />
       </header>

@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Share2, Loader2, Image as ImageIcon } from 'lucide-react';
+import { useBackLayer } from '@/lib/back-stack';
 import { renderFightCard, type FightCardData, type FightCardAspect } from '@/lib/fight-card-renderer';
 
 interface FightCardModalProps {
@@ -24,6 +25,7 @@ export default function FightCardModal({ data, open, onClose }: FightCardModalPr
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const prevUrlRef = useRef<string | null>(null);
+  useBackLayer(open, onClose);
 
   // Render the card whenever data or aspect changes
   const generate = useCallback(async () => {

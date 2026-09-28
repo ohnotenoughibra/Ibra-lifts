@@ -9,6 +9,7 @@ import {
   Minus, Plus, Undo2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useBackLayer } from '@/lib/back-stack';
 import { Mesocycle, WorkoutSession, ExercisePrescription, MAX_BLOCK_WEEKS, MIN_BLOCK_WEEKS } from '@/lib/types';
 import { VolumeWave } from './MesocycleTimeline';
 import ProgramExerciseCard from './ProgramExerciseCard';
@@ -62,6 +63,7 @@ export default function ScheduleSheet({ mesocycle, completedSessionIds, currentW
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+  useBackLayer(true, onClose);
 
   const handleRemoveExercise = (weekIndex: number, sessionId: string, index: number, exercise: ExercisePrescription) => {
     removeExerciseFromSession(weekIndex, sessionId, index);

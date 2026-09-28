@@ -10,6 +10,8 @@ import { ACTIVITY_LABELS } from '@/lib/types';
 import type { ActivityType, CardioIntensity, ScheduledCardioDay } from '@/lib/types';
 import WeeklyCalendar from './WeeklyCalendar';
 import { hapticLight, hapticMedium } from '@/lib/haptics';
+import BackLayer from './BackLayer';
+import { BackButton } from './_ToolShell';
 
 const CARDIO_MODALITIES: ActivityType[] = ['running', 'cycling', 'swimming', 'rowing', 'jump_rope', 'elliptical', 'assault_bike'];
 const INTENSITIES: { value: CardioIntensity; label: string }[] = [
@@ -106,12 +108,10 @@ export default function CardioPlanner({ onClose }: { onClose?: () => void }) {
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-grappler-950/90 backdrop-blur-sm border-b border-grappler-800">
         <div className="flex items-center gap-2">
+          <BackButton onClick={() => onClose?.()} />
           <HeartPulse className="w-5 h-5 text-sky-400" />
           <span className="text-base font-bold text-grappler-100">Cardio</span>
         </div>
-        <button onClick={onClose} className="p-2 text-grappler-400 hover:text-grappler-200" aria-label="Close">
-          <X className="w-5 h-5" />
-        </button>
       </div>
 
       <div className="px-4 py-5 space-y-6 max-w-md w-full mx-auto">
@@ -193,6 +193,7 @@ export default function CardioPlanner({ onClose }: { onClose?: () => void }) {
             className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center"
             onClick={() => setEditDay(null)}
           >
+            <BackLayer onBack={() => setEditDay(null)} />
             <motion.div
               initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
               onClick={e => e.stopPropagation()}

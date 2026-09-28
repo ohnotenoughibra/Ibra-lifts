@@ -7,6 +7,7 @@ import {
   Shield, Zap, BarChart3, Calendar, ChevronDown, ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from './BackLayer';
 import { useAppStore } from '@/lib/store';
 import {
   calculateEnhancedACWR,
@@ -119,6 +120,7 @@ export default function TrainingLoadDashboard({ onClose }: { onClose: () => void
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top"
     >
+      <BackLayer onBack={onClose} />
       <header className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 px-3 py-2 flex items-center justify-between">
         <button onClick={onClose} aria-label="Close" className="p-1.5 -ml-1 text-grappler-400 hover:text-grappler-200">
           <X className="w-5 h-5" />

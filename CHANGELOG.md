@@ -5,6 +5,26 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · versions follow semve
 
 ## [Unreleased]
 
+### Navigation, smoother
+
+**Back always closes the top thing on screen, closing a tool lands exactly where you were, and tools slide in and out.**
+
+#### Changed
+- **Tools open over the tab instead of replacing it**, so closing one returns to the same scroll position (it used to jump to the top of the tab and re-load it).
+- **Transitions**: tools slide in from the right; a tool opened from a tool slides over it and back; the workout screen fades in. Tab switches no longer wait for the old tab to fade out.
+- **Each tab keeps its scroll position**; tapping the tab you're on scrolls back to the top.
+- **System back (Android back, browser back, Safari edge-swipe)** closes the top-most layer: a sheet or dialog inside a tool first, then the tool, then the tool under it; on Train / Progress / Tools it goes to Today before leaving the app. On a running workout it's "Leave workout for now"; on running cardio it asks before ending.
+- **Swipe to close a tool**: pull down from the very top, or drag from the left edge (for the home-screen app, which has no back button).
+- **One way out of every tool**: a back arrow top-left (44 px) everywhere — it used to be a ✕ on the left in some tools, a ✕ on the right in others and a back arrow in the rest. ✕ now only closes sheets and dialogs.
+- **Air bike & sprints**: back steps from a protocol to the list; while running it asks "End this session?" (keep going / end & log) and on the log screen "Discard this session?" — it used to drop straight out. The running timer and the log screen ignore pull-to-close.
+
+#### Fixed
+- **Scrolling back up in a tool could close it** — about half the tools (Benchmarks, Plyo, Energy Systems, Cardio, Sparring Load…) scroll an inner panel, and a downward swipe anywhere in them dismissed the whole tool.
+- **Dragging inside a sheet dragged the tool behind it**, and the drag re-rendered the whole tool on every touch move.
+- **Tools tab had double side margins** (32 px instead of 16 px) and extra bottom padding.
+- **Close buttons in Health & Illness and Cycle Tracking** were 28 px wide; now a full 44 px target.
+- **Sync conflict dialog** could sit under an open tool.
+
 ### Nutrition, rebuilt
 
 **One number everywhere, targets that learn what you burn, logging in seconds, and meals planned around your training — with food from MPreis, Spar, Billa and Hofer.**

@@ -10,6 +10,7 @@ import {
   Pencil, ChevronUp, ChevronDown, Minus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useBackLayer } from '@/lib/back-stack';
 import { Mesocycle, MAX_BLOCK_WEEKS, MIN_BLOCK_WEEKS } from '@/lib/types';
 import { getCompletedSessionIds } from '@/lib/session-matching';
 import { generateMesocycleReport, formatVolume, formatDuration } from '@/lib/mesocycle-report';
@@ -93,6 +94,9 @@ export default function BlockManagerSheet({ progress, onClose, onNewBlock, onBlo
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [viewingBlock, onClose]);
+  useBackLayer(true, onClose);
+  // A block's report opens inside the sheet — back returns to the list first
+  useBackLayer(!!viewingBlock, () => { setViewingBlock(null); setConfirmDelete(false); });
 
   // Newest first — the block you just finished is the one you want to see
   const sortedHistory = useMemo(

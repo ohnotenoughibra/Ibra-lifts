@@ -37,6 +37,7 @@ export default function TrainingCalendar() {
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
   const [exerciseSearch, setExerciseSearch] = useState('');
   const [expandedExercise, setExpandedExercise] = useState<number | null>(null);
+  const [confirmDiscardEdits, setConfirmDiscardEdits] = useState(false);
 
   const prevMonth = () => {
     if (currentMonth === 0) {
@@ -152,6 +153,24 @@ export default function TrainingCalendar() {
     }
     setNewDate('');
     setSelectedDate(null);
+  };
+
+  // Leaving the editor (✕, backdrop, Cancel, system back) never silently
+  // drops edits: with changes it asks first, without it just closes.
+  const editsDirty = useMemo(
+    () => !!workoutBeingEdited && JSON.stringify(editedExercises) !== JSON.stringify(workoutBeingEdited.exercises),
+    [workoutBeingEdited, editedExercises],
+  );
+  const closeWorkoutEditor = () => {
+    setConfirmDiscardEdits(false);
+    setShowExerciseSearch(false);
+    setExerciseSearch('');
+    setWorkoutBeingEdited(null);
+    setEditedExercises([]);
+  };
+  const requestCloseEditor = () => {
+    if (editsDirty) setConfirmDiscardEdits(true);
+    else closeWorkoutEditor();
   };
 
   // Workout editor functions
@@ -354,14 +373,14 @@ export default function TrainingCalendar() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => openWorkoutEditor(lift)}
-                            className="p-1.5 text-grappler-400 hover:text-green-400 transition-colors"
+                            className="w-10 h-10 flex items-center justify-center rounded-lg text-grappler-400 hover:text-green-400 transition-colors"
                             title="Edit workout"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleEditDate('workout', lift)}
-                            className="p-1.5 text-grappler-400 hover:text-blue-400 transition-colors"
+                            className="w-10 h-10 flex items-center justify-center rounded-lg text-grappler-400 hover:text-blue-400 transition-colors"
                             title="Change date"
                           >
                             <Calendar className="w-4 h-4" />
@@ -374,7 +393,7 @@ export default function TrainingCalendar() {
                           ) : (
                             <button
                               onClick={() => { setConfirmDeleteId(lift.id); setConfirmDeleteType('workout'); }}
-                              className="p-1.5 text-grappler-400 hover:text-red-400 transition-colors"
+                              className="w-10 h-10 flex items-center justify-center rounded-lg text-grappler-400 hover:text-red-400 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -403,7 +422,7 @@ export default function TrainingCalendar() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleEditDate('session', session)}
-                            className="p-1.5 text-grappler-400 hover:text-blue-400 transition-colors"
+                            className="w-10 h-10 flex items-center justify-center rounded-lg text-grappler-400 hover:text-blue-400 transition-colors"
                           >
                             <Calendar className="w-4 h-4" />
                           </button>
@@ -415,7 +434,7 @@ export default function TrainingCalendar() {
                           ) : (
                             <button
                               onClick={() => { setConfirmDeleteId(session.id); setConfirmDeleteType('session'); }}
-                              className="p-1.5 text-grappler-400 hover:text-red-400 transition-colors"
+                              className="w-10 h-10 flex items-center justify-center rounded-lg text-grappler-400 hover:text-red-400 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -608,8 +627,12 @@ export default function TrainingCalendar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4"
-            onClick={() => setWorkoutBeingEdited(null)}
+            onClick={requestCloseEditor}
           >
+            {/* Back closes the exercise search first, then leaves the editor (asking if edited) */}
+            {!confirmDiscardEdits && (showExerciseSearch
+              ? <BackLayer key="search" onBack={() => { setShowExerciseSearch(false); setExerciseSearch(''); }} />
+              : <BackLayer key="editor" onBack={requestCloseEditor} />)}
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -626,8 +649,9 @@ export default function TrainingCalendar() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setWorkoutBeingEdited(null)}
-                  className="p-2 text-grappler-400 hover:text-white transition-colors"
+                  onClick={requestCloseEditor}
+                  aria-label="Close"
+                  className="-mr-2 w-11 h-11 flex items-center justify-center text-grappler-400 hover:text-white transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -769,7 +793,7 @@ export default function TrainingCalendar() {
               {/* Footer */}
               <div className="p-4 border-t border-grappler-700 flex gap-2">
                 <button
-                  onClick={() => setWorkoutBeingEdited(null)}
+                  onClick={requestCloseEditor}
                   className="flex-1 py-2.5 text-sm text-grappler-400 hover:text-grappler-200 transition-colors"
                 >
                   Cancel
@@ -785,6 +809,26 @@ export default function TrainingCalendar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Discard edits? */}
+      {workoutBeingEdited && confirmDiscardEdits && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-6" onClick={() => setConfirmDiscardEdits(false)}>
+          <BackLayer onBack={() => setConfirmDiscardEdits(false)} />
+          <div role="dialog" aria-modal="true" aria-label="Discard changes?" onClick={e => e.stopPropagation()}
+            className="bg-grappler-800 rounded-lg w-full max-w-sm p-4 shadow-xl">
+            <p className="text-base font-bold text-white">Discard changes?</p>
+            <p className="text-sm text-grappler-400 mt-1">Your edits to this workout haven&apos;t been saved.</p>
+            <div className="flex gap-2 mt-4">
+              <button onClick={() => setConfirmDiscardEdits(false)} className="flex-1 min-h-[44px] rounded-lg bg-grappler-700 text-sm font-medium text-grappler-100">
+                Keep editing
+              </button>
+              <button onClick={closeWorkoutEditor} className="flex-1 min-h-[44px] rounded-lg bg-rose-600 hover:bg-rose-500 text-sm font-medium text-white">
+                Discard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Monthly stats */}
       <div className="grid grid-cols-4 gap-2">

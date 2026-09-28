@@ -159,4 +159,56 @@ test.describe('Mobile navigation', () => {
     await expect(page.getByRole('button', { name: 'Open Alactic Power 8 × 8 s' })).toBeVisible();
     await expect(overlay(page)).toBeVisible();
   });
+
+  test('calendar workout editor: back asks before throwing edits away', async ({ page }) => {
+    // One lifting log today, straight into the persisted store
+    await page.evaluate(() => {
+      const raw = JSON.parse(localStorage.getItem('roots-gains-storage') || '{}');
+      const st = raw.state;
+      st.workoutLogs = [...(st.workoutLogs || []), {
+        id: 'e2e-log', userId: st.user?.id ?? 'u', mesocycleId: 'm', sessionId: 's', date: new Date().toISOString(),
+        exercises: [{ exerciseId: 'back_squat', exerciseName: 'Back Squat', personalRecord: false,
+          sets: [{ setNumber: 1, weight: 100, reps: 5, rpe: 8, completed: true }] }],
+        totalVolume: 500, duration: 45, overallRPE: 8, completed: true,
+      }];
+      localStorage.setItem('roots-gains-storage', JSON.stringify(raw));
+    });
+    await page.reload();
+    // a first logged workout brings up the new-user guide
+    await page.getByRole('button', { name: 'Skip guide' }).click({ timeout: 8000 }).catch(() => {});
+    await page.getByRole('tab', { name: 'Progress' }).click({ timeout: 20_000 });
+    await page.getByRole('button', { name: /Workout history/ }).first().click();
+    await page.getByRole('button', { name: 'Calendar view' }).click();
+    await page.locator('.grid-cols-7 button.ring-primary-500').click();
+    const openEditor = async () => {
+      await page.getByRole('button', { name: 'Edit workout' }).click();
+      await expect(page.getByRole('heading', { name: 'Edit Workout' })).toBeVisible();
+    };
+    await openEditor();
+    const editor = page.getByRole('heading', { name: 'Edit Workout' });
+    const discard = page.getByRole('dialog', { name: 'Discard changes?' });
+
+    // Nothing changed → back just closes
+    await page.goBack();
+    await expect(editor).toHaveCount(0);
+    await expect(discard).toHaveCount(0);
+
+    // Edited → back asks; keep editing keeps the edit; back asks again; discard closes
+    await page.locator('.grid-cols-7 button.ring-primary-500').click();
+    await openEditor();
+    await page.locator('input[type="number"]').first().fill('105');
+    await page.goBack();
+    await expect(discard).toBeVisible();
+    await discard.getByRole('button', { name: 'Keep editing' }).click();
+    await expect(discard).toHaveCount(0);
+    await expect(page.locator('input[type="number"]').first()).toHaveValue('105');
+    await page.goBack();
+    await expect(discard).toBeVisible();
+    await discard.getByRole('button', { name: 'Discard' }).click();
+    await expect(editor).toHaveCount(0);
+    // the overlay/tab under it is untouched and the log wasn't changed
+    await expect(page.getByRole('tab', { name: 'Progress' })).toHaveAttribute('aria-selected', 'true');
+    const w = await page.evaluate(() => JSON.parse(localStorage.getItem('roots-gains-storage') || '{}').state.workoutLogs.find((l: { id: string }) => l.id === 'e2e-log').exercises[0].sets[0].weight);
+    expect(w).toBe(100);
+  });
 });

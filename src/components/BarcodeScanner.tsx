@@ -237,7 +237,7 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/95 flex flex-col"
+      className="fixed inset-0 z-50 bg-black/95 flex flex-col safe-area-top"
     >
       <BackLayer onBack={onClose} />
       {/* Header */}

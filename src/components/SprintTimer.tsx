@@ -235,7 +235,7 @@ export default function SprintTimer({ onClose, recommendation, mode = 'standalon
   // Back arrow top-left like every tool (a step back, or out of the tool);
   // a step inside the tool also gets ✕ to leave the whole tool.
   const header = (title: string, back?: () => void) => (
-    <div className="flex items-center justify-between mb-4">
+    <div className="sticky top-0 z-20 bg-grappler-900 -mx-4 px-4 py-2 flex items-center justify-between mb-4">
       <BackButton onClick={back ?? onClose} label={back ? 'Back' : 'Go back'} />
       <h1 className="text-lg font-bold text-grappler-50 truncate">{title}</h1>
       {back ? (

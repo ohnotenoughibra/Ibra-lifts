@@ -255,7 +255,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
         exit={{ opacity: 0, x: 50 }}
         className="min-h-screen bg-grappler-900 px-4 pt-6 pb-24"
       >
-        <div className="flex items-center gap-3 mb-6">
+        <div className="sticky top-0 z-20 bg-grappler-900 -mx-4 px-4 py-2 flex items-center gap-3 mb-6">
           <BackButton onClick={onClose} />
           <div>
             <h2 className="text-lg font-bold text-grappler-50 leading-tight">Progressive Overload</h2>
@@ -285,7 +285,7 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
       className="min-h-screen bg-grappler-900 px-4 pt-6 pb-24"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="sticky top-0 z-20 bg-grappler-900 -mx-4 px-4 py-2 flex items-center gap-3 mb-6">
         <BackButton onClick={onClose} />
         <div>
           <h2 className="text-xl font-bold text-grappler-50">Progressive Overload</h2>

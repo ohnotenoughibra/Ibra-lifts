@@ -120,10 +120,10 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto"
+        className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top"
       >
         <div className="min-h-screen px-4 pt-6 pb-24 max-w-2xl mx-auto">
-          <div className="flex items-center gap-3 mb-6">
+          <div className="sticky top-0 z-20 bg-grappler-900 -mx-4 px-4 py-2 flex items-center gap-3 mb-6">
             <BackButton onClick={onClose} />
             <h1 className="text-lg font-bold text-grappler-50 leading-tight">Fight Camp Nutrition</h1>
           </div>
@@ -146,11 +146,11 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top"
     >
       <div className="min-h-screen px-4 pt-6 pb-24 max-w-2xl mx-auto space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="sticky top-0 z-20 bg-grappler-900 -mx-4 px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <BackButton onClick={onClose} />
             <div>

@@ -291,7 +291,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className="fixed inset-0 z-50 bg-grappler-900 flex flex-col"
+        className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top"
       >
         <BackLayer onBack={() => { setTimerActive(false); setTimerPaused(false); }} />
         {/* Timer Header */}

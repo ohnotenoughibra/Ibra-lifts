@@ -637,7 +637,9 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
 
       {/* Close button (overlay mode) */}
       {onClose && (
-        <BackButton onClick={() => { onClose(); hapticLight(); }} className="z-10 mb-2" />
+        <div className="sticky top-0 z-20 bg-grappler-900 -mx-4 px-4 py-1.5">
+          <BackButton onClick={() => { onClose(); hapticLight(); }} />
+        </div>
       )}
 
       {/* ════════════════════════════════════════════════════════════════ */}

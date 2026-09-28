@@ -89,7 +89,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
   if (!currentMesocycle) {
     return (
       <div className="min-h-screen bg-grappler-900 p-4 pb-24">
-        <div className="flex items-center gap-3 mb-6">
+        <div className="sticky top-0 z-20 bg-grappler-900 -mx-4 px-4 py-2 flex items-center gap-3 mb-6">
           <BackButton onClick={onClose} />
           <h2 className="text-lg font-bold text-grappler-50 leading-tight">Periodization Calendar</h2>
         </div>
@@ -111,7 +111,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
   return (
     <div className="min-h-screen bg-grappler-900 p-4 pb-24">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="sticky top-0 z-20 bg-grappler-900 -mx-4 px-4 py-2 flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <BackButton onClick={onClose} />
           <div>

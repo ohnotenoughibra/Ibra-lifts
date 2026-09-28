@@ -1320,7 +1320,10 @@ export default function ActiveWorkout() {
             initial={{ y: -40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -40, opacity: 0 }}
-            className="fixed top-2 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md pointer-events-auto"
+            // Below the header's button row (Cancel / Leave / …) — it only
+            // covers the progress bar, and clears itself after 4 s.
+            className="fixed inset-x-0 mx-auto z-50 w-[calc(100%-2rem)] max-w-md pointer-events-auto"
+            style={{ top: 'calc(max(1rem, env(safe-area-inset-top)) + 3rem)' }}
             role="status"
           >
             <button

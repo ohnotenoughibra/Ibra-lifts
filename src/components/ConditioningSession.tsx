@@ -593,8 +593,10 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
   // ========================= BROWSE MODE =========================
   if (mode === 'browse') {
     return (
-      <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col overflow-hidden safe-area-top">
-        {/* Header */}
+      <div className="fixed inset-0 z-50 bg-grappler-950 overflow-y-auto safe-area-top">
+        {/* Header + filters pinned inside the scroller: they slide away on
+            scroll-down and come back on scroll-up (OverlayLayer). */}
+        <div className="sticky z-10 bg-grappler-950">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-grappler-800">
           <BackButton onClick={onClose} />
           <h1 className="text-lg font-bold text-grappler-50">Conditioning</h1>
@@ -642,9 +644,10 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
             </button>
           ))}
         </div>
+        </div>
 
         {/* Template cards grid */}
-        <div className="flex-1 overflow-y-auto px-4 pb-6">
+        <div className="px-4 pb-6">
           {filteredTemplates.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-grappler-400">
               <Target size={32} className="mb-3 opacity-50" />

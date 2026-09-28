@@ -331,10 +331,10 @@ export default function GripStrengthModule({ onClose }: GripStrengthModuleProps)
       <AnimatePresence>
         {showSuccess && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-green-500/20 border border-green-500/50 text-green-400 px-4 py-2 rounded-xl flex items-center gap-2"
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-above-nav inset-x-0 mx-auto w-fit z-50 bg-green-500/20 border border-green-500/50 text-green-400 px-4 py-2 rounded-xl flex items-center gap-2"
           >
             <Check className="w-5 h-5" />
             {successMessage}

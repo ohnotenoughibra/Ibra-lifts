@@ -211,4 +211,30 @@ test.describe('Mobile navigation', () => {
     const w = await page.evaluate(() => JSON.parse(localStorage.getItem('roots-gains-storage') || '{}').state.workoutLogs.find((l: { id: string }) => l.id === 'e2e-log').exercises[0].sets[0].weight);
     expect(w).toBe(100);
   });
+
+  test('tool headers slide away on scroll down and come back on scroll up', async ({ page }) => {
+    await page.getByRole('tab', { name: 'Tools' }).click();
+    await page.getByRole('button', { name: /^Programs/ }).first().click();
+    await expect(overlay(page)).toBeVisible();
+    await page.waitForTimeout(500);
+    const header = page.locator('[data-overlay-container] .sticky').first();
+    await expect(header).toBeVisible();
+    await swipe(page, 80, 600, 250);
+    await expect(header).toHaveAttribute('data-chrome-hidden', '');
+    await expect.poll(async () => { const b = await header.boundingBox(); return b ? b.y + b.height : 0; }).toBeLessThanOrEqual(0);
+    await swipe(page, 80, 300, 380);
+    await expect(header).not.toHaveAttribute('data-chrome-hidden', '');
+    await expect.poll(async () => (await header.boundingBox())?.y ?? -1).toBeGreaterThanOrEqual(0);
+  });
+
+  test('pop-up banners stay off the header buttons', async ({ page }) => {
+    // The daily bonus pops ~0.8 s after the dashboard mounts (onboarding just did)
+    const bonus = page.getByRole('button', { name: /login bonus/i });
+    await expect(bonus).toBeVisible({ timeout: 5000 });
+    const b = (await bonus.boundingBox())!;
+    const settings = (await page.getByRole('button', { name: 'Profile & Settings' }).first().boundingBox())!;
+    expect(b.y).toBeGreaterThan(settings.y + settings.height);
+    const vw = page.viewportSize()!.width;
+    expect(Math.abs(b.x + b.width / 2 - vw / 2)).toBeLessThan(3); // centred
+  });
 });

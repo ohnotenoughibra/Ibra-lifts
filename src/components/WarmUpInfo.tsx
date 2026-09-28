@@ -42,7 +42,7 @@ export default function WarmUpInfo({ onClose }: { onClose: () => void }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-grappler-900 flex flex-col safe-area-top"
+      className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top"
     >
       <header className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 p-4 flex items-center justify-between">
         <BackButton onClick={onClose} />
@@ -50,7 +50,7 @@ export default function WarmUpInfo({ onClose }: { onClose: () => void }) {
         <div className="w-10" />
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 pb-20 space-y-5">
+      <div className="p-4 pb-20 space-y-5">
         {/* Hero */}
         <div className="rounded-lg p-5 bg-gradient-to-br from-orange-500/15 to-orange-500/5 border border-orange-500/20">
           <div className="flex items-center gap-3 mb-3">

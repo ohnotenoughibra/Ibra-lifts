@@ -43,13 +43,12 @@ interface ToolShellProps {
 export function ToolShell({ onClose, eyebrow, title, description, footer, children }: ToolShellProps) {
   return (
     <div className="fixed inset-0 z-overlay bg-grappler-950 flex flex-col">
-      {/* Top sticky chrome — close only. Title scrolls away with content. */}
-      <div className="sticky top-0 z-10 bg-grappler-950 safe-area-top flex justify-start px-4 pt-3 pb-2">
-        <BackButton onClick={onClose} />
-      </div>
-
-      {/* Scrollable body */}
+      {/* Scrollable body — the back bar is pinned inside it so it can slide
+          away on scroll-down and come back on scroll-up (OverlayLayer). */}
       <div className="flex-1 overflow-y-auto">
+        <div className="sticky z-10 bg-grappler-950 safe-area-top flex justify-start px-4 pt-3 pb-2" style={{ top: 0 }}>
+          <BackButton onClick={onClose} />
+        </div>
         <div className="px-4 pb-32 max-w-2xl mx-auto">
           {/* Editorial header — Onboarding pattern */}
           <header className="pt-2 pb-5">

@@ -951,6 +951,11 @@
   }
   .overlay-safe .sticky {
     top: env(safe-area-inset-top);
+    transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  /* Tool headers slide away while scrolling down (OverlayLayer). */
+  .overlay-safe [data-chrome-hidden] {
+    transform: translateY(calc(-100% - env(safe-area-inset-top) - 2px));
   }
 }
 

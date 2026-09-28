@@ -168,6 +168,11 @@ ignores touches inside dialogs.
 - Tool header: `<BackButton onClick={onClose} />` (from `_ToolShell`) first on
   the left — never a ✕ (✕ is for sheets/dialogs). `data-no-swipe` on a screen
   that must not pull-to-close (running timers, unsaved forms).
+- Tool headers: make them `.sticky` INSIDE the scrolling area (not a fixed
+  row above it) — OverlayLayer then slides them away on scroll-down and back
+  on scroll-up. `data-keep-header` opts a sticky element out. Transient
+  banners go to `bottom-above-nav` (centre with `inset-x-0 mx-auto w-fit`,
+  not `left-1/2 -translate-x-1/2` — framer's y animation overrides it).
 - Tool roots that scroll an inner panel are fine — pull-to-close only starts
   when the tool's main scroll area is at the top.
 

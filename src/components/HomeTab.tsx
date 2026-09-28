@@ -49,6 +49,7 @@ import {
   Battery,
 } from 'lucide-react';
 import { cn, formatNumber, localDayKey, chrono } from '@/lib/utils';
+import { useNutritionDay } from '@/hooks/useNutritionDay';
 import { useWeightUnit } from '@/hooks/useWeightUnit';
 import { resolveWeightUnit, type WeightUnit } from '@/lib/units';
 import { estimate1RM } from '@/lib/weight-estimator';
@@ -76,7 +77,7 @@ import { generateVariableReward, detectDisengagement, getSessionContext } from '
 import { calculateFatigueDebt, getSmartDeloadRecommendation } from '@/lib/smart-deload';
 import { buildCycleProfile, getCycleInsights, shouldShowCycleFeatures } from '@/lib/female-athlete';
 import type { CycleLog } from '@/lib/female-athlete';
-import { detectFightCampPhase, getPhaseConfig, generatePhaseMacros } from '@/lib/fight-camp-engine';
+import { detectFightCampPhase, getPhaseConfig } from '@/lib/fight-camp-engine';
 import SorenessCheck from './SorenessCheck';
 import RestDayMissionCard from './RestDayMissionCard';
 import ReadinessRing from './ReadinessRing';
@@ -85,7 +86,6 @@ import { generatePerformanceNarrative } from '@/lib/performance-narratives';
 import { getOneThing } from '@/lib/one-thing';
 import OneThingBanner from './OneThingBanner';
 import { generateCoachingTips } from '@/lib/sport-nutrition-engine';
-import { getContextualNutrition, type TrainingDayType } from '@/lib/contextual-nutrition';
 import { PostWorkoutPhase, CombatPhase, LiftPhase, BlockCompletePhase, OnboardingPhase } from './phases';
 import { TOOL_MAP, ALL_TOOLS, readPins, writePins } from './ExploreTab';
 import { getDockSuggestions } from '@/lib/tool-affinity';
@@ -321,9 +321,9 @@ function getRestDayTip(identity: string | undefined, sport: string | undefined, 
   return generalTips[dayOfYear % generalTips.length];
 }
 
-function MealReminderBanner({ meals, onNavigate }: { meals: MealEntry[]; onNavigate: (view: OverlayView) => void }) {
-  const { mealReminders, activeDietPhase, macroTargets } = useAppStore(
-    useShallow(s => ({ mealReminders: s.mealReminders, activeDietPhase: s.activeDietPhase, macroTargets: s.macroTargets }))
+function MealReminderBanner({ meals, onNavigate, calorieTarget }: { meals: MealEntry[]; onNavigate: (view: OverlayView) => void; calorieTarget: number }) {
+  const { mealReminders, activeDietPhase } = useAppStore(
+    useShallow(s => ({ mealReminders: s.mealReminders, activeDietPhase: s.activeDietPhase }))
   );
 
   if (!mealReminders.enabled || !activeDietPhase) return null;
@@ -355,7 +355,7 @@ function MealReminderBanner({ meals, onNavigate }: { meals: MealEntry[]; onNavig
   if (!activeMeal) return null;
 
   const totalCal = meals.reduce((s, m) => s + m.calories, 0);
-  const remaining = macroTargets.calories - totalCal;
+  const remaining = calorieTarget - totalCal;
 
   return (
     <motion.div
@@ -442,6 +442,10 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   );
   const wearableHistory = useAppStore(s => s.wearableHistory);
   const macroTargets = useAppStore(s => s.macroTargets);
+  // The ONE nutrition answer for today (lib/nutrition-targets) — the strip,
+  // directive, One Thing and camp card all read this.
+  const nutritionToday = useNutritionDay(localDayKey());
+  const dayTargets = nutritionToday.targets;
   const waterLog = useAppStore(s => s.waterLog);
   const injuryLog = useAppStore(s => s.injuryLog);
   const quickLogs = useAppStore(s => s.quickLogs);
@@ -537,9 +541,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       user, currentMesocycle, workoutLogs, trainingSessions,
       wearableData: latestWhoopData, wearableHistory, meals,
       macroTargets, waterLog, injuryLog, quickLogs, competitions,
-      workoutSkips, illnessLogs,
+      workoutSkips, illnessLogs, proteinTarget: dayTargets.protein,
     });
-  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs, competitions, workoutSkips, illnessLogs]);
+  }, [user, currentMesocycle, workoutLogs, trainingSessions, latestWhoopData, wearableHistory, meals, macroTargets, waterLog, injuryLog, quickLogs, competitions, workoutSkips, illnessLogs, dayTargets.protein]);
 
   // ─── Weekly Synthesis — coaching narrative ───
   const synthesis = useMemo(() => {
@@ -927,76 +931,11 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   const waterTodayL = parseFloat((waterTodayGlasses * 0.25).toFixed(1)); // glasses → liters (1 glass = 250ml)
   const activeDietPhase = useAppStore(s => s.activeDietPhase);
 
-  // ─── Contextual Nutrition — adjusted macros based on today's training type ───
-  const contextualNutrition = useMemo(() => {
-    const liveWeights = chrono(bodyWeightLog);
-    const latestWeight = liveWeights.length > 0 ? liveWeights[liveWeights.length - 1] : null;
-    const bwLbs = latestWeight
-      ? (latestWeight.unit === 'lbs' ? latestWeight.weight : latestWeight.weight * 2.205)
-      : 175;
-    // Find today's workout session from mesocycle
-    let todaySession = null;
-    if (currentMesocycle) {
-      const todayLog = todayWorkouts[0];
-      if (todayLog) {
-        for (const week of currentMesocycle.weeks) {
-          const session = week.sessions.find(s => s.id === todayLog.sessionId);
-          if (session) { todaySession = session; break; }
-        }
-      }
-    }
-    // Nearest competition
-    const now = Date.now();
-    const nearestComp = (competitions || [])
-      .filter(c => new Date(c.date).getTime() > now)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] || null;
-    const daysToComp = nearestComp
-      ? Math.ceil((new Date(nearestComp.date).getTime() - now) / (1000 * 60 * 60 * 24))
-      : undefined;
-    const activeIllness = getActiveIllness();
-    return getContextualNutrition(
-      macroTargets,
-      bwLbs,
-      todaySession,
-      todayTraining,
-      latestWhoopData,
-      user,
-      activeIllness,
-      daysToComp != null ? { daysToCompetition: daysToComp } : undefined,
-    );
-  }, [macroTargets, bodyWeightLog, currentMesocycle, todayWorkouts, todayTraining, latestWhoopData, user, competitions, getActiveIllness]);
-
-  const contextDayLabel = useMemo(() => {
-    const labels: Record<TrainingDayType, string> = {
-      strength: 'Strength', hypertrophy: 'Hypertrophy', power: 'Power',
-      strength_endurance: 'Strength Endurance',
-      grappling_hard: 'Hard Grappling', grappling_light: 'Light Grappling',
-      two_a_day: 'Two-a-Day', sparring: 'Sparring',
-      fight_week: 'Fight Week', tournament_day: 'Tournament',
-      travel: 'Travel', rest: 'Rest',
-    };
-    return labels[contextualNutrition.dayType] || 'Rest';
-  }, [contextualNutrition.dayType]);
-
-  const contextMacroDelta = useMemo(() => {
-    const base = contextualNutrition.baseTargets;
-    const adj = contextualNutrition.adjustedTargets;
-    if (adj.calories === base.calories && adj.protein === base.protein && adj.carbs === base.carbs) return null;
-    const parts: string[] = [];
-    const calDiff = adj.calories - base.calories;
-    const protDiff = adj.protein - base.protein;
-    const carbDiff = adj.carbs - base.carbs;
-    if (calDiff !== 0) parts.push(`${calDiff > 0 ? '+' : ''}${calDiff} kcal`);
-    if (protDiff !== 0) parts.push(`${protDiff > 0 ? '+' : ''}${protDiff}g protein`);
-    if (carbDiff !== 0) parts.push(`${carbDiff > 0 ? '+' : ''}${carbDiff}g carbs`);
-    return parts.join(', ');
-  }, [contextualNutrition]);
-
   // ─── Time-Aware Coaching — one adaptive line that changes throughout the day ───
   const timeCoaching = useMemo(() => {
     const hasTrainedToday = directive.todayPerformance != null;
     const isRestDay = directive.todayType === 'rest' || (directive.todayType === 'recovery' && !hasTrainedToday);
-    const pTarget = macroTargets.protein || 0;
+    const pTarget = dayTargets.protein || 0;
     const proteinRemaining = Math.round(Math.max(0, pTarget - todayProtein));
     const proteinPct = pTarget > 0 ? Math.round((todayProtein / pTarget) * 100) : 0;
     const sleep = sleepHours;
@@ -1021,7 +960,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     }
     if (phase === 'pm') return `Afternoon window. Readiness: ${directive.readinessLevel}.`;
     return directive.shouldTrain ? 'Late session or intentional rest — your call.' : 'Wind down. Sleep quality over everything.';
-  }, [directive, macroTargets, todayProtein, hour, sleepHours]);
+  }, [directive, dayTargets.protein, todayProtein, hour, sleepHours]);
 
   // ─── The One Thing — single time-aware directive ───
   const oneThing = useMemo(() => {
@@ -1040,9 +979,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       todayType: directive.todayType,
       hasTrainedToday: directive.todayPerformance != null,
       todayProtein,
-      proteinTarget: contextualNutrition.adjustedTargets.protein || macroTargets.protein || 0,
+      proteinTarget: dayTargets.protein || 0,
       waterGlasses: waterTodayGlasses,
-      waterTarget: 8,
+      waterTarget: Math.max(1, Math.round(dayTargets.waterMl / 250)),
       sleepHours: sleepHours ?? null,
       nextWorkoutName: directive.nextSession?.name ?? null,
       nextWorkoutTime: hour < 12 ? 'afternoon' : hour < 17 ? 'evening' : null,
@@ -1053,7 +992,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       nextWorkoutExerciseCount: directive.nextSession?.exercises?.length,
       nextWorkoutDuration: directive.nextSession?.estimatedDuration,
     });
-  }, [hour, directive, todayProtein, macroTargets.protein, waterTodayGlasses, sleepHours, competitions, computed.currentStreak]);
+  }, [hour, directive, todayProtein, dayTargets.protein, dayTargets.waterMl, waterTodayGlasses, sleepHours, competitions, computed.currentStreak]);
 
   // ─── Insight Summary — context-aware toggle text ───
   const insightSummary = useMemo(() => {
@@ -1076,12 +1015,12 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     }
 
     // Protein status
-    if (macroTargets.protein > 0) {
-      parts.push(`${Math.round(todayProtein)}/${Math.round(macroTargets.protein)}g protein`);
+    if (dayTargets.protein > 0) {
+      parts.push(`${Math.round(todayProtein)}/${Math.round(dayTargets.protein)}g protein`);
     }
 
     return parts.length > 0 ? parts.join(' · ') : 'View coaching insights';
-  }, [volumeGaps, weeklyInsights, synthesis, macroTargets, todayProtein]);
+  }, [volumeGaps, weeklyInsights, synthesis, dayTargets.protein, todayProtein]);
 
   // ─── Sport Nutrition Tip icons ───
   const tipIconMap: Record<string, typeof Zap> = {
@@ -1120,14 +1059,14 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
       fightCampPhase: directive.fightCampTag,
       dietGoal: dietPhase?.isActive ? dietPhase.goal : null,
       proteinSoFar: todayProtein,
-      proteinTarget: contextualNutrition.adjustedTargets.protein || macroTargets.protein || 0,
+      proteinTarget: dayTargets.protein || 0,
       waterIntake: waterTodayGlasses,
       sleepHours: sleepHours ?? null,
       bodyWeightKg: bwKg,
       daysToCompetition: daysToComp,
       isDeload: directive.isDeload,
     });
-  }, [user, directive, hour, bodyWeightLog, weightUnit, competitions, activeDietPhase, todayProtein, macroTargets, waterTodayGlasses, sleepHours]);
+  }, [user, directive, hour, bodyWeightLog, weightUnit, competitions, activeDietPhase, todayProtein, dayTargets.protein, waterTodayGlasses, sleepHours]);
 
   const handleShareWorkout = async () => {
     if (!lastCompletedWorkout) return;
@@ -1531,7 +1470,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
   }
 
   // 4. Meal reminder → always visible
-  urgentFeedCards.push(<MealReminderBanner key="meal" meals={todayMeals} onNavigate={onNavigate} />);
+  urgentFeedCards.push(<MealReminderBanner key="meal" meals={todayMeals} onNavigate={onNavigate} calorieTarget={dayTargets.calories} />);
 
   // 5. Body weight reminder → regular feed
   const lastBWEntry = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
@@ -1626,15 +1565,9 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
     return getPhaseConfig(fightCampPhase, (user?.sex || 'male') as 'male' | 'female');
   }, [fightCampPhase, user?.sex]);
 
-  const campPhaseMacros = useMemo(() => {
-    if (!fightCampPhase) return null;
-    const latestW = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
-    const bwKg = latestW
-      ? (latestW.unit === 'lbs' ? latestW.weight / 2.205 : latestW.weight)
-      : (user?.bodyWeightKg || 80);
-    const tdee = Math.round(bwKg * 33);
-    return generatePhaseMacros(tdee, bwKg, fightCampPhase, (user?.sex || 'male') as 'male' | 'female');
-  }, [fightCampPhase, bodyWeightLog, user?.bodyWeightKg, user?.sex]);
+  // Today's resolved targets — the same numbers as the nutrition screen (was a
+  // separate bodyweight × 33 estimate that ignored the athlete's real burn).
+  const campPhaseMacros = fightCampPhase ? { calories: dayTargets.calories, protein: dayTargets.protein, carbs: dayTargets.carbs, fat: dayTargets.fat } : null;
 
   // Camp Mode banner (combat athletes with competition <= 56 days / 8 weeks)
   if (fightCampPhase && fightCampPhase !== 'off_season' && nextCompetition) {
@@ -1994,7 +1927,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           proteinGap={directive.proteinGap}
           nextWorkout={nextWorkout}
           todayProtein={todayProtein}
-          proteinTarget={contextualNutrition.adjustedTargets.protein || macroTargets.protein}
+          proteinTarget={dayTargets.protein}
           waterToday={waterTodayGlasses}
           sleepHours={sleepHours ?? null}
           alreadyLoggedSoreness={alreadyLoggedSorenessToday}
@@ -2042,7 +1975,7 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           mesocycleQueue={mesocycleQueue}
           sleepHours={sleepHours ?? null}
           todayProtein={todayProtein}
-          macroTargets={macroTargets}
+          macroTargets={dayTargets}
           waterTodayL={waterTodayL}
           waterTodayGlasses={waterTodayGlasses}
           recoveryScore={recoveryScore ?? null}
@@ -2142,16 +2075,16 @@ export default function HomeTab({ onNavigate, onViewReport, onSwitchTab }: { onN
           ═══════════════════════════════════════════════════════════════════ */}
 
       {/* ─── NUTRITION STRIP — bold numbers, no bar ─── */}
-      {profileComplete && macroTargets.protein > 0 && (
+      {profileComplete && dayTargets.protein > 0 && (
         <div className="flex items-center justify-center gap-5 px-1 py-1">
           <div className="flex items-center gap-1.5">
             <Apple className="w-3.5 h-3.5 text-grappler-500 flex-shrink-0" />
             <span className={cn(
               'text-sm tabular-nums font-bold',
-              todayProtein >= macroTargets.protein ? 'text-green-400' :
-              todayProtein >= macroTargets.protein * 0.7 ? 'text-grappler-200' : 'text-grappler-500'
+              todayProtein >= dayTargets.protein ? 'text-green-400' :
+              todayProtein >= dayTargets.protein * 0.7 ? 'text-grappler-200' : 'text-grappler-500'
             )}>
-              {Math.round(todayProtein)}/{Math.round(macroTargets.protein)}g
+              {Math.round(todayProtein)}/{Math.round(dayTargets.protein)}g
             </span>
           </div>
           <div className="flex items-center gap-1.5">

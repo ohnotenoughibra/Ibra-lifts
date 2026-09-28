@@ -33,7 +33,7 @@ const RESTORE_FIELDS = [
   'mentalCheckIns', 'confidenceLedger', 'featureFeedback',
   'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles', 'lastInsightDate',
   // Nutrition planning / meal shortcuts (previously local-only)
-  'nutritionPeriodPlan', 'mealStamps',
+  'nutritionPeriodPlan', 'mealStamps', 'customFoods', 'nutritionPrefs', 'mealPlan',
   // Were persisted locally but never synced + the deletion registry
   'rehabStates', 'benchmarkResults', 'activePlyoBlock', 'rsiHistory', 'techniqueLog', 'sparringRounds', '_tombstones',
 ];
@@ -489,6 +489,7 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       readArticles: s.readArticles, bookmarkedArticles: s.bookmarkedArticles,
       lastInsightDate: s.lastInsightDate,
       nutritionPeriodPlan: s.nutritionPeriodPlan, mealStamps: s.mealStamps,
+      customFoods: s.customFoods, nutritionPrefs: s.nutritionPrefs, mealPlan: s.mealPlan,
       _lastDevice: deviceType,
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
       // Quick Access pins (stored in localStorage, not Zustand)
@@ -608,6 +609,9 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
       // Nutrition planning / meal shortcuts
       nutritionPeriodPlan: store.nutritionPeriodPlan,
       mealStamps: store.mealStamps,
+      customFoods: store.customFoods,
+      nutritionPrefs: store.nutritionPrefs,
+      mealPlan: store.mealPlan,
       // Device metadata for multi-device awareness
       _lastDevice: deviceType,
       _lastDeviceUA: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 120) : '',
@@ -703,6 +707,9 @@ export function useDbSync(authUserId?: string | null, sessionStatus?: string) {
     // Nutrition planning / meal shortcuts
     store.nutritionPeriodPlan,
     store.mealStamps,
+    store.customFoods,
+    store.nutritionPrefs,
+    store.mealPlan,
     deviceType,
   ]);
 

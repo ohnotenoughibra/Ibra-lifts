@@ -35,7 +35,15 @@ Living map of how the pieces connect. When you need to change something, look he
 
 | Piece | File | Purpose |
 |-------|------|---------|
-| Tracker UI | `src/components/NutritionTracker.tsx` | Meal logging, macro dashboard, water tracking |
+| **Daily targets (single source of truth)** | `src/lib/nutrition-targets.ts` | `resolveDailyTargets(input, day)` — base (adaptive or fixed) → training-day shape (week averages the base; lift + mats = double day) → fight week (only when making weight, by days to weigh-in) → illness. Every screen reads this |
+| Adaptive expenditure | `src/lib/adaptive-tdee.ts` | Intake + EMA weight trend over 21 days → measured TDEE, blended with the formula by data confidence; weekly anchor (Monday) |
+| State → resolver | `src/lib/nutrition-state.ts` | `targetsInputFromState`, `adaptiveMacroTargetsUpdate` (keeps stored `macroTargets` = adaptive base; run by `useNutritionAutopilot`) |
+| Food library | `src/lib/foods-at.ts` | ~180 foods per 100 g, German + English, Austrian supermarket + Tyrolean dishes |
+| Search + gram maths | `src/lib/food-search.ts` | Word-prefix accent-folded ranked search (your foods → history → library), plurals/amounts, `macrosFor`, recipes per 100 g, one meal-type rule |
+| Meal planning | `src/lib/meal-plan.ts` + `recipes-at.ts` | Slots around training time, redistribute what's left, fit a recipe's P/C/F parts to a slot, suggestions by diet/dislikes, shopping list by aisle |
+| AI logging | `src/lib/nutrition-ai.ts` + `/api/nutrition/ai` | Claude: describe/photo → items with grams; meal ideas for remaining macros (ADR 006) |
+| Products | `src/lib/off-search.ts` + `/api/nutrition/search` | OpenFoodFacts text search, Austrian products first |
+| Tracker UI | `src/components/NutritionTracker.tsx` + `components/nutrition/*` | Today (ring, why, meal timeline + suggestions) · Plan (week, shopping, recipes, my foods) · Coach (goal/rate, adaptive/fixed, prefs, review); `FoodLogger` = search / describe / quick / scan with Undo |
 | Diet Coach | `src/lib/diet-coach.ts` | BMR (Mifflin-St Jeor / Cunningham), TDEE, macro targets, RED-S warnings |
 | Diet Coach UI | `src/components/DietCoach.tsx` | Diet phase management, weekly check-ins |
 | Contextual | `src/lib/contextual-nutrition.ts` | Pre/intra/post workout fuel, illness-aware adjustments |
@@ -45,9 +53,9 @@ Living map of how the pieces connect. When you need to change something, look he
 | Weight cut | `src/lib/weight-cut-engine.ts` | Safe phased cuts (0.7% BW/week), energy availability floor |
 | Electrolytes | `src/lib/electrolyte-engine.ts` | Sweat rate estimation, intra-training sodium/carbs |
 | Supplements | `src/lib/supplement-engine.ts` | Evidence-based stack (creatine, beta-alanine), competition pauses |
-| State | `src/lib/store.ts` lines 3017-3163 | Nutrition slice: meals, macroTargets, waterLog, dietPhase |
+| State | `src/lib/store.ts` (grep `addMeals`, `customFoods`, `nutritionPrefs`, `mealPlan`) | meals (42 days local), customFoods, nutritionPrefs, mealPlan, macroTargets, waterLog, dietPhase |
 
-**Flow**: `periodization-planner` generates annual phase plan → `diet-coach` calculates targets per phase → user logs meals in `NutritionTracker` → `contextual-nutrition` adjusts around sessions → `fight-camp-engine` overrides during competition prep → `weight-cut-engine` enforces safety floors → `block-suggestion` recommends training blocks aligned to nutrition phase
+**Flow**: meals + weigh-ins → `adaptive-tdee` measures expenditure → `nutrition-targets` builds the week's base from the goal rate (`activeDietPhase.targetRatePerWeek`) and shapes each day around training → fight week uses `weight-cut-engine` protocols when a cut is needed → `meal-plan` splits the day into slots and fits recipes → every screen (Nutrition, Home strip, directive, camp card) shows the same numbers
 
 ---
 

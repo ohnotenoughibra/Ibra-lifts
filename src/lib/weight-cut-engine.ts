@@ -442,9 +442,11 @@ export interface DailyChecklist {
 export function generateDailyChecklist(
   daysToWeighIn: number,
   bodyWeightKg: number,
+  /** Water-cut cap for this weigh-in format — 0 means no water manipulation at all. */
+  maxWaterCutPercent?: number,
 ): DailyChecklist {
   const phase = detectWeightCutPhase(daysToWeighIn, true);
-  const water = getWaterProtocol(daysToWeighIn, bodyWeightKg);
+  const water = getWaterProtocol(daysToWeighIn, bodyWeightKg, maxWaterCutPercent);
   const sodium = getSodiumProtocol(daysToWeighIn);
   const carbs = getCarbProtocol(daysToWeighIn, bodyWeightKg);
 
@@ -454,8 +456,8 @@ export function generateDailyChecklist(
 
   if (phase === 'chronic_loss') {
     tasks.push(
-      { task: `Hit calorie target (20% deficit)`, critical: true },
-      { task: `Protein: 2.8-3.1 g/kg minimum`, critical: true },
+      { task: 'Hit today\'s calorie target (Nutrition → Today)', critical: true },
+      { task: 'Protein: 2.4-2.8 g/kg', critical: true },
       { task: `Water: ${Math.round(water.targetMl / 1000)}L`, critical: false },
       { task: 'Log all meals', critical: true },
     );

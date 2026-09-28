@@ -528,7 +528,7 @@ export default function Dashboard({
     };
     const OVERLAY_COMPONENTS: Record<string, React.ReactNode> = {
       builder: <WorkoutBuilder onClose={closeOverlay} editTemplateId={overlayContext} />,
-      nutrition: <NutritionTracker onClose={closeOverlay} />,
+      nutrition: <NutritionTracker onClose={closeOverlay} onNavigate={(v: string) => setOverlayView(v as never)} />,
       wearable: <WearableIntegration onClose={closeOverlay} />,
       competition: <CompetitionPrep onClose={closeOverlay} onNavigate={v => setOverlayView(v)} />,
       mobility: <MobilityWorkouts onClose={closeOverlay} />,
@@ -585,7 +585,9 @@ export default function Dashboard({
         <div className="flex justify-center pt-2 pb-1">
           <div className="w-10 h-1 rounded-full bg-grappler-600" />
         </div>
-        {overlayContent}
+        {/* Overlays return before the app-level provider below — without their
+            own, every toast (and its Undo) inside a tool was silently dropped. */}
+        <ToastProvider>{overlayContent}</ToastProvider>
       </div>
     );
   }

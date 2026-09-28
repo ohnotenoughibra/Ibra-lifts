@@ -768,7 +768,7 @@ function EventDetail({
 
   // Fight camp nutrition phase (combat athletes only)
   const fightCampPhase = isCombatEvent && daysRemaining > 0
-    ? detectFightCampPhase(daysRemaining, event.type === 'bjj_tournament')
+    ? detectFightCampPhase(daysRemaining, false, event.type === 'bjj_tournament' || event.type === 'wrestling_meet')
     : null;
   const fightCampConfig = fightCampPhase
     ? getPhaseConfig(fightCampPhase, (userSex as any) || 'male')

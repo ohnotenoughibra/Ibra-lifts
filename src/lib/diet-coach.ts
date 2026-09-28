@@ -226,6 +226,9 @@ interface MacroInput {
   // Dynamic TDEE inputs (optional — overrides activityMultiplier when present)
   weeklyTrainingSessions?: TrainingSession[];
   weeklyLiftingSessions?: WorkoutLog[];
+  /** Measured expenditure (adaptive TDEE). When set it replaces the estimated
+   *  TDEE — the training sessions are then only used for the EA floor. */
+  tdeeOverride?: number;
 }
 
 /**
@@ -261,6 +264,7 @@ export function calculateMacros({
   proteinGKg,
   weeklyTrainingSessions,
   weeklyLiftingSessions,
+  tdeeOverride,
 }: MacroInput): (MacroTargets & { bmr: number; tdee: number; leanMassKg?: number }) | null {
   // Guard: return null if critical profile fields are missing or invalid.
   // This prevents NaN from propagating to the UI when a user hasn't set up their profile.
@@ -288,7 +292,9 @@ export function calculateMacros({
     (weeklyTrainingSessions && weeklyTrainingSessions.length > 0) ||
     (weeklyLiftingSessions && weeklyLiftingSessions.length > 0);
 
-  if (hasTrainingData) {
+  if (tdeeOverride != null && tdeeOverride > 0) {
+    tdee = Math.round(tdeeOverride);
+  } else if (hasTrainingData) {
     const dynamic = calculateDynamicTDEE({
       bmr,
       weeklyTrainingSessions: weeklyTrainingSessions ?? [],
@@ -394,6 +400,27 @@ export function weeklyExerciseCostPerDay(
     total += estimateLiftingCalories('hypertrophy', w.duration, bodyWeightKg);
   }
   return total / 7;
+}
+
+/**
+ * Average DAILY exercise cost over the last 7 calendar days (combat + cardio
+ * sessions and lifts). The EA widgets used to pass estimateDailyExerciseCost's
+ * WEEKLY total of the last 7 *entries* (no lifting) as a daily figure —
+ * ~7× too high — and flagged healthy athletes as RED-S risk.
+ */
+export function dailyExerciseCostLastWeek(
+  trainingSessions: TrainingSession[] | undefined,
+  workoutLogs: WorkoutLog[] | undefined,
+  bodyWeightKg: number,
+  now: number = Date.now(),
+): number {
+  const since = now - 7 * 864e5;
+  const inWeek = (d: Date | string) => { const t = new Date(d).getTime(); return t >= since && t <= now; };
+  return weeklyExerciseCostPerDay(
+    (trainingSessions ?? []).filter(s => !(s as { _deleted?: boolean })._deleted && inWeek(s.date)),
+    (workoutLogs ?? []).filter(l => !l._deleted && inWeek(l.date)),
+    bodyWeightKg,
+  );
 }
 
 // ── Energy Availability ──────────────────────────────────────────────────────
@@ -590,7 +617,16 @@ export function calculateWeeklyAdjustment({
       newMacros.calories += 100;
       newMacros.carbs += 25;
       reason = 'Losing faster than target. Adding carbs to preserve muscle.';
-    } else if (Math.abs(diff) <= tolerance) {
+    } else if (diff > tolerance) {
+      // Losing, but clearly slower than the target (e.g. −0.2 vs −0.5 kg/wk).
+      // This used to match no branch and returned "maintain" with an empty reason.
+      adjustment = 'decrease';
+      const calReduction = Math.round(currentMacros.calories * 0.05);
+      newMacros.calories -= calReduction;
+      newMacros.carbs -= Math.round((calReduction * 0.7) / 4);
+      newMacros.fat -= Math.round((calReduction * 0.3) / 9);
+      reason = `Losing ${Math.abs(actualWeeklyChange).toFixed(2)} kg/week vs a ${Math.abs(targetRatePerWeek).toFixed(2)} target. Reducing calories by ${calReduction}.`;
+    } else {
       adjustment = 'maintain';
       reason = 'On track. Keep current macros.';
     }
@@ -603,15 +639,6 @@ export function calculateWeeklyAdjustment({
       newMacros.fat = fatFloor;
     }
 
-    // Energy Availability check (replaces absolute calorie floor)
-    // Still keep a hard absolute minimum as ultimate safety net
-    const absoluteFloor = isFemale ? 1200 : 1400;
-    if (newMacros.calories < absoluteFloor) {
-      newMacros.calories = absoluteFloor;
-      alert = isFemale
-        ? 'Calories critically low — risk of hormonal disruption (RED-S). Take a 1-2 week diet break at maintenance.'
-        : 'Calories critically low. Consider a 1-2 week diet break at maintenance.';
-    }
   } else if (goal === 'bulk') {
     if (actualWeeklyChange < targetRatePerWeek * 0.5 && weeksAtPlateau >= 2) {
       adjustment = 'increase';
@@ -649,7 +676,22 @@ export function calculateWeeklyAdjustment({
   }
 
   // Recalculate calories from macros to keep consistent
+  newMacros.carbs = Math.max(0, newMacros.carbs);
   newMacros.calories = newMacros.protein * 4 + newMacros.carbs * 4 + newMacros.fat * 9;
+
+  // Hard safety floor for cuts — applied AFTER the recalculation (it used to be
+  // set first and then overwritten by the macro sum, so it never held). The
+  // gap is filled with carbs.
+  if (goal === 'cut') {
+    const absoluteFloor = isFemale ? 1200 : 1400;
+    if (newMacros.calories < absoluteFloor) {
+      newMacros.carbs += Math.ceil((absoluteFloor - newMacros.calories) / 4);
+      newMacros.calories = newMacros.protein * 4 + newMacros.carbs * 4 + newMacros.fat * 9;
+      alert = isFemale
+        ? 'Calories critically low — risk of hormonal disruption (RED-S). Take a 1-2 week diet break at maintenance.'
+        : 'Calories critically low. Consider a 1-2 week diet break at maintenance.';
+    }
+  }
 
   return { newMacros, adjustment, reason, alert };
 }

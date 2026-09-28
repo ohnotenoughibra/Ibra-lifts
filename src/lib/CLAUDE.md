@@ -82,6 +82,12 @@ Block lifecycle: `active` → `completed` (via `completeMesocycle`, requires ≥
 - `exercise-recommender.ts` — Weak-point-based exercise suggestions
 
 ### Nutrition
+- `nutrition-targets.ts` — THE daily targets resolver (any date); `trendWeightKg`, `fightWeekFor`, `resolveBase`
+- `adaptive-tdee.ts` — measured expenditure from intake + weight trend
+- `nutrition-state.ts` — store → resolver input; adaptive macroTargets sync
+- `food-search.ts` / `foods-at.ts` — ranked food search, gram maths, the per-100 g library
+- `meal-plan.ts` / `recipes-at.ts` — meal slots, recipe fitting, suggestions, shopping list
+- `nutrition-ai.ts` / `off-search.ts` — Claude parse/suggest prompts + schemas; OpenFoodFacts mapping
 - `diet-coach.ts` — BMR, TDEE, macros, RED-S warnings, phase-to-macro bridge
 - `periodization-planner.ts` — Annual nutrition phase sequencing (massing/cut/maintenance cycles), training-nutrition coupling, competition-anchored planning, metabolic adaptation detection
 - `contextual-nutrition.ts` — Pre/intra/post fuel, illness-aware

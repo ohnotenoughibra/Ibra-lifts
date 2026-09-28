@@ -16,7 +16,9 @@ import {
   Shield,
   X,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, localDayKey } from '@/lib/utils';
+import { useNutritionDay } from '@/hooks/useNutritionDay';
+import { trendWeightKg } from '@/lib/nutrition-targets';
 import { useAppStore } from '@/lib/store';
 import {
   detectFightCampPhase,
@@ -54,11 +56,8 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
   const weightUnit = resolveWeightUnit(user?.weightUnit);
   const sex = (user?.sex || 'male') as 'male' | 'female';
 
-  // Get current weight in kg
-  const latestWeight = bodyWeightLog.length > 0 ? bodyWeightLog[bodyWeightLog.length - 1] : null;
-  const bodyWeightKg = latestWeight
-    ? (latestWeight.unit === 'lbs' ? latestWeight.weight / 2.205 : latestWeight.weight)
-    : (user?.bodyWeightKg ? user.bodyWeightKg : 80);
+  // Trend weight (kg) — the resolver's, not the last array element
+  const bodyWeightKg = trendWeightKg({ user, macroTargets: { calories: 0, protein: 0, carbs: 0, fat: 0 }, bodyWeightLog }) ?? 80;
 
   // Nearest active competition
   const nearestCompetition = useMemo(() => {
@@ -76,7 +75,9 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
 
   // Current fight camp phase
   const currentPhase = daysToCompetition != null && daysToCompetition > 0
-    ? detectFightCampPhase(daysToCompetition, isTournament)
+    // (days, isPostCompetition, isTournament) — the flag used to land in the
+    // post-competition slot, so tournament athletes always saw "post competition".
+    ? detectFightCampPhase(daysToCompetition, false, isTournament)
     : null;
 
   const currentConfig = currentPhase ? getPhaseConfig(currentPhase, sex) : null;
@@ -86,11 +87,10 @@ export default function FightCampNutrition({ onClose }: FightCampNutritionProps)
     ? generateFightCampTimeline(nearestCompetition, bodyWeightKg, sex)
     : [];
 
-  // Phase-specific macros (estimate TDEE as ~33 kcal/kg for active combat athlete)
-  const estimatedTDEE = Math.round(bodyWeightKg * 33);
-  const phaseMacros = currentPhase
-    ? generatePhaseMacros(estimatedTDEE, bodyWeightKg, currentPhase, sex)
-    : null;
+  // Today's targets from the one resolver — same numbers as the nutrition screen
+  // (was bodyweight × 33 × phase factor, ignoring measured expenditure and the cut).
+  const today = useNutritionDay(localDayKey()).targets;
+  const phaseMacros = currentPhase ? { calories: today.calories, protein: today.protein, carbs: today.carbs, fat: today.fat } : null;
 
   // Supplement plan
   const supplementPlan = useMemo(() => {

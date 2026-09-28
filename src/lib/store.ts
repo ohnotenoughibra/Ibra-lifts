@@ -34,6 +34,9 @@ import {
   TrainingSession,
   MealEntry,
   MacroTargets,
+  FoodItem,
+  NutritionPrefs,
+  MealPlanState,
   MuscleGroupConfig,
   WearableData,
   CompetitionEvent,
@@ -88,6 +91,8 @@ import { calculateLevel, calculateWorkoutPoints, checkNewBadges, badges, generat
 import { getSuggestedWeight, getPreviousSessionSets, whoopRecoveryToReadiness, matchWhoopWorkout, calculatePersonalBaseline } from './auto-adjust';
 import { isBodyweightLoadedExercise, backfillBodyweightInLogs, estimate1RM, estimateFirstTimeWeight } from './weight-estimator';
 import { safeDayKey, isValidDate, localDayKey, localMondayKey, parseLocalDate, chrono, newestN } from './utils';
+import { resolveDailyTargets, DEFAULT_NUTRITION_PREFS } from './nutrition-targets';
+import { targetsInputFromState } from './nutrition-state';
 
 /**
  * Resolve the initial logged weight for a set. Prefers a real suggested/history
@@ -354,6 +359,10 @@ interface AppState {
 
   // Meal stamps (user's personal frequent meals — tap to log)
   mealStamps: MealStamp[];
+  /** Custom foods, saved products and recipes (synced). */
+  customFoods: FoodItem[];
+  nutritionPrefs: NutritionPrefs;
+  mealPlan: MealPlanState;
 
   // Meal reminders
   mealReminders: MealReminderSettings;
@@ -653,15 +662,33 @@ interface AppState {
   setColorTheme: (theme: ColorTheme) => void;
 
   // Nutrition actions
-  addMeal: (meal: Omit<MealEntry, 'id'>) => void;
+  /** Returns the new meal's id (for undo). */
+  addMeal: (meal: Omit<MealEntry, 'id'>) => string;
+  /** Log several entries at once (recipe, AI parse, copied meal) — returns ids. */
+  addMeals: (meals: Omit<MealEntry, 'id'>[]) => string[];
   updateMeal: (id: string, updates: Partial<MealEntry>) => void;
   deleteMeal: (id: string) => void;
+  /** Undo a delete (revival beats the tombstone in sync). */
+  restoreMeal: (id: string) => void;
+  /** Hard-undo a just-logged entry (soft-delete so sync agrees). */
+  undoMeals: (ids: string[]) => void;
+  addCustomFood: (food: Omit<FoodItem, 'id' | 'createdAt'>) => string;
+  updateCustomFood: (id: string, updates: Partial<FoodItem>) => void;
+  deleteCustomFood: (id: string) => void;
+  touchCustomFood: (id: string) => void;
+  setNutritionPrefs: (updates: Partial<NutritionPrefs>) => void;
+  /** Pick a recipe for a day's slot (null clears). */
+  setMealPick: (dayKey: string, slotId: string, recipeId: string | null) => void;
+  toggleBought: (foodId: string) => void;
+  clearBought: () => void;
   setMacroTargets: (targets: MacroTargets) => void;
   setWaterGlasses: (date: string, glasses: number) => void;
 
   // Diet coaching actions
   startDietPhase: (phase: Omit<DietPhase, 'id'>) => void;
   endDietPhase: () => void;
+  /** Change the active phase's target rate (kg/week) without restarting it. */
+  setDietPhaseRate: (ratePerWeek: number) => void;
   addWeeklyCheckIn: (checkIn: Omit<WeeklyCheckIn, 'id'>) => void;
   incrementPhaseWeek: () => void;
   deleteDietPhaseFromHistory: (id: string) => void;
@@ -676,7 +703,8 @@ interface AppState {
   addMealStamp: (stamp: Omit<MealStamp, 'id' | 'createdAt' | 'timesUsed'>) => void;
   deleteMealStamp: (id: string) => void;
   useMealStamp: (id: string) => void;
-  copyYesterdayMeals: (targetDate: string) => void;
+  /** Copies yesterday's live meals onto targetDate; returns the new ids (for undo). */
+  copyYesterdayMeals: (targetDate: string) => string[];
 
   // Meal reminder actions
   setMealReminders: (settings: Partial<MealReminderSettings>) => void;
@@ -936,6 +964,9 @@ export const useAppStore = create<AppState>()(
       weeklyCheckIns: [],
       nutritionPeriodPlan: null,
       mealStamps: [],
+      customFoods: [],
+      nutritionPrefs: DEFAULT_NUTRITION_PREFS,
+      mealPlan: { picks: {}, bought: [] },
       mealReminders: {
         enabled: false,
         reminderTimes: { breakfast: '08:00', lunch: '12:30', dinner: '19:00' },
@@ -4095,6 +4126,13 @@ export const useAppStore = create<AppState>()(
           notes
         };
         set({ bodyWeightLog: [...bodyWeightLog, entry], _syncUrgent: true });
+        // Keep the profile weight current — readiness (protein g/kg), strength
+        // ratios and fallbacks all read user.bodyWeightKg, which only onboarding
+        // and Settings ever wrote.
+        if (user && Number.isFinite(weight) && weight > 0) {
+          const kg = entry.unit === 'lbs' ? weight * 0.45359237 : weight;
+          get().updateUserFields({ bodyWeightKg: Math.round(kg * 10) / 10 });
+        }
         // Award XP for consistent weight tracking
         get().awardPoints(pointRewards.bodyWeightLog, 'Body weight logged');
       },
@@ -4580,8 +4618,14 @@ export const useAppStore = create<AppState>()(
 
       // Nutrition actions
       addMeal: (meal) => {
-        const { meals, macroTargets } = get();
-        const newMeals = [...meals, { ...meal, id: uuidv4() }];
+        const [id] = get().addMeals([meal]);
+        return id;
+      },
+
+      addMeals: (entries) => {
+        const { meals } = get();
+        const stamped = entries.map(m => ({ ...m, id: uuidv4(), updatedAt: new Date().toISOString() }));
+        const newMeals = [...meals, ...stamped];
         set({ meals: newMeals });
 
         // Award wellness XP for nutrition logging
@@ -4594,10 +4638,11 @@ export const useAppStore = create<AppState>()(
           fat: acc.fat + (m.fat || 0),
         }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
-        // Check if macros are within 10% of targets
-        const macrosHit = macroTargets.protein > 0 &&
-          Math.abs(todayTotals.protein - macroTargets.protein) / macroTargets.protein <= 0.10 &&
-          Math.abs(todayTotals.calories - macroTargets.calories) / macroTargets.calories <= 0.10;
+        // Macros within 10 % of TODAY's resolved target (the number on screen)
+        const t = resolveDailyTargets(targetsInputFromState(get()), today);
+        const macrosHit = t.protein > 0 &&
+          Math.abs(todayTotals.protein - t.protein) / t.protein <= 0.10 &&
+          Math.abs(todayTotals.calories - t.calories) / t.calories <= 0.10;
 
         if (todayMeals.length >= 2) { // Award after 2+ meals to avoid noise
           get().awardWellnessXP('nutrition', {
@@ -4608,11 +4653,12 @@ export const useAppStore = create<AppState>()(
 
         // Write-through: sync meals immediately
         set({ _syncUrgent: true });
+        return stamped.map(m => m.id);
       },
 
       updateMeal: (id, updates) => {
         const { meals } = get();
-        set({ meals: meals.map(m => m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m) });
+        set({ meals: meals.map(m => m.id === id ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m), _syncUrgent: true });
       },
 
       deleteMeal: (id) => {
@@ -4620,7 +4666,79 @@ export const useAppStore = create<AppState>()(
         set({ meals: meals.map(m => m.id === id ? { ...m, _deleted: true, _deletedAt: Date.now() } : m), _syncUrgent: true });
       },
 
-      setMacroTargets: (targets) => set({ macroTargets: targets }),
+      restoreMeal: (id) => {
+        const { meals } = get();
+        set({
+          meals: meals.map(m => {
+            if (m.id !== id) return m;
+            const { _deleted, _deletedAt, ...live } = m;
+            return { ...live, updatedAt: new Date().toISOString() };
+          }),
+          _syncUrgent: true,
+        });
+      },
+
+      undoMeals: (ids) => {
+        const drop = new Set(ids);
+        const { meals } = get();
+        set({ meals: meals.map(m => drop.has(m.id) ? { ...m, _deleted: true, _deletedAt: Date.now() } : m), _syncUrgent: true });
+      },
+
+      addCustomFood: (food) => {
+        const id = uuidv4();
+        const now = new Date().toISOString();
+        set({ customFoods: [...(get().customFoods ?? []), { ...food, id, createdAt: now, updatedAt: now }], _syncUrgent: true });
+        return id;
+      },
+
+      updateCustomFood: (id, updates) => {
+        set({
+          customFoods: (get().customFoods ?? []).map(f => f.id === id ? { ...f, ...updates, updatedAt: new Date().toISOString() } : f),
+          _syncUrgent: true,
+        });
+      },
+
+      deleteCustomFood: (id) => {
+        set({
+          customFoods: (get().customFoods ?? []).map(f => f.id === id ? { ...f, _deleted: true, _deletedAt: Date.now() } : f),
+          _syncUrgent: true,
+        });
+      },
+
+      touchCustomFood: (id) => {
+        const now = new Date().toISOString();
+        set({
+          customFoods: (get().customFoods ?? []).map(f => f.id === id ? { ...f, timesUsed: (f.timesUsed ?? 0) + 1, lastUsed: now, updatedAt: now } : f),
+        });
+      },
+
+      setMealPick: (dayKey, slotId, recipeId) => {
+        const mealPlan = get().mealPlan ?? { picks: {}, bought: [] };
+        const picks = { ...mealPlan.picks };
+        const key = `${dayKey}|${slotId}`;
+        if (recipeId) picks[key] = recipeId; else delete picks[key];
+        // Drop picks older than 14 days so the synced object stays small.
+        const cutoff = localDayKey(new Date(Date.now() - 14 * 864e5));
+        for (const k of Object.keys(picks)) if (k.split('|')[0] < cutoff) delete picks[k];
+        set({ mealPlan: { ...mealPlan, picks, updatedAt: new Date().toISOString() }, _syncUrgent: true });
+      },
+
+      toggleBought: (foodId) => {
+        const mealPlan = get().mealPlan ?? { picks: {}, bought: [] };
+        const bought = mealPlan.bought.includes(foodId) ? mealPlan.bought.filter(b => b !== foodId) : [...mealPlan.bought, foodId];
+        set({ mealPlan: { ...mealPlan, bought, updatedAt: new Date().toISOString() } });
+      },
+
+      clearBought: () => {
+        const mealPlan = get().mealPlan ?? { picks: {}, bought: [] };
+        set({ mealPlan: { ...mealPlan, bought: [], updatedAt: new Date().toISOString() } });
+      },
+
+      setNutritionPrefs: (updates) => {
+        set({ nutritionPrefs: { ...DEFAULT_NUTRITION_PREFS, ...get().nutritionPrefs, ...updates, updatedAt: new Date().toISOString() }, _syncUrgent: true });
+      },
+
+      setMacroTargets: (targets) => set({ macroTargets: { ...targets, updatedAt: new Date().toISOString() }, _syncUrgent: true }),
 
       setWaterGlasses: (date, glasses) => {
         const { waterLog, quickLogs } = get();
@@ -4644,6 +4762,12 @@ export const useAppStore = create<AppState>()(
       },
 
       // Diet coaching actions
+      setDietPhaseRate: (ratePerWeek) => {
+        const { activeDietPhase } = get();
+        if (!activeDietPhase) return;
+        set({ activeDietPhase: { ...activeDietPhase, targetRatePerWeek: ratePerWeek, updatedAt: new Date().toISOString() }, _syncUrgent: true });
+      },
+
       startDietPhase: (phase) => {
         const { mealReminders } = get();
         set({
@@ -4794,16 +4918,21 @@ export const useAppStore = create<AppState>()(
         const yesterday = new Date(targetDate + 'T12:00:00');
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = localDayKey(yesterday);
+        // Live meals only — deleted ones used to come back as hidden copies —
+        // and not supplement auto-logs (those re-log from the supplement check-off).
         const yesterdayMeals = meals.filter(
-          m => safeDayKey(m.date) === yesterdayStr
+          m => !m._deleted && safeDayKey(m.date) === yesterdayStr && !/\(supplement\)$/.test(m.name)
         );
-        if (yesterdayMeals.length === 0) return;
-        const newMeals = yesterdayMeals.map(m => ({
-          ...m,
-          id: uuidv4(),
-          date: new Date(targetDate + 'T12:00:00'),
-        }));
-        set({ meals: [...meals, ...newMeals] });
+        if (yesterdayMeals.length === 0) return [];
+        const entries = yesterdayMeals.map(m => {
+          const { id: _id, _deleted, _deletedAt, updatedAt: _u, ...rest } = m;
+          // Keep the time of day, move the date.
+          const when = new Date(m.date);
+          const d = new Date(targetDate + 'T12:00:00');
+          d.setHours(when.getHours(), when.getMinutes(), 0, 0);
+          return { ...rest, date: d };
+        });
+        return get().addMeals(entries);
       },
 
       // Meal reminder actions
@@ -4854,7 +4983,7 @@ export const useAppStore = create<AppState>()(
           'activeSupplements', 'supplementStack', 'supplementIntakes', 'homeGymEquipment',
           'mentalCheckIns', 'confidenceLedger', 'featureFeedback',
           'seenInsights', 'dismissedInsights', 'readArticles', 'bookmarkedArticles', 'lastInsightDate',
-          'nutritionPeriodPlan', 'mealStamps', '_tombstones',
+          'nutritionPeriodPlan', 'mealStamps', 'customFoods', 'nutritionPrefs', 'mealPlan', '_tombstones',
         ];
 
         if (resolution === 'local') {
@@ -5501,15 +5630,20 @@ export const useAppStore = create<AppState>()(
 
         // ── Trimmed arrays (full data syncs from server) ──
         workoutLogs: newestN(state.workoutLogs, 30),
+        // 42 days: adaptive expenditure reads a 21-day window + warm-up, and
+        // recents/regulars need more than a week to mean anything offline.
         meals: state.meals?.filter(m => {
-          const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-          return new Date(m.date).getTime() > weekAgo;
+          const cutoff = Date.now() - 42 * 24 * 60 * 60 * 1000;
+          return new Date(m.date).getTime() > cutoff;
         }) ?? [],
-        bodyWeightLog: newestN(state.bodyWeightLog, 30),
+        bodyWeightLog: newestN(state.bodyWeightLog, 60),
         mesocycleHistory: state.mesocycleHistory?.slice(-3) ?? [],
         trainingSessions: newestN(state.trainingSessions, 30),
         quickLogs: state.quickLogs?.slice(-50) ?? [],
         mealStamps: state.mealStamps?.slice(-50) ?? [],
+        customFoods: state.customFoods ?? [],
+        nutritionPrefs: state.nutritionPrefs,
+        mealPlan: state.mealPlan,
         supplementIntakes: state.supplementIntakes?.slice(-50) ?? [],
         hrSessions: state.hrSessions?.slice(-20) ?? [],
         waterLog: state.waterLog ? Object.fromEntries(

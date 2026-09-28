@@ -207,7 +207,7 @@ export default function KnowledgeHub({ onClose, initialCategory, onNavigate }: K
   return (
     <div className="min-h-screen bg-grappler-900 px-4 pt-6 pb-24 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="sticky top-0 z-20 bg-grappler-900 -mx-4 px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {onClose && <BackButton onClick={onClose} />}
           <div>

@@ -117,10 +117,10 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
   // -------- Empty state --------
   if (!hasWorkouts && !loading) {
     return (
-      <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto">
+      <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top">
         <div className="min-h-screen px-4 pt-6 pb-24">
           {/* Header */}
-          <div className="flex items-center gap-3 mb-8">
+          <div className="sticky top-0 z-20 bg-grappler-900 -mx-4 px-4 py-2 flex items-center gap-3 mb-8">
             <BackButton onClick={onClose} />
             <h1 className="text-lg font-bold text-grappler-50 leading-tight">AI Coach</h1>
           </div>
@@ -155,9 +155,9 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
   // -------- Loading state --------
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto">
+      <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top">
         <div className="min-h-screen px-4 pt-6 pb-24">
-          <div className="flex items-center gap-3 mb-8">
+          <div className="sticky top-0 z-20 bg-grappler-900 -mx-4 px-4 py-2 flex items-center gap-3 mb-8">
             <BackButton onClick={onClose} />
             <h1 className="text-xl font-bold text-grappler-50">AI Coach</h1>
           </div>
@@ -180,10 +180,10 @@ export default function WeeklyCoach({ onClose }: WeeklyCoachProps) {
 
   // -------- Main coach view --------
   return (
-    <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top">
       <div className="min-h-screen px-4 pt-6 pb-24 max-w-2xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="sticky top-0 z-20 bg-grappler-900 -mx-4 px-4 py-2 flex items-center gap-3 mb-6">
           <BackButton onClick={onClose} />
           <h1 className="text-xl font-bold text-grappler-50">AI Coach</h1>
         </div>

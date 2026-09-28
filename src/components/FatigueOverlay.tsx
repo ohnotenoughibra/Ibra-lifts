@@ -17,6 +17,7 @@ import type {
 } from '@/lib/smart-deload';
 import { calculateAllFatigueMetrics } from '@/lib/fatigue-metrics';
 import type { FatigueMetricsData } from '@/lib/fatigue-metrics';
+import { localDayKey } from '@/lib/utils';
 
 interface FatigueOverlayProps { onClose?: () => void; embedded?: boolean }
 
@@ -82,11 +83,13 @@ export default function FatigueOverlay({ onClose = () => {}, embedded }: Fatigue
   const hasEnoughData = useMemo(() => {
     const weeks = new Set<string>();
     workoutLogs.forEach((log) => {
+      if (log._deleted) return;
       const d = new Date(log.date);
+      if (Number.isNaN(d.getTime())) return; // a malformed date crashed the whole Deload tab (toISOString throws)
       const off = d.getDay() === 0 ? 6 : d.getDay() - 1;
       const mon = new Date(d);
       mon.setDate(d.getDate() - off);
-      weeks.add(mon.toISOString().split('T')[0]);
+      weeks.add(localDayKey(mon));
     });
     return weeks.size >= 3;
   }, [workoutLogs]);

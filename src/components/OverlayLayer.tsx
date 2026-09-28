@@ -138,7 +138,10 @@ function useHideHeadersOnScroll(rootRef: React.RefObject<HTMLElement>, stripRef:
       last.set(sc, st);
       const max = sc.scrollHeight - sc.clientHeight;
       if (st <= 24) { travel = 0; show(); return; }
-      if (st >= max - 2 && st > prev) return;                        // iOS bounce at the bottom
+      // iOS rubber-band past the end (and its spring back) isn't the reader
+      // scrolling. Reaching the bottom normally still counts — short tools
+      // hit it in one swipe.
+      if (st > max + 1 || prev > max + 1) return;
       const d = st - prev;
       travel = (d > 0) === (travel > 0) ? travel + d : d;
       if (travel > 24 && hiddenEls.size === 0) hide(sc);

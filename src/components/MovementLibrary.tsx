@@ -294,7 +294,7 @@ function ExerciseDetailPanel({
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex flex-col bg-grappler-950 overflow-hidden safe-area-top"
+      className="fixed inset-0 z-50 bg-grappler-950 overflow-y-auto no-scrollbar safe-area-top"
       initial={{ x: '100%' }}
       animate={{ x: 0 }}
       exit={{ x: '100%' }}
@@ -324,7 +324,7 @@ function ExerciseDetailPanel({
       </div>
 
       {/* Detail Content */}
-      <div className="flex-1 overflow-y-auto no-scrollbar p-4 pb-8 space-y-5">
+      <div className="p-4 pb-8 space-y-5">
         {/* Muscles Section */}
         <div className="bg-grappler-900/80 border border-grappler-700/40 rounded-xl p-4">
           <div className="flex items-center gap-2 text-primary-400 mb-3">
@@ -519,7 +519,9 @@ export default function MovementLibrary({ onClose }: MovementLibraryProps) {
   const [patternFilter, setPatternFilter] = useState<PatternFilter>('all');
   const [equipmentFilter, setEquipmentFilter] = useState<EquipmentFilter>('all');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
-  const [showFilters, setShowFilters] = useState(true);
+  // Collapsed by default: open, the four chip rows pinned 437 px of header
+  // and left the list ~190 px. The filter button shows how many are active.
+  const [showFilters, setShowFilters] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -585,7 +587,9 @@ export default function MovementLibrary({ onClose }: MovementLibraryProps) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-grappler-950">
       {/* Main View (List) */}
-      <div className="relative flex flex-col h-full overflow-hidden">
+      {/* One scroller: the header is pinned inside it so it slides away on
+          scroll-down and comes back on scroll-up (OverlayLayer). */}
+      <div className="relative h-full overflow-y-auto no-scrollbar safe-area-top">
         {/* Sticky Header */}
         <div className="sticky top-0 z-20 bg-grappler-950 border-b border-grappler-700/40">
           {/* Top Row: Back + Title */}
@@ -712,7 +716,7 @@ export default function MovementLibrary({ onClose }: MovementLibraryProps) {
         </div>
 
         {/* Exercise List */}
-        <div className="flex-1 overflow-y-auto no-scrollbar">
+        <div>
           {filteredExercises.length > 0 ? (
             <div className="p-4 space-y-2.5">
               <AnimatePresence mode="popLayout">

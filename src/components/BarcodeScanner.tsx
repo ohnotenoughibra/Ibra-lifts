@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, Loader2, AlertCircle, Plus, ScanBarcode, RotateCw, Pencil, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from './BackLayer';
 import { lookupBarcode, setBarcodeOverride, type BarcodeProduct } from '@/lib/barcode-lookup';
 import type { MealType } from '@/lib/types';
 
@@ -238,6 +239,7 @@ export default function BarcodeScanner({ onAdd, onClose, defaultMealType }: Barc
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 bg-black/95 flex flex-col"
     >
+      <BackLayer onBack={onClose} />
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-grappler-900/90 backdrop-blur-sm">
         <div className="flex items-center gap-2 text-grappler-200">

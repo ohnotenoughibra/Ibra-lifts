@@ -7,6 +7,7 @@ import { recommendFinisher, totalSeconds as sprintTotalSeconds } from '@/lib/spr
 import { sessionDeltas } from '@/lib/live-session';
 import { Check, Trophy, Zap, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from '../BackLayer';
 import type { WorkoutSession, ExerciseLog, PreWorkoutCheckIn, WeightUnit, WearableData, MuscleGroup, PostWorkoutFeedback } from '@/lib/types';
 import type { ActiveWorkoutThrottle } from '@/lib/store';
 import type { ReadinessScore } from '@/lib/auto-adjust';
@@ -47,6 +48,7 @@ export default function FinishWorkoutModal({ activeWorkout, durationOverride, to
       role="dialog"
       aria-modal="true"
     >
+      <BackLayer onBack={() => setShowFinishModal(false)} />
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

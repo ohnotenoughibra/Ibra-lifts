@@ -22,6 +22,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from './BackLayer';
 import { exercises } from '@/lib/exercises';
 import type { Exercise, MuscleGroup, ExerciseCategory, MovementPattern } from '@/lib/types';
 
@@ -299,6 +300,7 @@ function ExerciseDetailPanel({
       exit={{ x: '100%' }}
       transition={{ type: 'spring', damping: 28, stiffness: 280 }}
     >
+      <BackLayer onBack={onBack} />
       {/* Detail Header */}
       <div className="sticky top-0 z-20 flex items-center gap-3 px-4 py-3 bg-grappler-950 border-b border-grappler-700/40">
         <button

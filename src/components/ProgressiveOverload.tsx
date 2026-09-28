@@ -24,6 +24,7 @@ import {
 import { useAppStore } from '@/lib/store';
 import { estimate1RM } from '@/lib/weight-estimator';
 import { resolveWeightUnit } from '@/lib/units';
+import BackLayer from './BackLayer';
 
 interface ProgressiveOverloadProps {
   onClose: () => void;
@@ -355,10 +356,13 @@ export default function ProgressiveOverload({ onClose }: ProgressiveOverloadProp
 
         {/* Dismiss dropdown on outside click */}
         {showDropdown && (
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setShowDropdown(false)}
-          />
+          <>
+            <BackLayer onBack={() => setShowDropdown(false)} />
+            <div
+              className="fixed inset-0 z-10"
+              onClick={() => setShowDropdown(false)}
+            />
+          </>
         )}
       </div>
 

@@ -31,6 +31,7 @@ import { SetLog, ExerciseLog, MuscleGroup, Mesocycle } from '@/lib/types';
 import { exercises as exerciseLibrary, getExerciseById, searchExercises } from '@/lib/exercises';
 import { exportWorkoutHistoryPdf } from '@/lib/pdf-export';
 import TrainingCalendar from './TrainingCalendar';
+import BackLayer from './BackLayer';
 import WhoopLiftStats from './WhoopLiftStats';
 import { useShallow } from 'zustand/react/shallow';
 import { Layers } from 'lucide-react';
@@ -1153,6 +1154,7 @@ export default function WorkoutHistory() {
             role="dialog"
             aria-modal="true"
           >
+            <BackLayer onBack={() => setShowExercisePicker(false)} />
             <motion.div
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}

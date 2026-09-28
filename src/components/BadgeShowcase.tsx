@@ -6,6 +6,7 @@ import { useAppStore } from '@/lib/store';
 import { badges as allBadges, getBadgesByCategory } from '@/lib/gamification';
 import { Trophy, Lock, Share2, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from './BackLayer';
 import type { BadgeCategory } from '@/lib/types';
 
 const CATEGORIES: { id: BadgeCategory; label: string; color: string }[] = [
@@ -159,6 +160,7 @@ export default function BadgeShowcase({ onClose }: { onClose: () => void }) {
               exit={{ opacity: 0, y: 20 }}
               className="fixed bottom-0 left-0 right-0 z-50 p-4 pb-8"
             >
+              <BackLayer onBack={() => setSelectedBadge(null)} />
               <div className={cn(
                 'rounded-lg p-5 border shadow-2xl',
                 badge.earned

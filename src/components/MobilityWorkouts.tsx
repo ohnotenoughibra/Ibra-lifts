@@ -21,6 +21,7 @@ import { getMobilityRoutines, generateActiveRecoverySession } from '@/lib/mobili
 import { MobilityFocus, MobilityRoutine, MobilityExercise } from '@/lib/types';
 import { useAppStore } from '@/lib/store';
 import SorenessCheck from './SorenessCheck';
+import BackLayer from './BackLayer';
 import type { SorenessArea, SorenessSeverity } from '@/lib/mobility-data';
 import { Sparkles } from 'lucide-react';
 
@@ -291,6 +292,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
         exit={{ opacity: 0, y: 20 }}
         className="fixed inset-0 z-50 bg-grappler-900 flex flex-col"
       >
+        <BackLayer onBack={() => { setTimerActive(false); setTimerPaused(false); }} />
         {/* Timer Header */}
         <div className="p-4 flex items-center justify-between border-b border-grappler-800">
           <button aria-label="Go back"
@@ -426,6 +428,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-40 bg-grappler-900 overflow-y-auto"
       >
+        <BackLayer onBack={handleCloseRoutine} />
         {/* Header */}
         <div className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 p-4">
           <div className="flex items-center justify-between">
@@ -564,6 +567,7 @@ export default function MobilityWorkouts({ onClose }: MobilityWorkoutsProps) {
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-40 bg-grappler-900 overflow-y-auto"
       >
+        <BackLayer onBack={() => setShowRecoverySession(false)} />
         {/* Header */}
         <div className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 p-4">
           <div className="flex items-center justify-between">

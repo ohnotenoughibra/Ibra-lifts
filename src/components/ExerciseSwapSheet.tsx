@@ -24,6 +24,7 @@ import {
 } from '@/lib/exercises';
 import type { Equipment, EquipmentType, Exercise, WeightUnit } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useBackLayer } from '@/lib/back-stack';
 
 interface Props {
   currentExercise: Exercise;
@@ -57,6 +58,7 @@ export default function ExerciseSwapSheet({
     workoutLogs.filter(l => !l._deleted).flatMap(l => l.exercises.filter(e => e.sets.some(st => st.completed)).map(e => e.exerciseId)),
   ), [workoutLogs]);
   const inSession = useMemo(() => new Set(sessionExerciseIds), [sessionExerciseIds]);
+  useBackLayer(true, onClose);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };

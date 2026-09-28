@@ -23,6 +23,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from './BackLayer';
 import { Mesocycle, WorkoutLog, WeightUnit } from '@/lib/types';
 import {
   generateMesocycleReport,
@@ -110,6 +111,7 @@ export default function MesocycleReport({
           onClick={() => setShowDeleteConfirm(false)}
           onKeyDown={(e) => { if (e.key === 'Escape') setShowDeleteConfirm(false); }}
         >
+          <BackLayer onBack={() => setShowDeleteConfirm(false)} />
           <div className="bg-grappler-800 rounded-lg p-6 max-w-sm w-full space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-grappler-100">Delete Mesocycle?</h3>
             <p className="text-sm text-grappler-400">

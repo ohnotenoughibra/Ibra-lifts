@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from './Toast';
+import BackLayer from './BackLayer';
 import {
   Exercise,
   Equipment,
@@ -471,6 +472,7 @@ function QuickCustomExercise({ onSave, onClose }: {
       className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center"
       onClick={onClose}
     >
+      <BackLayer onBack={onClose} />
       <motion.div
         initial={{ y: 200 }}
         animate={{ y: 0 }}
@@ -1347,6 +1349,7 @@ export default function WorkoutBuilder({ onClose, editTemplateId }: WorkoutBuild
       {/* Template confirmation modal */}
       {pendingTemplate && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setPendingTemplate(null)}>
+          <BackLayer onBack={() => setPendingTemplate(null)} />
           <div className="bg-grappler-800 rounded-lg p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-white mb-2">Start New Program?</h3>
             <p className="text-sm text-grappler-400 mb-4">

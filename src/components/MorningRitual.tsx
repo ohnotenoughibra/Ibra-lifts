@@ -6,6 +6,7 @@ import { useAppStore } from '@/lib/store';
 import { useShallow } from 'zustand/react/shallow';
 import { calculateReadiness } from '@/lib/performance-engine';
 import ReadinessRing from './ReadinessRing';
+import BackLayer from './BackLayer';
 import { hapticHeavy } from '@/lib/haptics';
 
 // Stable fallback for store selectors — an inline `?? []` returns a fresh
@@ -188,6 +189,7 @@ export default function MorningRitual({ onComplete }: MorningRitualProps) {
       aria-modal="true"
       aria-label="Morning readiness ritual"
     >
+      <BackLayer onBack={handleDismiss} />
       {/* Greeting */}
       <motion.p
         initial={{ opacity: 0, y: 10 }}

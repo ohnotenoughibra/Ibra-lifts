@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from './BackLayer';
 import type { SyncStatus } from '@/lib/useDbSync';
 
 interface SyncStatusIndicatorProps {
@@ -100,6 +101,7 @@ export default function SyncStatusIndicator({
             onClick={() => setShowDetail(false)}
             onKeyDown={(e) => { if (e.key === 'Escape') setShowDetail(false); }}
           >
+            <BackLayer onBack={() => setShowDetail(false)} />
             <motion.div
               initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}

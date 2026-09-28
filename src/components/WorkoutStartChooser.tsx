@@ -24,6 +24,7 @@ import { generateSmartPick, type SmartPickResult } from '@/lib/smart-pick';
 import type { WorkoutSession } from '@/lib/types';
 import type { OverlayView } from './dashboard-types';
 import { cn } from '@/lib/utils';
+import { useBackLayer } from '@/lib/back-stack';
 
 interface Props {
   open: boolean;
@@ -107,6 +108,7 @@ export default function WorkoutStartChooser({ open, onClose, scheduledSession, o
 
   const exerciseCount = useMemo(() => smartPick?.session.exercises.length ?? 0, [smartPick]);
   const previewExercises = useMemo(() => smartPick?.session.exercises.slice(0, 4) ?? [], [smartPick]);
+  useBackLayer(open, () => { onClose(); setSmartPickRequested(false); setSmartPick(null); });
 
   return (
     <AnimatePresence>

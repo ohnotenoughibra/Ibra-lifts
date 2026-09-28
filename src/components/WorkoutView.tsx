@@ -34,6 +34,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from './BackLayer';
 import { MuscleGroupConfig, MuscleEmphasis, SessionsPerWeek, GoalFocus } from '@/lib/types';
 import { fireConfetti } from '@/lib/confetti';
 import { suggestNextBlock, getBlockSuggestionSummary } from '@/lib/block-suggestion';
@@ -880,6 +881,7 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
             aria-label="New block created"
             onKeyDown={e => { if (e.key === 'Escape') setBlockFlash(null); }}
           >
+            <BackLayer onBack={() => setBlockFlash(null)} />
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -1000,6 +1002,11 @@ export default function WorkoutView({ onNavigate }: { onNavigate?: (view: Overla
                 }
               }}
             >
+              <BackLayer onBack={() => {
+                setShowMigrateDialog(false);
+                setPendingGeneration(null);
+                setPreviousMesocycleId(null);
+              }} />
               <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -1230,6 +1237,7 @@ function MuscleEmphasisPicker({ config, onSave, onGenerate, onClose, weeks, onWe
       aria-label="Muscle emphasis"
       onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
     >
+      <BackLayer onBack={onClose} />
       <div className="w-full sm:max-w-md max-h-[90dvh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-grappler-900 border border-grappler-700 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-between mb-4">
           <div>

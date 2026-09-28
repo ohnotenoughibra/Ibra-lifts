@@ -111,6 +111,8 @@
 - `NewUserGuide.tsx` (~270) — First-time user tutorial
 
 ### UI Primitives
+- `OverlayLayer.tsx` (~170) — Full-screen tool layer: slide transitions, pull-down / left-edge swipe to close
+- `BackLayer.tsx` — `<BackLayer onBack>` drop-in: system back closes the sheet it sits in
 - `Toast.tsx` (~140) — Toast notifications
 - `Skeleton.tsx` (~130) — Loading skeleton
 - `LoadingScreen.tsx` (~80) — Full-page loader
@@ -144,6 +146,27 @@ Modals are inline state-driven (no modal library):
 const [showModal, setShowModal] = useState(false);
 // Render with AnimatePresence + motion.div backdrop
 ```
+**Every dismissible sheet / modal / confirm needs a back layer** so the system
+back button closes it (not the whole tool or the app):
+```tsx
+{showModal && (
+  <div className="fixed inset-0 …">
+    <BackLayer onBack={() => setShowModal(false)} />   {/* same handler as its ✕ / backdrop */}
+    …
+```
+or `useBackLayer(open, onClose)` (src/lib/back-stack.ts) at the top of a sheet
+component. Never point back at something that discards input without a confirm.
+Add `role="dialog"` to the sheet panel — swipe-to-close of the tool behind it
+ignores touches inside dialogs.
+
+### Navigation (Dashboard)
+- Tabs stay mounted under tools. A tool renders in `OverlayLayer` (fixed,
+  slides in/out, pull-down / left-edge swipe to close). Close with the
+  `onClose` prop — it's state-driven; don't call `history.back()` yourself.
+- Each tool level, the non-Today tab, the running workout and every sheet own
+  one history entry via `src/lib/back-stack.ts` (ranked tab < tool < workout < sheet).
+- Tool roots that scroll an inner panel are fine — pull-to-close only starts
+  when the tool's main scroll area is at the top.
 
 ### Animation
 Framer Motion (`motion`, `AnimatePresence`) is used throughout for transitions, page animations, and gesture handling.

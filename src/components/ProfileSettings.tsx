@@ -58,6 +58,7 @@ import NotificationSettings from './NotificationSettings';
 import WeekLayoutSheet from './WeekLayoutSheet';
 import { WEEK_ORDER, DAY_SHORT } from '@/lib/plan-edit';
 import type { OverlayView } from './dashboard-types';
+import BackLayer from './BackLayer';
 import { hapticMedium, hapticHeavy, hapticLight } from '@/lib/haptics';
 import { resolveWeightUnit } from '@/lib/units';
 
@@ -1385,6 +1386,7 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
             className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center"
             onClick={() => setSelectedBadge(null)}
           >
+            <BackLayer onBack={() => setSelectedBadge(null)} />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
@@ -1465,6 +1467,7 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
             onClick={() => setConfirmDialog(null)}
             onKeyDown={(e) => { if (e.key === 'Escape') setConfirmDialog(null); }}
           >
+            <BackLayer onBack={() => setConfirmDialog(null)} />
             <motion.div
               initial={{ opacity: 0, y: 40, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}

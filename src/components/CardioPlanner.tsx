@@ -10,6 +10,7 @@ import { ACTIVITY_LABELS } from '@/lib/types';
 import type { ActivityType, CardioIntensity, ScheduledCardioDay } from '@/lib/types';
 import WeeklyCalendar from './WeeklyCalendar';
 import { hapticLight, hapticMedium } from '@/lib/haptics';
+import BackLayer from './BackLayer';
 
 const CARDIO_MODALITIES: ActivityType[] = ['running', 'cycling', 'swimming', 'rowing', 'jump_rope', 'elliptical', 'assault_bike'];
 const INTENSITIES: { value: CardioIntensity; label: string }[] = [
@@ -193,6 +194,7 @@ export default function CardioPlanner({ onClose }: { onClose?: () => void }) {
             className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center"
             onClick={() => setEditDay(null)}
           >
+            <BackLayer onBack={() => setEditDay(null)} />
             <motion.div
               initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
               onClick={e => e.stopPropagation()}

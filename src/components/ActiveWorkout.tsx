@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore, type ActiveWorkoutThrottle } from '@/lib/store';
 import { useToast } from './Toast';
 import ExerciseSwapSheet from './ExerciseSwapSheet';
+import BackLayer from './BackLayer';
 import { suggestNextLoad, getLoadProfile, formatLoad, nextLoadStep, roundForImplement } from '@/lib/next-load';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { recommendFinisher } from '@/lib/sprint-protocols';
@@ -1591,6 +1592,7 @@ export default function ActiveWorkout() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-overlay bg-grappler-950 flex flex-col items-center justify-center safe-area-top safe-area-bottom"
           >
+            <BackLayer onBack={() => setRestMinimized(true)} />
             {/* Minimize button */}
             <button
               onClick={() => setRestMinimized(true)}
@@ -2898,6 +2900,7 @@ export default function ActiveWorkout() {
             role="dialog"
             aria-modal="true"
           >
+            <BackLayer onBack={() => setShowCancelConfirm(false)} />
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}

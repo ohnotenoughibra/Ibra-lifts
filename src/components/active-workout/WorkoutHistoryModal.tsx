@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { X, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from '../BackLayer';
 import type { ExercisePrescription, WeightUnit } from '@/lib/types';
 
 export interface WorkoutHistoryModalProps {
@@ -23,6 +24,7 @@ export default function WorkoutHistoryModal({ setShowHistoryModal, currentExerci
       aria-modal="true"
       onClick={() => setShowHistoryModal(false)}
     >
+      <BackLayer onBack={() => setShowHistoryModal(false)} />
       <motion.div
         initial={{ y: '100%' }}
         animate={{ y: 0 }}

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import BackLayer from './BackLayer';
 import { WorkoutSession, MesocycleWeek, WorkoutType } from '@/lib/types';
 import { getCompletedSessionIds } from '@/lib/session-matching';
 
@@ -355,6 +356,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
             className="fixed inset-0 bg-black/70 z-50 flex items-end justify-center"
             onClick={() => setSelectedSession(null)}
           >
+            <BackLayer onBack={() => setSelectedSession(null)} />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}

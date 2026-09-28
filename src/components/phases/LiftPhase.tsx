@@ -9,6 +9,7 @@ import {
   AlertTriangle, SkipForward, Flame, Activity, SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import BackLayer from '../BackLayer';
 import { useAppStore } from '@/lib/store';
 import type { OverlayView } from '../dashboard-types';
 import type { SkipReason } from '@/lib/types';
@@ -319,6 +320,7 @@ export default function LiftPhase({
             className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4"
             onClick={() => setShowSessionSheet(false)}
           >
+            <BackLayer onBack={() => setShowSessionSheet(false)} />
             <motion.div
               initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
               onClick={e => e.stopPropagation()}
@@ -368,6 +370,7 @@ export default function LiftPhase({
             className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 p-4"
             onClick={() => setShowReadinessGate(false)}
           >
+            <BackLayer onBack={() => setShowReadinessGate(false)} />
             <motion.div
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}

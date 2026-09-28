@@ -10,6 +10,7 @@ import {
   type Crew,
 } from '@/lib/crews-client';
 import { hapticLight, hapticMedium } from '@/lib/haptics';
+import BackLayer from './BackLayer';
 
 function metricsFromStore() {
   const s = useAppStore.getState();
@@ -261,6 +262,7 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
         {sheet && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center" onClick={() => setSheet(null)}>
+            <BackLayer onBack={() => setSheet(null)} />
             <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
               onClick={e => e.stopPropagation()}
               className="w-full sm:max-w-sm bg-grappler-900 rounded-t-2xl sm:rounded-2xl p-5 space-y-4 overlay-safe">

@@ -91,7 +91,7 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
             </div>
             <h1 className="font-bold text-grappler-50 text-lg">Cycle Tracking</h1>
           </div>
-          <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm p-1"><X className="w-5 h-5 text-grappler-400" /></button>
+          <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm w-11 h-11 -mr-2 p-0 flex items-center justify-center"><X className="w-5 h-5 text-grappler-400" /></button>
         </div>
       </header>
 

@@ -19,6 +19,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import EmptyState from './EmptyState';
+import BackLayer from './BackLayer';
 import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
@@ -854,6 +855,7 @@ function AddPhotoModal({
       className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center"
       onClick={onClose}
     >
+      <BackLayer onBack={onClose} />
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -1051,6 +1053,7 @@ function ViewPhotoModal({
       className="fixed inset-0 z-50 bg-black/90 flex flex-col"
       onClick={onClose}
     >
+      <BackLayer onBack={onClose} />
       {/* Top bar */}
       <div className="flex items-center justify-between p-4 shrink-0" onClick={(e) => e.stopPropagation()}>
         <button
@@ -1150,6 +1153,7 @@ function GalleryPickerModal({
       className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center"
       onClick={onClose}
     >
+      <BackLayer onBack={onClose} />
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

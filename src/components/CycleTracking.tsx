@@ -16,6 +16,7 @@ import {
   buildCycleProfile, getPhaseTrainingAdjustments,
   getCycleInsights, predictPerformanceWindow, getCycleNutritionGuidance,
 } from '@/lib/female-athlete';
+import { BackButton } from './_ToolShell';
 
 const ALL_SYMPTOMS: CycleSymptom[] = [
   'cramps', 'bloating', 'fatigue', 'headache', 'mood_changes',
@@ -86,12 +87,12 @@ export default function CycleTracking({ onClose }: CycleTrackingProps) {
       <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <BackButton onClick={onClose} />
             <div className="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">
               <Heart className="w-4 h-4 text-primary-400" />
             </div>
             <h1 className="font-bold text-grappler-50 text-lg">Cycle Tracking</h1>
           </div>
-          <button aria-label="Close" onClick={onClose} className="btn btn-ghost btn-sm w-11 h-11 -mr-2 p-0 flex items-center justify-center"><X className="w-5 h-5 text-grappler-400" /></button>
         </div>
       </header>
 

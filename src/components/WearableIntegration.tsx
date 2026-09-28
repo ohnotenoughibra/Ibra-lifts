@@ -16,7 +16,6 @@ import {
   Moon,
   Zap,
   Battery,
-  ChevronLeft,
   RefreshCw,
   Settings,
   TrendingUp,
@@ -57,6 +56,7 @@ import {
 } from '@/lib/whoop-client';
 import { syncWhoop } from '@/lib/whoop-sync';
 import { resolveWeightUnit, fromKg, toKg } from '@/lib/units';
+import { BackButton } from './_ToolShell';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -472,9 +472,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
       <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            <BackButton onClick={onClose} />
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
                 <Activity className="w-4 h-4 text-green-400" />
@@ -505,7 +503,7 @@ export default function WearableIntegration({ onClose }: WearableIntegrationProp
             )}
             <button
               onClick={() => setShowManualEntry(!showManualEntry)}
-              className="btn btn-ghost btn-sm p-1.5"
+              className="btn btn-ghost btn-sm p-0 w-11 h-11"
             >
               <Settings className="w-4 h-4 text-grappler-400" />
             </button>

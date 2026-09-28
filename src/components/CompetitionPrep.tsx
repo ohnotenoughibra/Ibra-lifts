@@ -26,6 +26,7 @@ import { detectWeightCutPhase, assessWeightCutSafety, getWaterProtocol, getSodiu
 import { calculateElectrolyteNeeds } from '@/lib/electrolyte-engine';
 import WeightCutDashboard from './WeightCutDashboard';
 import { resolveWeightUnit } from '@/lib/units';
+import { BackButton } from './_ToolShell';
 
 interface CompetitionPrepProps {
   onClose: () => void;
@@ -306,9 +307,7 @@ export default function CompetitionPrep({ onClose, onNavigate }: CompetitionPrep
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            <BackButton onClick={onClose} />
             <div>
               <h1 className="text-lg font-bold text-grappler-50 flex items-center gap-2 leading-tight">
                 <Trophy className="w-5 h-5 text-yellow-500" />

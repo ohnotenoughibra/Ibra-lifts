@@ -11,6 +11,7 @@ import {
 } from '@/lib/crews-client';
 import { hapticLight, hapticMedium } from '@/lib/haptics';
 import BackLayer from './BackLayer';
+import { BackButton } from './_ToolShell';
 
 function metricsFromStore() {
   const s = useAppStore.getState();
@@ -114,12 +115,10 @@ export default function CrewsLeaderboard({ onClose }: { onClose?: () => void }) 
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-grappler-950/90 backdrop-blur-sm border-b border-grappler-800">
         <div className="flex items-center gap-2">
+          <BackButton onClick={() => onClose?.()} />
           <Users className="w-5 h-5 text-primary-400" />
           <span className="text-base font-bold text-grappler-100">Crews</span>
         </div>
-        <button onClick={onClose} className="p-2 text-grappler-400 hover:text-grappler-200" aria-label="Close">
-          <X className="w-5 h-5" />
-        </button>
       </div>
 
       {/* No flex-1 here: in the overflow-y flex column it pinned this box to

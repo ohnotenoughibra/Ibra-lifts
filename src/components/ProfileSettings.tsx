@@ -22,7 +22,6 @@ import {
   Scale,
   Watch,
   Activity,
-  X,
   Pencil,
   AlertTriangle,
   Mail,
@@ -46,6 +45,7 @@ import {
   TrendingUp,
   Lock,
 } from 'lucide-react';
+import { BackButton } from './_ToolShell';
 import HiddenExercisesSetting from './HiddenExercisesSetting';
 import { cn, formatNumber } from '@/lib/utils';
 import { useComputedGamification } from '@/lib/computed-gamification';
@@ -637,13 +637,7 @@ export default function ProfileSettings({ onClose, onNavigate }: { onClose?: () 
 
       {/* Close button (overlay mode) */}
       {onClose && (
-        <button
-          onClick={() => { onClose(); hapticLight(); }}
-          className="w-8 h-8 rounded-xl bg-grappler-800/60 backdrop-blur-sm flex items-center justify-center hover:bg-grappler-700/80 transition-colors active:scale-95 z-10 mb-2"
-          aria-label="Close"
-        >
-          <X className="w-4 h-4 text-grappler-400" />
-        </button>
+        <BackButton onClick={() => { onClose(); hapticLight(); }} className="z-10 mb-2" />
       )}
 
       {/* ════════════════════════════════════════════════════════════════ */}

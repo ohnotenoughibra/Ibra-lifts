@@ -123,4 +123,40 @@ test.describe('Mobile navigation', () => {
     await page.getByRole('tab', { name: 'Today' }).click();
     await expect(page.getByRole('button', { name: 'Resume workout', exact: true })).toBeVisible();
   });
+
+  test('sprint timer: back steps back, asks before ending a run or dropping the log', async ({ page }) => {
+    await page.getByRole('tab', { name: 'Tools' }).click();
+    await page.getByRole('button', { name: /^Air Bike & Sprints/ }).first().click();
+    await page.getByRole('button', { name: 'Open Alactic Power 8 × 8 s' }).click();
+    await expect(page.getByText('Why this works')).toBeVisible();
+    // preview → back → the list, tool still open
+    await page.goBack();
+    await expect(page.getByRole('button', { name: 'Open Alactic Power 8 × 8 s' })).toBeVisible();
+    await page.getByRole('button', { name: 'Open Alactic Power 8 × 8 s' }).click();
+    await page.getByRole('button', { name: 'Start' }).click();
+    await expect(page.getByTestId('sprint-run')).toBeVisible();
+
+    // running → back → confirm; keep going keeps the run
+    await page.goBack();
+    const endDialog = page.getByRole('dialog', { name: 'End this session?' });
+    await expect(endDialog).toBeVisible();
+    await endDialog.getByRole('button', { name: 'Keep going' }).click();
+    await expect(endDialog).toHaveCount(0);
+    await expect(page.getByTestId('sprint-run')).toBeVisible();
+    // back re-arms after the confirm closed; a pull-down on the timer does nothing
+    await swipe(page, 200, 200, 700);
+    await expect(page.getByTestId('sprint-run')).toBeVisible();
+    await page.goBack();
+    await expect(endDialog).toBeVisible();
+    await endDialog.getByRole('button', { name: 'End & log' }).click();
+    await expect(page.getByText(/Ended early/)).toBeVisible();
+
+    // log → back → discard confirm
+    await page.goBack();
+    const discard = page.getByRole('dialog', { name: 'Discard this session?' });
+    await expect(discard).toBeVisible();
+    await discard.getByRole('button', { name: 'Discard' }).click();
+    await expect(page.getByRole('button', { name: 'Open Alactic Power 8 × 8 s' })).toBeVisible();
+    await expect(overlay(page)).toBeVisible();
+  });
 });

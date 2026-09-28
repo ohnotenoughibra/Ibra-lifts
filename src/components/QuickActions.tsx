@@ -4,7 +4,6 @@ import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import {
-  X,
   Droplets,
   Scale,
   Moon,
@@ -42,6 +41,7 @@ import {
   SUPPLEMENT_DATABASE,
 } from '@/lib/supplement-engine';
 import { resolveWeightUnit } from '@/lib/units';
+import { BackButton } from './_ToolShell';
 
 interface QuickActionsProps {
   onClose: () => void;
@@ -875,11 +875,9 @@ export default function QuickActions({ onClose }: QuickActionsProps) {
     <div className="min-h-screen bg-grappler-950 pb-24 safe-area-top">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800/50">
-        <div className="px-4 py-3 flex items-center justify-between">
+        <div className="px-4 py-3 flex items-center gap-2">
+          <BackButton onClick={onClose} />
           <h1 className="text-lg font-bold text-grappler-50">Quick Actions</h1>
-          <button aria-label="Close" onClick={onClose} className="w-8 h-8 rounded-full bg-grappler-800/60 flex items-center justify-center hover:bg-grappler-700 transition-colors">
-            <X className="w-4 h-4 text-grappler-400" />
-          </button>
         </div>
       </div>
 

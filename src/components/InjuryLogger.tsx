@@ -31,6 +31,7 @@ import { analyzeInjuryRisks, getPrehabRecommendations, type InjuryAnalysis, type
 import { classifyInjury, getInjuryTimeline } from '@/lib/injury-science';
 import { detectInjuryPatterns, getRecoveryInsights, type InjuryPattern, type RecoveryInsight } from '@/lib/injury-patterns';
 import { cn } from '@/lib/utils';
+import { BackButton } from './_ToolShell';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -302,9 +303,7 @@ export default function InjuryLogger({ onClose, onNavigate }: InjuryLoggerProps)
       <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            <BackButton onClick={onClose} />
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
                 <Heart className="w-4 h-4 text-red-400" />

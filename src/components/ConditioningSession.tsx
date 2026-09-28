@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import BackLayer from './BackLayer';
+import { BackButton } from './_ToolShell';
 import {
   getConditioningTemplates,
   getTemplatesForSport,
@@ -594,11 +595,9 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
     return (
       <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col overflow-hidden safe-area-top">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-grappler-800">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-grappler-800">
+          <BackButton onClick={onClose} />
           <h1 className="text-lg font-bold text-grappler-50">Conditioning</h1>
-          <button onClick={onClose} aria-label="Close" className="p-2 rounded-lg hover:bg-grappler-800 text-grappler-400">
-            <X size={20} />
-          </button>
         </div>
 
         {/* Sport filter tabs */}
@@ -1032,7 +1031,7 @@ export default function ConditioningSession({ onClose }: ConditioningSessionProp
     }
 
     return (
-      <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-grappler-950 flex flex-col overflow-hidden" data-no-swipe>
         {/* Back while running opens the end-workout confirm (never silently drops the session) */}
         {!showEndConfirm && <BackLayer onBack={() => setShowEndConfirm(true)} />}
         {/* Top bar with template name and close */}

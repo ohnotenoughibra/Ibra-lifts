@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronLeft,
   Plus,
   Check,
   X,
@@ -34,6 +33,7 @@ import {
   ACTIVITY_CATEGORY_MAP,
 } from '@/lib/types';
 import { resolveWeightUnit } from '@/lib/units';
+import { BackButton } from './_ToolShell';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -461,9 +461,7 @@ export default function GrapplingTracker({ onClose, startWithForm = false }: Gra
       <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            <BackButton onClick={onClose} />
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center">
                 <Target className="w-4 h-4 text-emerald-400" />

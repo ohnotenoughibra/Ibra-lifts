@@ -4,7 +4,6 @@ import { formatTarget, formatSetsTarget } from '@/lib/prescription-format';
 import { useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronLeft,
   Zap,
   TrendingUp,
   TrendingDown,
@@ -36,6 +35,7 @@ import type {
   Mesocycle,
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { BackButton } from './_ToolShell';
 
 // ── Block Focus → Goal Focus mapping ──────────────────────────────────────
 const BLOCK_TO_GOAL: Record<BlockFocus, GoalFocus> = {
@@ -265,9 +265,7 @@ export default function ProgramBrowser({ onClose, onNavigate }: ProgramBrowserPr
       {/* Header */}
       <header className="sticky top-0 z-40 bg-grappler-900 border-b border-grappler-800">
         <div className="px-4 py-4 flex items-center gap-3">
-          <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">
               <Target className="w-4 h-4 text-primary-400" />

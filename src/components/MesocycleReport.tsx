@@ -11,7 +11,6 @@ import {
   Dumbbell,
   Star,
   BarChart3,
-  ChevronLeft,
   Zap,
   Minus,
   Award,
@@ -31,6 +30,7 @@ import {
   formatDuration,
   MesocycleReport as ReportType,
 } from '@/lib/mesocycle-report';
+import { BackButton } from './_ToolShell';
 
 interface MesocycleReportProps {
   mesocycle: Mesocycle;
@@ -138,9 +138,7 @@ export default function MesocycleReport({
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800 p-4">
         <div className="flex items-center gap-3">
-          <button onClick={onClose} aria-label="Go back" className="w-10 h-10 rounded-xl bg-grappler-800 flex items-center justify-center">
-            <ChevronLeft className="w-5 h-5 text-grappler-300" />
-          </button>
+          <BackButton onClick={onClose} />
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold text-grappler-100 truncate">Block Report</h1>
             <p className="text-xs text-grappler-400">{mesocycle.name}</p>

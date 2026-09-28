@@ -4,7 +4,6 @@ import { formatTarget, formatSetsTarget } from '@/lib/prescription-format';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronLeft,
   Save,
   Play,
   Trash2,
@@ -25,6 +24,7 @@ import { exercises as allExercises } from '@/lib/exercises';
 import { Shield, BookOpen, Filter, Zap, Heart, Scale, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from './Toast';
+import { BackButton } from './_ToolShell';
 
 // Per-exercise prescription for templates — allows compound/accessory differentiation
 interface ExerciseSpec {
@@ -748,12 +748,7 @@ export default function SessionTemplates({ onClose }: SessionTemplatesProps) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800">
         <div className="flex items-center gap-3 p-4">
-          <button aria-label="Go back"
-            onClick={onClose}
-            className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <div>
             <h1 className="text-lg font-bold text-grappler-50 leading-tight">Templates & Programs</h1>
             <p className="text-xs text-grappler-400">Pick a program or start a quick workout</p>

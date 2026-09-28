@@ -25,6 +25,7 @@ import PlanView from './nutrition/PlanView';
 import CoachView from './nutrition/CoachView';
 import FoodLogger from './nutrition/FoodLogger';
 import { Sheet, MEAL_LABEL } from './nutrition/ui';
+import { BackButton } from './_ToolShell';
 
 type Tab = 'today' | 'plan' | 'coach';
 
@@ -54,9 +55,7 @@ export default function NutritionTracker({ onClose, onNavigate }: { onClose: () 
       className="min-h-screen bg-grappler-900 safe-area-top">
       <div className="sticky top-0 z-20 bg-grappler-900/95 backdrop-blur border-b border-grappler-800">
         <div className="flex items-center justify-between px-2 py-2">
-          <button aria-label="Go back" onClick={onClose} className="w-11 h-11 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} className="ml-0" />
           {tab === 'today' ? (
             <div className="flex items-center gap-1">
               <button aria-label="Previous day" onClick={() => shift(-1)} className="w-11 h-11 flex items-center justify-center text-grappler-400"><ChevronLeft className="w-4 h-4" /></button>

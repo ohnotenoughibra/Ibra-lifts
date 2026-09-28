@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Play, Pause, SkipForward, Square, ChevronLeft, Zap, Info, Check } from 'lucide-react';
+import { X, Play, Pause, SkipForward, Square, Zap, Info, Check } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import {
   SPRINT_PROTOCOLS, getSprintProtocol, buildTimeline, totalSeconds, workSeconds, positionAt,
@@ -21,6 +21,8 @@ import { usePersistentState } from '@/lib/use-persistent-state';
 import { useWakeLock } from '@/lib/use-wake-lock';
 import { beep, unlockBeeps } from '@/lib/beep';
 import { cn } from '@/lib/utils';
+import BackLayer from './BackLayer';
+import { BackButton } from './_ToolShell';
 import type { ActivityType, TrainingIntensity } from '@/lib/types';
 
 interface Props {
@@ -68,6 +70,8 @@ export default function SprintTimer({ onClose, recommendation, mode = 'standalon
   const [view, setView] = useState<'pick' | 'preview' | 'run' | 'log'>(run ? 'run' : recommendation ? 'preview' : 'pick');
   const [now, setNow] = useState(() => Date.now());
   const [finishedEarlyAt, setFinishedEarlyAt] = useState<number | null>(null);
+  // Back never silently drops a run or an unsaved log: it asks first.
+  const [confirm, setConfirm] = useState<'end' | 'discard' | null>(null);
 
   const protocol = selectedId ? getSprintProtocol(selectedId) ?? null : null;
   const timeline = useMemo(() => (protocol ? buildTimeline(protocol) : []), [protocol]);
@@ -189,18 +193,56 @@ export default function SprintTimer({ onClose, recommendation, mode = 'standalon
     onClose();
   };
 
+  // ── Back button, per step ──
+  // pick → close (the finisher has no tool layer of its own), preview → pick,
+  // run → "End this session?", log → "Discard?". Keyed by step, and unmounted
+  // while a confirm is up, so each step re-arms after a confirm closes.
+  const backFor: Partial<Record<typeof view, () => void>> = {
+    pick: mode === 'finisher' ? onClose : undefined,
+    preview: () => setView('pick'),
+    run: () => setConfirm('end'),
+    log: () => setConfirm('discard'),
+  };
+  const stepBack = backFor[view];
+  const backLayer = !confirm && stepBack ? <BackLayer key={view} onBack={stepBack} /> : null;
+
+  const confirmSheet = confirm && (
+    <div className="fixed inset-0 z-[60] bg-black/60 flex items-end justify-center" onClick={() => setConfirm(null)}>
+      <BackLayer onBack={() => setConfirm(null)} />
+      <div role="dialog" aria-modal="true" aria-label={confirm === 'end' ? 'End this session?' : 'Discard this session?'}
+        onClick={e => e.stopPropagation()}
+        className="w-full max-w-lg bg-grappler-900 rounded-t-2xl border-t border-grappler-700 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <p className="text-base font-bold text-grappler-50">{confirm === 'end' ? 'End this session?' : 'Discard this session?'}</p>
+        <p className="text-sm text-grappler-400 mt-1">
+          {confirm === 'end' ? "You'll go to the log screen — what you've done so far can still be saved." : "Nothing's been saved yet."}
+        </p>
+        <div className="flex gap-3 mt-4">
+          <button onClick={() => setConfirm(null)} className="btn btn-secondary btn-lg flex-1">
+            {confirm === 'end' ? 'Keep going' : 'Keep editing'}
+          </button>
+          <button
+            onClick={() => { const c = confirm; setConfirm(null); if (c === 'end') endEarly(); else discard(); }}
+            className={cn('btn btn-lg flex-1', confirm === 'end' ? 'btn-primary' : 'bg-rose-600 hover:bg-rose-500 text-white')}
+          >
+            {confirm === 'end' ? 'End & log' : 'Discard'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   // ── Views ──
+  // Back arrow top-left like every tool (a step back, or out of the tool);
+  // a step inside the tool also gets ✕ to leave the whole tool.
   const header = (title: string, back?: () => void) => (
     <div className="flex items-center justify-between mb-4">
+      <BackButton onClick={back ?? onClose} label={back ? 'Back' : 'Go back'} />
+      <h1 className="text-lg font-bold text-grappler-50 truncate">{title}</h1>
       {back ? (
-        <button onClick={back} aria-label="Back" className="p-2 -ml-2 min-w-[44px] min-h-[44px] flex items-center text-grappler-400">
-          <ChevronLeft className="w-5 h-5" />
+        <button onClick={onClose} aria-label="Close" className="p-2 -mr-2 min-w-[44px] min-h-[44px] flex items-center justify-end text-grappler-400">
+          <X className="w-5 h-5" />
         </button>
       ) : <div className="w-11" />}
-      <h1 className="text-lg font-bold text-grappler-50">{title}</h1>
-      <button onClick={onClose} aria-label="Close" className="p-2 -mr-2 min-w-[44px] min-h-[44px] flex items-center justify-end text-grappler-400">
-        <X className="w-5 h-5" />
-      </button>
     </div>
   );
 
@@ -208,6 +250,7 @@ export default function SprintTimer({ onClose, recommendation, mode = 'standalon
     const list = mode === 'finisher' ? SPRINT_PROTOCOLS.filter(p => p.finisherOk) : SPRINT_PROTOCOLS;
     return (
       <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top">
+        {backLayer}{confirmSheet}
         <div className="max-w-lg mx-auto p-4 pb-24">
           {header(mode === 'finisher' ? 'Conditioning finisher' : 'Air bike & sprints')}
           <p className="text-sm text-grappler-400 mb-4">Pick by what you want to train. Every session is logged with your effort and counts toward training load.</p>
@@ -241,6 +284,7 @@ export default function SprintTimer({ onClose, recommendation, mode = 'standalon
     const scheme = `${b.sets && b.sets > 1 ? `${b.sets} × ` : ''}${b.reps} × ${b.workS >= 60 ? formatClock(b.workS) : `${b.workS} s`}${b.restS ? ` / ${b.restS >= 60 ? formatClock(b.restS) : `${b.restS} s`} easy` : ''}`;
     return (
       <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top">
+        {backLayer}{confirmSheet}
         <div className="max-w-lg mx-auto p-4 pb-32">
           {header(protocol.name, () => setView('pick'))}
           {recommendation?.protocol.id === protocol.id && (
@@ -292,7 +336,8 @@ export default function SprintTimer({ onClose, recommendation, mode = 'standalon
     const repsTotal = protocol.block.reps;
     const setsTotal = protocol.block.sets ?? 1;
     return (
-      <div className={cn('fixed inset-0 z-50 flex flex-col safe-area-top transition-colors duration-300', bg)} data-testid="sprint-run">
+      <div className={cn('fixed inset-0 z-50 flex flex-col safe-area-top transition-colors duration-300', bg)} data-testid="sprint-run" data-no-swipe>
+        {backLayer}{confirmSheet}
         <div className="flex items-center justify-between p-4">
           <button onClick={endEarly} className="min-h-[44px] px-3 rounded-lg bg-black/25 text-white/90 text-sm flex items-center gap-1.5" aria-label="End session">
             <Square className="w-4 h-4" /> End
@@ -340,7 +385,8 @@ export default function SprintTimer({ onClose, recommendation, mode = 'standalon
       </label>
     );
     return (
-      <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top">
+      <div className="fixed inset-0 z-50 bg-grappler-900 overflow-y-auto safe-area-top" data-no-swipe>
+        {backLayer}{confirmSheet}
         <div className="max-w-lg mx-auto p-4 pb-32">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-lg font-bold text-grappler-50">{early ? 'Ended early' : 'Done'} · {protocol.name}</h1>

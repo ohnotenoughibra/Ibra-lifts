@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronLeft,
   ChevronRight,
   Calendar,
   Dumbbell,
@@ -17,6 +16,7 @@ import { cn } from '@/lib/utils';
 import BackLayer from './BackLayer';
 import { WorkoutSession, MesocycleWeek, WorkoutType } from '@/lib/types';
 import { getCompletedSessionIds } from '@/lib/session-matching';
+import { BackButton } from './_ToolShell';
 
 interface PeriodizationCalendarProps {
   onClose: () => void;
@@ -90,9 +90,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
     return (
       <div className="min-h-screen bg-grappler-900 p-4 pb-24">
         <div className="flex items-center gap-3 mb-6">
-          <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <h2 className="text-lg font-bold text-grappler-50 leading-tight">Periodization Calendar</h2>
         </div>
         <motion.div
@@ -115,9 +113,7 @@ export default function PeriodizationCalendar({ onClose }: PeriodizationCalendar
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <button aria-label="Go back" onClick={onClose} className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <div>
             <h2 className="text-xl font-bold text-grappler-50">Periodization Calendar</h2>
             <p className="text-sm text-grappler-400">{currentMesocycle.name}</p>

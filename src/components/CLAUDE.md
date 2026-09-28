@@ -165,6 +165,9 @@ ignores touches inside dialogs.
   `onClose` prop — it's state-driven; don't call `history.back()` yourself.
 - Each tool level, the non-Today tab, the running workout and every sheet own
   one history entry via `src/lib/back-stack.ts` (ranked tab < tool < workout < sheet).
+- Tool header: `<BackButton onClick={onClose} />` (from `_ToolShell`) first on
+  the left — never a ✕ (✕ is for sheets/dialogs). `data-no-swipe` on a screen
+  that must not pull-to-close (running timers, unsaved forms).
 - Tool roots that scroll an inner panel are fine — pull-to-close only starts
   when the tool's main scroll area is at the top.
 

@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronLeft,
   Heart,
   Activity,
   Flame,
@@ -29,6 +28,7 @@ import {
 } from 'recharts';
 import { useAppStore } from '@/lib/store';
 import { HRSession, HRZone, HRZoneConfig, WhoopWorkout, TrainingSession } from '@/lib/types';
+import { BackButton } from './_ToolShell';
 
 interface HRZoneTrainingProps {
   onClose: () => void;
@@ -470,12 +470,7 @@ export default function HRZoneTraining({ onClose }: HRZoneTrainingProps) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-950 border-b border-grappler-800">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button aria-label="Go back"
-            onClick={onClose}
-            className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <div className="flex items-center gap-2">
             <Heart className="w-5 h-5 text-red-400" />
             <h1 className="text-lg font-bold text-grappler-50 leading-tight">

@@ -3,7 +3,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft,
   Search,
   X,
   Filter,
@@ -25,6 +24,7 @@ import { cn } from '@/lib/utils';
 import BackLayer from './BackLayer';
 import { exercises } from '@/lib/exercises';
 import type { Exercise, MuscleGroup, ExerciseCategory, MovementPattern } from '@/lib/types';
+import { BackButton } from './_ToolShell';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -590,13 +590,7 @@ export default function MovementLibrary({ onClose }: MovementLibraryProps) {
         <div className="sticky top-0 z-20 bg-grappler-950 border-b border-grappler-700/40">
           {/* Top Row: Back + Title */}
           <div className="flex items-center gap-3 px-4 py-3">
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg text-grappler-400 hover:text-grappler-100 hover:bg-grappler-800 transition-colors"
-              aria-label="Close Movement Library"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
+            <BackButton onClick={onClose} />
             <h1 className="text-lg font-bold text-grappler-50 flex-1">Movement Library</h1>
             <button
               onClick={() => setShowFilters((v) => !v)}

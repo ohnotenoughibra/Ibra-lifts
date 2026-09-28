@@ -21,6 +21,7 @@ import {
 import EmptyState from './EmptyState';
 import BackLayer from './BackLayer';
 import { cn } from '@/lib/utils';
+import { BackButton } from './_ToolShell';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -252,13 +253,7 @@ export default function PhotoProgress({ onClose }: { onClose: () => void }) {
       {/* ----------------------------------------------------------------- */}
       <div className="sticky top-0 z-20 bg-grappler-950 border-b border-grappler-800">
         <div className="flex items-center gap-3 p-4">
-          <button
-            onClick={onClose}
-            aria-label="Go back"
-            className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <div className="flex-1">
             <h1 className="text-lg font-bold text-grappler-50 flex items-center gap-2 leading-tight">
               <Camera className="w-5 h-5 text-primary-400" />

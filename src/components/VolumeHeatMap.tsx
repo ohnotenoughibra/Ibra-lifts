@@ -2,13 +2,14 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronDown, BarChart3, Info, TrendingUp, AlertTriangle, CheckCircle, Zap, Shield } from 'lucide-react';
+import { ChevronDown, BarChart3, Info, TrendingUp, AlertTriangle, CheckCircle, Zap, Shield } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { getExerciseById, getExercisesByMuscle } from '@/lib/exercises';
 import { VOLUME_LANDMARKS } from '@/lib/workout-generator';
 import { analyzeVolumeLandmarks, type IndividualizedLandmarks, type MuscleLandmarks } from '@/lib/volume-landmarks';
 import { cn } from '@/lib/utils';
 import type { MuscleGroup, WorkoutLog } from '@/lib/types';
+import { BackButton } from './_ToolShell';
 
 /** Pick 2-3 top exercises for a muscle, preferring compounds then isolation. */
 function getExerciseSuggestionsForMuscle(muscle: MuscleGroup): string[] {
@@ -283,12 +284,7 @@ export default function VolumeHeatMap({ onClose }: VolumeHeatMapProps) {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-grappler-900 border-b border-grappler-800 px-4 py-3">
         <div className="flex items-center gap-3">
-          <button aria-label="Go back"
-            onClick={onClose}
-            className="-ml-2 w-10 h-10 rounded-lg flex items-center justify-center text-grappler-200 hover:bg-grappler-800 transition-colors flex-shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+          <BackButton onClick={onClose} />
           <div>
             <h1 className="text-lg font-bold text-grappler-50 leading-tight">Weekly Volume Tracker</h1>
             <p className="text-xs text-grappler-400">
